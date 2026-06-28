@@ -70,10 +70,12 @@ model User {
   resources        Resource[]
   vendorReviews    VendorReview[]
   comments         Comment[]
-  planningBoards   PlanningBoard[]
-  boardMembers     PlanningBoardMember[]
-  aiSessions       AIPlannerSession[]
-  aiUsages         AIUsage[]
+  planningBoards       PlanningBoard[]
+  boardMembers         PlanningBoardMember[]
+  aiSessions           AIPlannerSession[]
+  aiUsages             AIUsage[]
+  decorationFavorites  DecorationFavorite[]
+  decorationsMade      DecorationMade[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -292,13 +294,40 @@ model Decoration {
   fileUrl      String?
   instructions String?
   costEstimate Float?
+  favorites    Int     @default(0)
 
-  user      User                 @relation(fields: [userId], references: [id])
-  materials DecorationMaterial[]
-  comments  Comment[]
+  user        User                 @relation(fields: [userId], references: [id])
+  materials   DecorationMaterial[]
+  comments    Comment[]
+  favoritedBy DecorationFavorite[]
+  madeBy      DecorationMade[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model DecorationFavorite {
+  id           String @id @default(cuid())
+  decorationId String
+  userId       String
+
+  decoration Decoration @relation(fields: [decorationId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([decorationId, userId])
+}
+
+model DecorationMade {
+  id           String  @id @default(cuid())
+  decorationId String
+  userId       String
+  imageUrl     String?
+  notes        String?
+
+  decoration Decoration @relation(fields: [decorationId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
 
 model DecorationMaterial {

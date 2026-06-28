@@ -11,9 +11,11 @@ export async function GET() {
     include: {
       user: { select: { name: true } },
       materials: true,
-      _count: { select: { comments: true } },
+      _count: { select: { comments: true, favoritedBy: true, madeBy: true } },
+      favoritedBy: { where: { userId: session.user.id }, select: { id: true } },
+      madeBy: { select: { id: true, userId: true, imageUrl: true, user: { select: { name: true } } } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { favorites: "desc" },
   });
 
   return NextResponse.json(decorations);
@@ -41,13 +43,12 @@ export async function POST(req: NextRequest) {
       fileUrl,
       instructions,
       costEstimate,
-      materials: materials
+      materials: materials?.length
         ? {
             create: materials.map((m: any) => ({
               name: m.name,
-              quantity: m.quantity,
-              cost: m.cost,
-              url: m.url,
+              quantity: m.quantity || null,
+              cost: m.cost || null,
             })),
           }
         : undefined,
