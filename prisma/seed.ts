@@ -20,14 +20,20 @@ async function main() {
   console.log("Created admin user:", admin.email);
 
   const codes = await Promise.all([
-    prisma.authorizationCode.create({
-      data: { code: "RA2026FALL", role: "RESIDENT_ASSISTANT" },
+    prisma.authorizationCode.upsert({
+      where: { code: "RA2026FALL" },
+      update: {},
+      create: { code: "RA2026FALL", role: "RESIDENT_ASSISTANT" },
     }),
-    prisma.authorizationCode.create({
-      data: { code: "RHA2026FALL", role: "RHA_MEMBER" },
+    prisma.authorizationCode.upsert({
+      where: { code: "RHA2026FALL" },
+      update: {},
+      create: { code: "RHA2026FALL", role: "RHA_MEMBER" },
     }),
-    prisma.authorizationCode.create({
-      data: { code: "ADMIN2026", role: "ADMIN" },
+    prisma.authorizationCode.upsert({
+      where: { code: "ADMIN2026" },
+      update: {},
+      create: { code: "ADMIN2026", role: "ADMIN" },
     }),
   ]);
 
