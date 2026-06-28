@@ -4,9 +4,8 @@ import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, DollarSign, Lightbulb, BookOpen } from "lucide-react";
-import { formatCurrency, formatDate, formatTime } from "@/lib/utils";
+import { Calendar, Lightbulb, BookOpen } from "lucide-react";
+import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -16,11 +15,8 @@ export default function DashboardPage() {
   const { data: dashboardData } = useSWR("/api/dashboard", fetcher);
 
   const events = dashboardData?.events || [];
-  const budget = dashboardData?.budget || { allocated: 0, used: 0, remaining: 0 };
   const inspirations = dashboardData?.inspirations || [];
   const resources = dashboardData?.resources || [];
-
-  const budgetPercent = budget.allocated > 0 ? (budget.used / budget.allocated) * 100 : 0;
 
   return (
     <div className="space-y-8">
@@ -73,28 +69,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Budget Snapshot */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-semibold">Budget Snapshot</CardTitle>
-            <DollarSign className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Used: {formatCurrency(budget.used)}</span>
-                <span>Allocated: {formatCurrency(budget.allocated)}</span>
-              </div>
-              <Progress value={budgetPercent} />
-              <p className="text-sm font-medium text-primary">
-                {formatCurrency(budget.remaining)} remaining
-              </p>
-            </div>
-            <Link href="/budgets" className="text-sm text-primary hover:underline block">
-              Manage budgets
-            </Link>
-          </CardContent>
-        </Card>
 
         {/* Inspiration Feed */}
         <Card>

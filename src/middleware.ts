@@ -12,8 +12,6 @@ export const config = {
     "/events/:path*",
     "/inspiration/:path*",
     "/decorations/:path*",
-    "/budgets/:path*",
-    "/vendors/:path*",
     "/resources/:path*",
     "/ai-planner/:path*",
     "/collaboration/:path*",
