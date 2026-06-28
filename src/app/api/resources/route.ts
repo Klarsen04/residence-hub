@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       type,
       fileUrl,
       externalUrl,
-      tags: tags || [],
+      tags: JSON.stringify(tags || []),
       isPublic: isPublic ?? true,
     },
   });

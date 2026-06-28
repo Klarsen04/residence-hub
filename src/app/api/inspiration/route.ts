@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       imageUrl,
       source,
       category,
-      tags: tags || [],
+      tags: JSON.stringify(tags || []),
     },
   });
 
