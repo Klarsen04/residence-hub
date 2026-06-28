@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { openai } from "@/lib/openai";
+import { getOpenAI } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
@@ -47,7 +47,7 @@ Provide your response in the following format:
 
 Be creative, practical, and budget-conscious. Suggest alternatives if the budget is tight.`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     messages: [{ role: "user", content: prompt }],
     temperature: 0.8,
