@@ -7,8 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Calendar as CalendarIcon, List } from "lucide-react";
-import { formatDate, formatTime } from "@/lib/utils";
+import { Plus, Search, Calendar as CalendarIcon, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatTime } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -32,21 +32,40 @@ const statusColors: Record<string, string> = {
   CANCELLED: "bg-red-100 text-red-700",
 };
 
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 export default function EventsPage() {
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<"list" | "calendar">("list");
-  const { data: events, isLoading } = useSWR("/api/events", fetcher);
+  const [view, setView] = useState<"list" | "calendar">("calendar");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const { data: events, isLoading } = useSWR("/api/events/all", fetcher);
 
   const filteredEvents = (events || []).filter((e: any) =>
     e.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+  const getEventsForDay = (day: number) => {
+    return filteredEvents.filter((e: any) => {
+      const d = new Date(e.date);
+      return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+    });
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Events</h1>
-          <p className="text-muted-foreground">Plan, manage, and track your programs</p>
+          <p className="text-muted-foreground">United calendar — all staff events in one place</p>
         </div>
         <Link href="/events/new">
           <Button>
@@ -68,24 +87,87 @@ export default function EventsPage() {
         </div>
         <div className="flex gap-1 border rounded-lg p-1">
           <Button
-            variant={view === "list" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setView("list")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
             variant={view === "calendar" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setView("calendar")}
           >
             <CalendarIcon className="h-4 w-4" />
           </Button>
+          <Button
+            variant={view === "list" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setView("list")}
+          >
+            <List className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Loading events...</div>
+      ) : view === "calendar" ? (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <Button variant="ghost" size="icon" onClick={prevMonth}>
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <h2 className="text-lg font-semibold">
+                {MONTHS[month]} {year}
+              </h2>
+              <Button variant="ghost" size="icon" onClick={nextMonth}>
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
+              {DAYS.map((day) => (
+                <div key={day} className="bg-background p-2 text-center text-xs font-medium text-muted-foreground">
+                  {day}
+                </div>
+              ))}
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <div key={`empty-${i}`} className="bg-background p-2 min-h-[80px]" />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const dayEvents = getEventsForDay(day);
+                const isToday =
+                  day === new Date().getDate() &&
+                  month === new Date().getMonth() &&
+                  year === new Date().getFullYear();
+                return (
+                  <div
+                    key={day}
+                    className={`bg-background p-1 min-h-[80px] ${isToday ? "ring-2 ring-primary ring-inset" : ""}`}
+                  >
+                    <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                      {day}
+                    </span>
+                    <div className="mt-1 space-y-0.5">
+                      {dayEvents.slice(0, 3).map((event: any) => (
+                        <Link key={event.id} href={`/events/${event.id}`}>
+                          <div
+                            className={`text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80 ${
+                              categoryColors[event.category]?.split(" ").slice(0, 2).join(" ") || "bg-primary/10"
+                            }`}
+                          >
+                            {event.title}
+                          </div>
+                        </Link>
+                      ))}
+                      {dayEvents.length > 3 && (
+                        <span className="text-xs text-muted-foreground px-1">
+                          +{dayEvents.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       ) : filteredEvents.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -118,9 +200,9 @@ export default function EventsPage() {
                         {formatTime(event.startTime)} - {formatTime(event.endTime)}
                         {event.location && ` | ${event.location}`}
                       </p>
-                      {event.hall && (
-                        <p className="text-xs text-muted-foreground">{event.hall.name}</p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {event.organizer?.name}{event.hall ? ` — ${event.hall.name}` : ""}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

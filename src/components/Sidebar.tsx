@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -85,6 +86,21 @@ export function Sidebar() {
           </nav>
 
           <div className="p-3 border-t space-y-1">
+            {session?.user?.role === "ADMIN" && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  pathname === "/admin"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
             <Link
               href="/settings"
               onClick={() => setMobileOpen(false)}

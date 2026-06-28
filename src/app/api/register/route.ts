@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, authCode } = await request.json();
 
-    if (!email || !password) {
+    if (!email || !password || !authCode) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email, password, and authorization code are required" },
         { status: 400 }
       );
     }
@@ -17,6 +17,31 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Password must be at least 8 characters" },
         { status: 400 }
+      );
+    }
+
+    const code = await prisma.authorizationCode.findUnique({
+      where: { code: authCode },
+    });
+
+    if (!code) {
+      return NextResponse.json(
+        { error: "Invalid authorization code" },
+        { status: 403 }
+      );
+    }
+
+    if (code.usedBy) {
+      return NextResponse.json(
+        { error: "This authorization code has already been used" },
+        { status: 403 }
+      );
+    }
+
+    if (code.expiresAt && code.expiresAt < new Date()) {
+      return NextResponse.json(
+        { error: "This authorization code has expired" },
+        { status: 403 }
       );
     }
 
@@ -33,11 +58,21 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         name: name || null,
         email,
         password: hashedPassword,
+        role: code.role,
+        hallId: code.hallId,
+      },
+    });
+
+    await prisma.authorizationCode.update({
+      where: { id: code.id },
+      data: {
+        usedBy: user.id,
+        usedAt: new Date(),
       },
     });
 

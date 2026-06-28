@@ -434,6 +434,19 @@ model PlanningBoardItem {
   updatedAt DateTime @updatedAt
 }
 
+// ─── Authorization Codes ─────────────────────────────────────────────────────
+
+model AuthorizationCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  role      String   @default("RESIDENT_ASSISTANT")
+  hallId    String?
+  usedBy    String?
+  usedAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+}
+
 // ─── AI Planner ──────────────────────────────────────────────────────────────
 
 model AIPlannerSession {

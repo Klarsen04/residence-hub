@@ -17,6 +17,7 @@ function LoginForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authCode, setAuthCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,7 @@ function LoginForm() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, authCode }),
       });
 
       if (!res.ok) {
@@ -136,6 +137,26 @@ function LoginForm() {
               </button>
             </div>
           </div>
+
+          {isRegister && (
+            <div>
+              <label htmlFor="authCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Authorization Code
+              </label>
+              <input
+                id="authCode"
+                type="text"
+                value={authCode}
+                onChange={(e) => setAuthCode(e.target.value)}
+                required={isRegister}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white"
+                placeholder="Enter code from your supervisor"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Get this from your Residence Life administrator
+              </p>
+            </div>
+          )}
 
           {error && (
             <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
