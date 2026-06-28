@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Heart, ExternalLink, Play } from "lucide-react";
+import { Plus, Search, Heart, ExternalLink, Play, Pencil, Trash2, X, Check } from "lucide-react";
 import { toast } from "sonner";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -39,23 +39,19 @@ function parseTags(tags: any): string[] {
 
 function getEmbedUrl(url: string, source: string): string | null {
   if (!url) return null;
-
   if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
     if (match) return `https://www.youtube.com/embed/${match[1]}`;
   }
-
   return null;
 }
 
 function getThumbnail(url: string, source: string): string | null {
   if (!url) return null;
-
   if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
     if (match) return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
   }
-
   return null;
 }
 
@@ -64,6 +60,8 @@ export default function InspirationPage() {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", url: "", source: "", category: "", tags: "" });
   const { data: inspirations, mutate } = useSWR("/api/inspiration", fetcher);
 
   const [form, setForm] = useState({
@@ -92,6 +90,49 @@ export default function InspirationPage() {
       mutate();
     } catch {
       toast.error("Failed to save inspiration");
+    }
+  };
+
+  const startEdit = (item: any) => {
+    const tags = parseTags(item.tags);
+    setEditingId(item.id);
+    setEditForm({
+      title: item.title || "",
+      url: item.url || "",
+      source: item.source || "PINTEREST",
+      category: item.category || "WELCOME_WEEK",
+      tags: tags.join(", "),
+    });
+  };
+
+  const handleEdit = async (id: string) => {
+    try {
+      const res = await fetch(`/api/inspiration/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editForm,
+          tags: editForm.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      toast.success("Updated!");
+      setEditingId(null);
+      mutate();
+    } catch {
+      toast.error("Failed to update");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this inspiration?")) return;
+    try {
+      const res = await fetch(`/api/inspiration/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      toast.success("Deleted!");
+      mutate();
+    } catch {
+      toast.error("Failed to delete");
     }
   };
 
@@ -215,10 +256,80 @@ export default function InspirationPage() {
             const embedUrl = getEmbedUrl(item.url, item.source);
             const thumbnail = getThumbnail(item.url, item.source);
             const isPlaying = playingId === item.id;
+            const isEditing = editingId === item.id;
+
+            if (isEditing) {
+              return (
+                <Card key={item.id} className="break-inside-avoid overflow-hidden border-primary">
+                  <CardContent className="p-4 space-y-3">
+                    <div>
+                      <label className="text-xs font-medium">Title</label>
+                      <Input
+                        value={editForm.title}
+                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">URL</label>
+                      <Input
+                        value={editForm.url}
+                        onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium">Source</label>
+                        <select
+                          className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                          value={editForm.source}
+                          onChange={(e) => setEditForm({ ...editForm, source: e.target.value })}
+                        >
+                          {sources.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium">Category</label>
+                        <select
+                          className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                          value={editForm.category}
+                          onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                        >
+                          {categories.filter((c) => c !== "All").map((c) => (
+                            <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium">Tags</label>
+                      <Input
+                        value={editForm.tags}
+                        onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                        className="h-8 text-sm"
+                        placeholder="tag1, tag2..."
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleEdit(item.id)}>
+                        <Check className="h-3 w-3 mr-1" />
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                        <X className="h-3 w-3 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            }
 
             return (
-              <Card key={item.id} className="break-inside-avoid overflow-hidden">
-                {/* Video embed or thumbnail */}
+              <Card key={item.id} className="break-inside-avoid overflow-hidden group">
                 {embedUrl && isPlaying ? (
                   <div className="aspect-video">
                     <iframe
@@ -230,11 +341,11 @@ export default function InspirationPage() {
                   </div>
                 ) : thumbnail ? (
                   <div
-                    className="aspect-video bg-muted relative cursor-pointer group"
+                    className="aspect-video bg-muted relative cursor-pointer"
                     onClick={() => setPlayingId(item.id)}
                   >
                     <img src={thumbnail} alt={item.title || ""} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors">
                       <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
                         <Play className="h-5 w-5 text-black ml-0.5" />
                       </div>
@@ -267,8 +378,17 @@ export default function InspirationPage() {
                       </Badge>
                     </div>
                     <div className="flex gap-1">
-                      <button className="text-muted-foreground hover:text-red-500">
-                        <Heart className="h-4 w-4" />
+                      <button
+                        onClick={() => startEdit(item)}
+                        className="text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                       {item.url && (
                         <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
