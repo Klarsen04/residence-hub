@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Heart, ExternalLink } from "lucide-react";
+import { Plus, Search, Heart, ExternalLink, Play } from "lucide-react";
 import { toast } from "sonner";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -26,10 +26,44 @@ const categories = [
 
 const sources = ["PINTEREST", "INSTAGRAM", "TIKTOK", "YOUTUBE", "UPLOAD"];
 
+function parseTags(tags: any): string[] {
+  if (!tags) return [];
+  if (Array.isArray(tags)) return tags;
+  try {
+    const parsed = JSON.parse(tags);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getEmbedUrl(url: string, source: string): string | null {
+  if (!url) return null;
+
+  if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
+    if (match) return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  return null;
+}
+
+function getThumbnail(url: string, source: string): string | null {
+  if (!url) return null;
+
+  if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
+    if (match) return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+  }
+
+  return null;
+}
+
 export default function InspirationPage() {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const { data: inspirations, mutate } = useSWR("/api/inspiration", fetcher);
 
   const [form, setForm] = useState({
@@ -175,43 +209,85 @@ export default function InspirationPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
-          {filtered.map((item: any) => (
-            <Card key={item.id} className="break-inside-avoid overflow-hidden">
-              {item.imageUrl && (
-                <div className="aspect-[4/3] bg-muted">
-                  <img src={item.imageUrl} alt={item.title || ""} className="w-full h-full object-cover" />
-                </div>
-              )}
-              <CardContent className="p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-sm">{item.title || "Untitled"}</p>
-                    <Badge variant="secondary" className="mt-1 text-xs">
-                      {item.source}
-                    </Badge>
+        <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
+          {filtered.map((item: any) => {
+            const tags = parseTags(item.tags);
+            const embedUrl = getEmbedUrl(item.url, item.source);
+            const thumbnail = getThumbnail(item.url, item.source);
+            const isPlaying = playingId === item.id;
+
+            return (
+              <Card key={item.id} className="break-inside-avoid overflow-hidden">
+                {/* Video embed or thumbnail */}
+                {embedUrl && isPlaying ? (
+                  <div className="aspect-video">
+                    <iframe
+                      src={embedUrl + "?autoplay=1"}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
                   </div>
-                  <div className="flex gap-1">
-                    <button className="text-muted-foreground hover:text-red-500">
-                      <Heart className="h-4 w-4" />
-                    </button>
-                    {item.url && (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    )}
+                ) : thumbnail ? (
+                  <div
+                    className="aspect-video bg-muted relative cursor-pointer group"
+                    onClick={() => setPlayingId(item.id)}
+                  >
+                    <img src={thumbnail} alt={item.title || ""} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                      <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                        <Play className="h-5 w-5 text-black ml-0.5" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                {item.tags?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {item.tags.map((tag: string) => (
-                      <span key={tag} className="text-xs text-muted-foreground">#{tag}</span>
-                    ))}
+                ) : item.imageUrl ? (
+                  <div className="aspect-[4/3] bg-muted">
+                    <img src={item.imageUrl} alt={item.title || ""} className="w-full h-full object-cover" />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                ) : item.url ? (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block p-4 bg-muted/50 border-b hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm text-primary">
+                      <ExternalLink className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{item.url}</span>
+                    </div>
+                  </a>
+                ) : null}
+
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-sm">{item.title || "Untitled"}</p>
+                      <Badge variant="secondary" className="mt-1 text-xs">
+                        {item.source}
+                      </Badge>
+                    </div>
+                    <div className="flex gap-1">
+                      <button className="text-muted-foreground hover:text-red-500">
+                        <Heart className="h-4 w-4" />
+                      </button>
+                      {item.url && (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {tags.map((tag: string) => (
+                        <span key={tag} className="text-xs text-muted-foreground">#{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
