@@ -1,0 +1,543 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Authentication (NextAuth) ───────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  RESIDENT_ASSISTANT
+  RHA_MEMBER
+  PEER_SUCCESS_GUIDE
+  PEER_HEALTH_EDUCATOR
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(RESIDENT_ASSISTANT)
+  hallId        String?
+
+  accounts         Account[]
+  sessions         Session[]
+  hall             ResidenceHall?      @relation(fields: [hallId], references: [id])
+  organizedEvents  Event[]             @relation("EventOrganizer")
+  coOrganizedEvents EventCoOrganizer[]
+  budgetRequests   BudgetRequest[]
+  inspirations     Inspiration[]
+  collections      Collection[]
+  favorites        Favorite[]
+  decorations      Decoration[]
+  resources        Resource[]
+  vendorReviews    VendorReview[]
+  comments         Comment[]
+  planningBoards   PlanningBoard[]
+  boardMembers     PlanningBoardMember[]
+  aiSessions       AIPlannerSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Residence Halls ─────────────────────────────────────────────────────────
+
+model ResidenceHall {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  address     String?
+  capacity    Int?
+  imageUrl    String?
+  description String?
+
+  users   User[]
+  events  Event[]
+  budgets Budget[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Events ──────────────────────────────────────────────────────────────────
+
+enum EventCategory {
+  COMMUNITY_BUILDING
+  WELLNESS
+  ACADEMIC_SUCCESS
+  DIVERSITY_INCLUSION
+  CAREER_DEVELOPMENT
+  SUSTAINABILITY
+  LEADERSHIP
+  SOCIAL
+  SPIRITUAL_LIFE
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+model Event {
+  id          String        @id @default(cuid())
+  title       String
+  description String?       @db.Text
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  category    EventCategory
+  status      EventStatus   @default(DRAFT)
+  reflection  String?       @db.Text
+  attendance  Int?
+
+  organizerId String
+  hallId      String?
+
+  organizer       User              @relation("EventOrganizer", fields: [organizerId], references: [id])
+  hall            ResidenceHall?    @relation(fields: [hallId], references: [id])
+  coOrganizers    EventCoOrganizer[]
+  photos          EventPhoto[]
+  learningOutcomes LearningOutcome[]
+  budgetRequest   BudgetRequest?
+  comments        Comment[]
+  vendors         EventVendor[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model EventCoOrganizer {
+  id      String @id @default(cuid())
+  eventId String
+  userId  String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model EventPhoto {
+  id       String  @id @default(cuid())
+  eventId  String
+  url      String
+  caption  String?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model LearningOutcome {
+  id          String @id @default(cuid())
+  eventId     String
+  description String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ─── Budgets ─────────────────────────────────────────────────────────────────
+
+enum BudgetRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  DENIED
+  COMPLETED
+}
+
+model Budget {
+  id        String @id @default(cuid())
+  hallId    String
+  semester  String
+  allocated Float
+  used      Float  @default(0)
+
+  hall     ResidenceHall   @relation(fields: [hallId], references: [id])
+  requests BudgetRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hallId, semester])
+}
+
+model BudgetRequest {
+  id          String              @id @default(cuid())
+  eventId     String?             @unique
+  userId      String
+  budgetId    String?
+  title       String
+  description String?
+  amount      Float
+  status      BudgetRequestStatus @default(DRAFT)
+
+  event    Event?       @relation(fields: [eventId], references: [id])
+  user     User         @relation(fields: [userId], references: [id])
+  budget   Budget?      @relation(fields: [budgetId], references: [id])
+  items    BudgetItem[]
+  expenses Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BudgetItem {
+  id              String  @id @default(cuid())
+  budgetRequestId String
+  name            String
+  quantity        Int     @default(1)
+  unitCost        Float
+  vendor          String?
+  url             String?
+  notes           String?
+
+  budgetRequest BudgetRequest @relation(fields: [budgetRequestId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id              String  @id @default(cuid())
+  budgetRequestId String
+  description     String
+  amount          Float
+  receiptUrl      String?
+  date            DateTime
+
+  budgetRequest BudgetRequest @relation(fields: [budgetRequestId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+// ─── Inspiration ─────────────────────────────────────────────────────────────
+
+enum InspirationSource {
+  PINTEREST
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+  UPLOAD
+}
+
+enum InspirationCategory {
+  WELCOME_WEEK
+  PASSIVE_PROGRAMS
+  ACTIVE_PROGRAMS
+  STUDY_BREAKS
+  FINALS_WEEK
+  WELLNESS
+  COMMUNITY_BUILDING
+  DIVERSITY_PROGRAMMING
+  SEASONAL_EVENTS
+}
+
+model Inspiration {
+  id          String               @id @default(cuid())
+  userId      String
+  title       String?
+  description String?
+  source      InspirationSource
+  url         String?
+  imageUrl    String?
+  category    InspirationCategory?
+  tags        String[]
+
+  user        User                 @relation(fields: [userId], references: [id])
+  collections CollectionItem[]
+  favorites   Favorite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Collection {
+  id          String  @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  isPublic    Boolean @default(false)
+
+  user  User             @relation(fields: [userId], references: [id])
+  items CollectionItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CollectionItem {
+  id            String @id @default(cuid())
+  collectionId  String
+  inspirationId String
+
+  collection  Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  inspiration Inspiration @relation(fields: [inspirationId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, inspirationId])
+}
+
+model Favorite {
+  id            String @id @default(cuid())
+  userId        String
+  inspirationId String
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inspiration Inspiration @relation(fields: [inspirationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, inspirationId])
+}
+
+// ─── Decorations ─────────────────────────────────────────────────────────────
+
+enum DecorationType {
+  DOOR_DECORATION
+  BULLETIN_BOARD
+  HALLWAY_DECORATION
+}
+
+enum DecorationCategory {
+  WELCOME_WEEK
+  MIDTERMS
+  FINALS
+  MENTAL_HEALTH
+  HOLIDAYS
+  HERITAGE_MONTHS
+  LEADERSHIP
+  ACADEMIC_SUCCESS
+}
+
+model Decoration {
+  id          String             @id @default(cuid())
+  userId      String
+  title       String
+  description String?            @db.Text
+  type        DecorationType
+  category    DecorationCategory
+  imageUrl    String?
+  fileUrl     String?
+  instructions String?           @db.Text
+  costEstimate Float?
+
+  user      User                 @relation(fields: [userId], references: [id])
+  materials DecorationMaterial[]
+  comments  Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DecorationMaterial {
+  id           String  @id @default(cuid())
+  decorationId String
+  name         String
+  quantity     String?
+  cost         Float?
+  url          String?
+
+  decoration Decoration @relation(fields: [decorationId], references: [id], onDelete: Cascade)
+}
+
+// ─── Vendors ─────────────────────────────────────────────────────────────────
+
+enum VendorCategory {
+  CATERING
+  ENTERTAINMENT
+  PRINTING
+  DECORATIONS
+  PHOTOGRAPHY
+  CRAFT_SUPPLIES
+  OTHER
+}
+
+model Vendor {
+  id          String         @id @default(cuid())
+  name        String
+  category    VendorCategory
+  contact     String?
+  email       String?
+  phone       String?
+  website     String?
+  notes       String?        @db.Text
+  costRange   String?
+
+  reviews VendorReview[]
+  events  EventVendor[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VendorReview {
+  id       String @id @default(cuid())
+  vendorId String
+  userId   String
+  rating   Int
+  comment  String? @db.Text
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model EventVendor {
+  id       String @id @default(cuid())
+  eventId  String
+  vendorId String
+  notes    String?
+
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, vendorId])
+}
+
+// ─── Resources ───────────────────────────────────────────────────────────────
+
+enum ResourceType {
+  EVENT_TEMPLATE
+  ICEBREAKER
+  MARKETING_EXAMPLE
+  ATTENDANCE_TRACKER
+  CAMPUS_SERVICE
+  MENTAL_HEALTH
+  ACADEMIC_SUPPORT
+  TRAINING_MATERIAL
+}
+
+model Resource {
+  id          String       @id @default(cuid())
+  userId      String
+  title       String
+  description String?      @db.Text
+  type        ResourceType
+  fileUrl     String?
+  externalUrl String?
+  tags        String[]
+  isPublic    Boolean      @default(true)
+
+  user     User      @relation(fields: [userId], references: [id])
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Collaboration ───────────────────────────────────────────────────────────
+
+model Comment {
+  id           String  @id @default(cuid())
+  userId       String
+  content      String  @db.Text
+  eventId      String?
+  decorationId String?
+  resourceId   String?
+
+  user       User        @relation(fields: [userId], references: [id])
+  event      Event?      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  decoration Decoration? @relation(fields: [decorationId], references: [id], onDelete: Cascade)
+  resource   Resource?   @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanningBoard {
+  id          String  @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+
+  user    User                  @relation(fields: [userId], references: [id])
+  members PlanningBoardMember[]
+  items   PlanningBoardItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanningBoardMember {
+  id      String @id @default(cuid())
+  boardId String
+  userId  String
+
+  board PlanningBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+}
+
+model PlanningBoardItem {
+  id      String  @id @default(cuid())
+  boardId String
+  title   String
+  content String? @db.Text
+  type    String
+  order   Int     @default(0)
+
+  board PlanningBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── AI Planner ──────────────────────────────────────────────────────────────
+
+model AIPlannerSession {
+  id         String @id @default(cuid())
+  userId     String
+  budget     Float
+  audience   String
+  goal       String
+  attendance Int
+  response   String @db.Text
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
