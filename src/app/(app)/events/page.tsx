@@ -21,7 +21,6 @@ const categoryColors: Record<string, string> = {
   SUSTAINABILITY: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
   LEADERSHIP: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
   SOCIAL: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
-  SPIRITUAL_LIFE: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300",
 };
 
 const statusColors: Record<string, string> = {

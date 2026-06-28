@@ -16,7 +16,6 @@ const categories = [
   { value: "SUSTAINABILITY", label: "Sustainability" },
   { value: "LEADERSHIP", label: "Leadership" },
   { value: "SOCIAL", label: "Social" },
-  { value: "SPIRITUAL_LIFE", label: "Spiritual Life" },
 ];
 
 export default function NewEventPage() {

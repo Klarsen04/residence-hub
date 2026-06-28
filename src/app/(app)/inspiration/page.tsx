@@ -13,15 +13,14 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const categories = [
   "All",
-  "WELCOME_WEEK",
-  "PASSIVE_PROGRAMS",
-  "ACTIVE_PROGRAMS",
-  "STUDY_BREAKS",
-  "FINALS_WEEK",
-  "WELLNESS",
   "COMMUNITY_BUILDING",
-  "DIVERSITY_PROGRAMMING",
-  "SEASONAL_EVENTS",
+  "WELLNESS",
+  "ACADEMIC_SUCCESS",
+  "DIVERSITY_INCLUSION",
+  "CAREER_DEVELOPMENT",
+  "SUSTAINABILITY",
+  "LEADERSHIP",
+  "SOCIAL",
 ];
 
 const sources = ["PINTEREST", "INSTAGRAM", "TIKTOK", "YOUTUBE", "UPLOAD"];
