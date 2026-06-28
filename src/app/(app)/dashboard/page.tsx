@@ -82,9 +82,10 @@ export default function DashboardPage() {
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {inspirations.map((item: any) => (
-                  <div
+                  <Link
                     key={item.id}
-                    className="aspect-square rounded-lg bg-muted overflow-hidden"
+                    href="/inspiration"
+                    className="aspect-square rounded-lg bg-muted overflow-hidden relative group"
                   >
                     {item.imageUrl ? (
                       <img
@@ -93,11 +94,14 @@ export default function DashboardPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
-                        {item.source}
+                      <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                        <Lightbulb className="h-4 w-4 text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground line-clamp-2">
+                          {item.title || item.source}
+                        </span>
                       </div>
                     )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
