@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const audiences = [
   "First-Year Residents",
@@ -30,6 +34,7 @@ const goals = [
 export default function AIPlannerPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("");
+  const { data: usage, mutate: mutateUsage } = useSWR("/api/ai-planner", fetcher);
   const [form, setForm] = useState({
     budget: "",
     audience: "First-Year Residents",
@@ -52,9 +57,15 @@ export default function AIPlannerPage() {
       if (!res.ok) throw new Error("Failed to generate");
 
       const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to generate");
+        setLoading(false);
+        return;
+      }
       setResult(data.response);
+      mutateUsage();
     } catch {
-      toast.error("Failed to generate event plan. Check your OpenAI API key.");
+      toast.error("Failed to generate event plan.");
     } finally {
       setLoading(false);
     }
@@ -71,6 +82,25 @@ export default function AIPlannerPage() {
           Let AI help you plan the perfect program for your residents
         </p>
       </div>
+
+      {usage && (
+        <Card>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex justify-between text-sm mb-1">
+                <span>{usage.used} / {usage.limit} requests used this month</span>
+                <span>{usage.remaining} remaining</span>
+              </div>
+              <Progress value={(usage.used / usage.limit) * 100} />
+            </div>
+            {usage.isAdmin && (
+              <span className="text-xs text-muted-foreground">
+                Admin (unlimited) | {usage.totalUsers} users on platform
+              </span>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -73,6 +73,7 @@ model User {
   planningBoards   PlanningBoard[]
   boardMembers     PlanningBoardMember[]
   aiSessions       AIPlannerSession[]
+  aiUsages         AIUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -461,4 +462,18 @@ model AIPlannerSession {
   user User @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+// ─── AI Usage Tracking ───────────────────────────────────────────────────────
+
+model AIUsage {
+  id     String @id @default(cuid())
+  userId String
+  month  String
+
+  count Int @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month])
 }
