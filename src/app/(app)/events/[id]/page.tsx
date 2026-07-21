@@ -289,22 +289,120 @@ export default function EventDetailPage() {
               )}
 
               {event.reflection && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Reflection</p>
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <p className="text-xs text-muted-foreground mb-1">Reflection</p>
                   <p className="text-sm">{event.reflection}</p>
                 </div>
               )}
 
               {event.attendance && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Attendance</p>
-                  <p className="font-medium">{event.attendance} residents</p>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/20">
+                  <div className="p-2 rounded-lg bg-emerald-500/10">
+                    <User className="h-4 w-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Attendance</p>
+                    <p className="font-medium text-sm text-emerald-400">{event.attendance} residents</p>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
+
+          <EventReflection event={event} onUpdate={mutate} />
         </>
       )}
     </div>
+  );
+}
+
+function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void }) {
+  const [showForm, setShowForm] = useState(false);
+  const [attendance, setAttendance] = useState(event.attendance?.toString() || "");
+  const [reflection, setReflection] = useState(event.reflection || "");
+  const [saving, setSaving] = useState(false);
+  const params = useParams();
+
+  if (event.status !== "COMPLETED" && event.status !== "APPROVED") return null;
+  if (event.attendance && event.reflection) return null;
+
+  const handleSave = async () => {
+    setSaving(true);
+    const d = new Date(event.date);
+    const start = new Date(event.startTime);
+    const end = new Date(event.endTime);
+
+    try {
+      await fetch(`/api/events/${params.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: event.title,
+          description: event.description,
+          date: d.toISOString().split("T")[0],
+          startTime: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
+          endTime: `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`,
+          location: event.location,
+          category: event.category,
+          status: event.status,
+          attendance,
+          reflection,
+        }),
+      });
+      toast.success("Saved!");
+      setShowForm(false);
+      onUpdate();
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="border-emerald-500/20 overflow-hidden">
+      <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+      <CardContent className="p-5">
+        {!showForm ? (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Post-Event Reflection</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Record attendance and what went well</p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+              Add Reflection
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">How many residents attended?</label>
+              <Input
+                type="number"
+                value={attendance}
+                onChange={(e) => setAttendance(e.target.value)}
+                placeholder="e.g. 25"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Reflection — what went well? What would you change?</label>
+              <textarea
+                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                value={reflection}
+                onChange={(e) => setReflection(e.target.value)}
+                placeholder="The event went great because..."
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : "Save Reflection"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

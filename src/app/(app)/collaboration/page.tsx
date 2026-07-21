@@ -1,65 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import useSWR from "swr";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, Kanban, GripVertical, MoreHorizontal, CheckCircle2, Circle, Clock } from "lucide-react";
+import { Plus, Users, Kanban, GripVertical, CheckCircle2, Circle, Clock, ArrowLeft, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
-interface Task {
-  id: string;
-  title: string;
-  assignee: string;
-  status: "todo" | "in-progress" | "done";
-  priority: "low" | "medium" | "high";
-}
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-interface Board {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  tasks: Task[];
-}
-
-const defaultBoards: Board[] = [
-  {
-    id: "1",
-    name: "Welcome Week Planning",
-    description: "Coordinate all welcome week activities",
-    color: "from-purple-500 to-indigo-500",
-    tasks: [
-      { id: "t1", title: "Book event space for Floor Olympics", assignee: "You", status: "done", priority: "high" },
-      { id: "t2", title: "Order supplies for ice cream social", assignee: "Team", status: "in-progress", priority: "medium" },
-      { id: "t3", title: "Create flyers for movie night", assignee: "You", status: "todo", priority: "low" },
-      { id: "t4", title: "Coordinate with dining hall", assignee: "Team", status: "todo", priority: "high" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Monthly Programming",
-    description: "Regular monthly event planning",
-    color: "from-blue-500 to-cyan-500",
-    tasks: [
-      { id: "t5", title: "Survey residents for event preferences", assignee: "You", status: "in-progress", priority: "medium" },
-      { id: "t6", title: "Schedule study break for midterms", assignee: "Team", status: "todo", priority: "high" },
-      { id: "t7", title: "Plan wellness Wednesday", assignee: "You", status: "todo", priority: "medium" },
-    ],
-  },
-];
-
-const priorityColors = {
-  low: "bg-blue-500/15 text-blue-400",
-  medium: "bg-amber-500/15 text-amber-400",
-  high: "bg-red-500/15 text-red-400",
-};
-
-const statusIcons = {
-  todo: Circle,
-  "in-progress": Clock,
-  done: CheckCircle2,
+const typeIcons: Record<string, any> = {
+  TODO: Circle,
+  IN_PROGRESS: Clock,
+  DONE: CheckCircle2,
+  TASK: Circle,
 };
 
 const container = {
@@ -73,54 +30,74 @@ const item = {
 };
 
 export default function CollaborationPage() {
-  const [boards, setBoards] = useState<Board[]>(defaultBoards);
-  const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
+  const { data: boards, mutate } = useSWR("/api/boards", fetcher);
+  const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
+  const [showNewBoard, setShowNewBoard] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
+  const [newBoardTitle, setNewBoardTitle] = useState("");
+  const [newBoardDesc, setNewBoardDesc] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
-  const addTask = (boardId: string) => {
-    if (!newTaskTitle.trim()) return;
-    setBoards(boards.map(b => {
-      if (b.id === boardId) {
-        return {
-          ...b,
-          tasks: [...b.tasks, {
-            id: `t${Date.now()}`,
-            title: newTaskTitle,
-            assignee: "You",
-            status: "todo" as const,
-            priority: "medium" as const,
-          }],
-        };
-      }
-      return b;
-    }));
-    setNewTaskTitle("");
-    setShowNewTask(false);
-    if (selectedBoard?.id === boardId) {
-      setSelectedBoard(boards.find(b => b.id === boardId) || null);
+  const allBoards = boards || [];
+  const activeBoard = allBoards.find((b: any) => b.id === selectedBoardId);
+
+  const createBoard = async () => {
+    if (!newBoardTitle.trim()) return;
+    try {
+      await fetch("/api/boards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newBoardTitle, description: newBoardDesc }),
+      });
+      toast.success("Board created!");
+      setShowNewBoard(false);
+      setNewBoardTitle("");
+      setNewBoardDesc("");
+      mutate();
+    } catch {
+      toast.error("Failed to create board");
     }
   };
 
-  const toggleTaskStatus = (boardId: string, taskId: string) => {
-    setBoards(boards.map(b => {
-      if (b.id === boardId) {
-        return {
-          ...b,
-          tasks: b.tasks.map(t => {
-            if (t.id === taskId) {
-              const nextStatus = t.status === "todo" ? "in-progress" : t.status === "in-progress" ? "done" : "todo";
-              return { ...t, status: nextStatus };
-            }
-            return t;
-          }),
-        };
-      }
-      return b;
-    }));
+  const addTask = async (boardId: string, type: string) => {
+    if (!newTaskTitle.trim()) return;
+    try {
+      await fetch(`/api/boards/${boardId}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTaskTitle, type }),
+      });
+      setNewTaskTitle("");
+      setShowNewTask(false);
+      mutate();
+    } catch {
+      toast.error("Failed to add task");
+    }
   };
 
-  const activeBoard = selectedBoard ? boards.find(b => b.id === selectedBoard.id) : null;
+  const updateItemType = async (boardId: string, itemId: string, newType: string) => {
+    try {
+      await fetch(`/api/boards/${boardId}/items`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId, type: newType }),
+      });
+      mutate();
+    } catch {
+      toast.error("Failed to update");
+    }
+  };
+
+  const deleteItem = async (boardId: string, itemId: string) => {
+    try {
+      await fetch(`/api/boards/${boardId}/items?itemId=${itemId}`, { method: "DELETE" });
+      mutate();
+    } catch {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const boardColors = ["from-purple-500 to-indigo-500", "from-blue-500 to-cyan-500", "from-emerald-500 to-teal-500", "from-amber-500 to-orange-500"];
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-7xl">
@@ -129,123 +106,193 @@ export default function CollaborationPage() {
           <h1 className="text-3xl font-bold">Collaboration</h1>
           <p className="text-muted-foreground mt-1">Plan together with your team</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowNewBoard(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Board
         </Button>
       </motion.div>
 
+      {showNewBoard && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="border-purple-500/20">
+            <CardContent className="p-5 space-y-3">
+              <Input
+                value={newBoardTitle}
+                onChange={(e) => setNewBoardTitle(e.target.value)}
+                placeholder="Board name..."
+                autoFocus
+              />
+              <Input
+                value={newBoardDesc}
+                onChange={(e) => setNewBoardDesc(e.target.value)}
+                placeholder="Description (optional)..."
+              />
+              <div className="flex gap-2">
+                <Button onClick={createBoard}>Create Board</Button>
+                <Button variant="outline" onClick={() => setShowNewBoard(false)}>Cancel</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {!activeBoard ? (
-        <motion.div variants={item} className="grid gap-4 md:grid-cols-2">
-          {boards.map((board) => {
-            const todoCount = board.tasks.filter(t => t.status === "todo").length;
-            const inProgressCount = board.tasks.filter(t => t.status === "in-progress").length;
-            const doneCount = board.tasks.filter(t => t.status === "done").length;
-            const progress = board.tasks.length > 0 ? (doneCount / board.tasks.length) * 100 : 0;
-
-            return (
-              <Card
-                key={board.id}
-                className="cursor-pointer hover:border-white/[0.15] hover:-translate-y-1 group overflow-hidden"
-                onClick={() => setSelectedBoard(board)}
-              >
-                <div className={`h-1.5 bg-gradient-to-r ${board.color}`} />
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-lg">{board.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-0.5">{board.description}</p>
-                    </div>
-                    <div className={`p-2 rounded-xl bg-gradient-to-br ${board.color} opacity-80`}>
-                      <Kanban className="h-4 w-4 text-white" />
-                    </div>
+        <motion.div variants={item}>
+          {allBoards.length === 0 && !showNewBoard ? (
+            <Card>
+              <CardContent className="py-16 text-center space-y-4">
+                <div className="flex justify-center">
+                  <div className="p-4 rounded-2xl bg-purple-500/10">
+                    <Kanban className="h-12 w-12 text-purple-400" />
                   </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">No boards yet</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto mt-2">
+                    Create collaborative planning boards to brainstorm, share inspiration, and coordinate events.
+                  </p>
+                </div>
+                <Button onClick={() => setShowNewBoard(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Board
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {allBoards.map((board: any, idx: number) => {
+                const color = boardColors[idx % boardColors.length];
+                const todoCount = board.items?.filter((i: any) => i.type === "TODO" || i.type === "TASK").length || 0;
+                const inProgressCount = board.items?.filter((i: any) => i.type === "IN_PROGRESS").length || 0;
+                const doneCount = board.items?.filter((i: any) => i.type === "DONE").length || 0;
+                const total = board.items?.length || 0;
+                const progress = total > 0 ? (doneCount / total) * 100 : 0;
 
-                  <div className="mt-4">
-                    <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                      <span>{doneCount}/{board.tasks.length} tasks complete</span>
-                      <span>{Math.round(progress)}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                      <div
-                        className={`h-full rounded-full bg-gradient-to-r ${board.color} transition-all duration-500`}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
+                return (
+                  <Card
+                    key={board.id}
+                    className="cursor-pointer hover:border-white/[0.15] hover:-translate-y-1 group overflow-hidden"
+                    onClick={() => setSelectedBoardId(board.id)}
+                  >
+                    <div className={`h-1.5 bg-gradient-to-r ${color}`} />
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-lg">{board.title}</h3>
+                          {board.description && (
+                            <p className="text-sm text-muted-foreground mt-0.5">{board.description}</p>
+                          )}
+                        </div>
+                        <div className={`p-2 rounded-xl bg-gradient-to-br ${color} opacity-80`}>
+                          <Kanban className="h-4 w-4 text-white" />
+                        </div>
+                      </div>
 
-                  <div className="flex gap-3 mt-4">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Circle className="h-3 w-3 text-muted-foreground" />
-                      {todoCount} todo
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-amber-400">
-                      <Clock className="h-3 w-3" />
-                      {inProgressCount} active
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-emerald-400">
-                      <CheckCircle2 className="h-3 w-3" />
-                      {doneCount} done
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                      {total > 0 && (
+                        <div className="mt-4">
+                          <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                            <span>{doneCount}/{total} tasks complete</span>
+                            <span>{Math.round(progress)}%</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div
+                              className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-500`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 mt-4">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Circle className="h-3 w-3" />
+                          {todoCount} todo
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                          <Clock className="h-3 w-3" />
+                          {inProgressCount} active
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {doneCount} done
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-muted-foreground mt-3">
+                        Created by {board.user?.name}
+                        {board.members?.length > 0 && ` • ${board.members.length} member${board.members.length > 1 ? "s" : ""}`}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
       ) : (
         <motion.div variants={item}>
           <div className="flex items-center gap-3 mb-6">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedBoard(null)}>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedBoardId(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
-            <div className={`h-6 w-1 rounded-full bg-gradient-to-b ${activeBoard.color}`} />
+            <div className="h-6 w-1 rounded-full bg-gradient-to-b from-purple-500 to-blue-500" />
             <div>
-              <h2 className="font-semibold text-lg">{activeBoard.name}</h2>
-              <p className="text-xs text-muted-foreground">{activeBoard.description}</p>
+              <h2 className="font-semibold text-lg">{activeBoard.title}</h2>
+              {activeBoard.description && (
+                <p className="text-xs text-muted-foreground">{activeBoard.description}</p>
+              )}
             </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {(["todo", "in-progress", "done"] as const).map((status) => {
-              const statusLabel = status === "todo" ? "To Do" : status === "in-progress" ? "In Progress" : "Done";
-              const StatusIcon = statusIcons[status];
-              const tasks = activeBoard.tasks.filter(t => t.status === status);
+            {(["TODO", "IN_PROGRESS", "DONE"] as const).map((status) => {
+              const statusLabel = status === "TODO" ? "To Do" : status === "IN_PROGRESS" ? "In Progress" : "Done";
+              const StatusIcon = typeIcons[status] || Circle;
+              const tasks = (activeBoard.items || []).filter((i: any) => i.type === status || (status === "TODO" && i.type === "TASK"));
+              const nextStatus = status === "TODO" ? "IN_PROGRESS" : status === "IN_PROGRESS" ? "DONE" : "TODO";
 
               return (
                 <div key={status} className="space-y-3">
                   <div className="flex items-center gap-2 px-1">
-                    <StatusIcon className={`h-4 w-4 ${status === "done" ? "text-emerald-400" : status === "in-progress" ? "text-amber-400" : "text-muted-foreground"}`} />
+                    <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"}`} />
                     <span className="text-sm font-medium">{statusLabel}</span>
                     <Badge variant="secondary" className="ml-auto">{tasks.length}</Badge>
                   </div>
 
                   <div className="space-y-2">
-                    {tasks.map((task) => (
+                    {tasks.map((task: any) => (
                       <div
                         key={task.id}
-                        className="p-3 rounded-xl border border-white/[0.08] bg-card/50 hover:border-white/[0.15] transition-all duration-200 cursor-pointer group/task"
-                        onClick={() => toggleTaskStatus(activeBoard.id, task.id)}
+                        className="p-3 rounded-xl border border-white/[0.08] bg-card/50 hover:border-white/[0.15] transition-all duration-200 group/task"
                       >
                         <div className="flex items-start gap-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground/50 mt-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity" />
+                          <button
+                            onClick={() => updateItemType(activeBoard.id, task.id, nextStatus)}
+                            className="mt-0.5 shrink-0"
+                          >
+                            <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"} hover:text-purple-400 transition-colors`} />
+                          </button>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${task.status === "done" ? "line-through text-muted-foreground" : ""}`}>
+                            <p className={`text-sm font-medium ${status === "DONE" ? "line-through text-muted-foreground" : ""}`}>
                               {task.title}
                             </p>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className="text-[11px] text-muted-foreground">{task.assignee}</span>
-                              <Badge className={`text-[10px] ${priorityColors[task.priority]}`}>
-                                {task.priority}
-                              </Badge>
-                            </div>
+                            {task.content && (
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{task.content}</p>
+                            )}
                           </div>
+                          <button
+                            onClick={() => deleteItem(activeBoard.id, task.id)}
+                            className="p-1 rounded-lg text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover/task:opacity-100 transition-all"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {status === "todo" && (
+                  {status === "TODO" && (
                     <div>
                       {showNewTask ? (
                         <div className="flex gap-2">
@@ -254,10 +301,10 @@ export default function CollaborationPage() {
                             onChange={(e) => setNewTaskTitle(e.target.value)}
                             placeholder="Task title..."
                             className="h-8 text-sm"
-                            onKeyDown={(e) => e.key === "Enter" && addTask(activeBoard.id)}
+                            onKeyDown={(e) => e.key === "Enter" && addTask(activeBoard.id, "TODO")}
                             autoFocus
                           />
-                          <Button size="sm" onClick={() => addTask(activeBoard.id)} className="h-8">
+                          <Button size="sm" onClick={() => addTask(activeBoard.id, "TODO")} className="h-8">
                             Add
                           </Button>
                         </div>
