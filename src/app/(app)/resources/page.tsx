@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, ExternalLink, Phone, BookOpen, Heart, Shield, GraduationCap, Users, Utensils } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -132,11 +133,16 @@ export default function ResourcesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6 max-w-7xl"
+    >
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Resources</h1>
-          <p className="text-muted-foreground">NYIT resources and team-shared materials</p>
+          <p className="text-muted-foreground mt-1">NYIT resources and team-shared materials</p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -145,40 +151,44 @@ export default function ResourcesPage() {
       </div>
 
       {showForm && (
-        <Card>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+        <Card className="border-purple-500/20">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Title</label>
+                  <label className="text-sm font-medium text-muted-foreground">Title</label>
                   <Input
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
                     placeholder="Resource name..."
                     required
+                    className="mt-1.5"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">URL</label>
+                  <label className="text-sm font-medium text-muted-foreground">URL</label>
                   <Input
                     value={form.url}
                     onChange={(e) => setForm({ ...form, url: e.target.value })}
                     placeholder="https://..."
+                    className="mt-1.5"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">Description</label>
+                <label className="text-sm font-medium text-muted-foreground">Description</label>
                 <Input
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Brief description..."
+                  className="mt-1.5"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Category</label>
+                <label className="text-sm font-medium text-muted-foreground">Category</label>
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                 >
@@ -194,30 +204,34 @@ export default function ResourcesPage() {
             </form>
           </CardContent>
         </Card>
+        </motion.div>
       )}
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search resources..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-10"
           />
         </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">
         {resourceTypes.map((t) => (
-          <Button
+          <button
             key={t}
-            variant={filter === t ? "default" : "outline"}
-            size="sm"
             onClick={() => setFilter(t)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+              filter === t
+                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08] hover:text-foreground"
+            }`}
           >
             {t === "ALL" ? "All" : t.replace(/_/g, " ")}
-          </Button>
+          </button>
         ))}
       </div>
 
@@ -225,26 +239,26 @@ export default function ResourcesPage() {
         {filtered.map((resource) => {
           const Icon = typeIcons[resource.type] || BookOpen;
           return (
-            <Card key={resource.id} className="hover:shadow-md transition-shadow">
+            <Card key={resource.id} className="hover:border-white/[0.15] hover:-translate-y-0.5">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 shrink-0">
+                    <Icon className="h-4 w-4 text-purple-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm">{resource.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                       {resource.description}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="secondary" className="text-xs">
+                    <div className="flex items-center gap-2 mt-2.5">
+                      <Badge variant="secondary">
                         {resource.type.replace(/_/g, " ")}
                       </Badge>
                       {resource.isNYIT && (
-                        <Badge variant="outline" className="text-xs">NYIT</Badge>
+                        <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/20">NYIT</Badge>
                       )}
                       {!resource.isNYIT && resource.sharedBy && (
-                        <span className="text-xs text-muted-foreground">by {resource.sharedBy}</span>
+                        <span className="text-[11px] text-muted-foreground">by {resource.sharedBy}</span>
                       )}
                     </div>
                     {resource.url && (
@@ -252,7 +266,7 @@ export default function ResourcesPage() {
                         href={resource.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
+                        className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 mt-2.5 transition-colors"
                       >
                         <ExternalLink className="h-3 w-3" />
                         {resource.url.startsWith("tel:") ? "Call" : "Open"}
@@ -273,6 +287,6 @@ export default function ResourcesPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </motion.div>
   );
 }

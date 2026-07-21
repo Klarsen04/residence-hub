@@ -14,22 +14,22 @@ import { toast } from "sonner";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const categoryColors: Record<string, string> = {
-  COMMUNITY_BUILDING: "bg-blue-100 text-blue-700",
-  WELLNESS: "bg-green-100 text-green-700",
-  ACADEMIC_SUCCESS: "bg-purple-100 text-purple-700",
-  DIVERSITY_INCLUSION: "bg-orange-100 text-orange-700",
-  CAREER_DEVELOPMENT: "bg-indigo-100 text-indigo-700",
-  SUSTAINABILITY: "bg-emerald-100 text-emerald-700",
-  LEADERSHIP: "bg-amber-100 text-amber-700",
-  SOCIAL: "bg-pink-100 text-pink-700",
+  COMMUNITY_BUILDING: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  WELLNESS: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  ACADEMIC_SUCCESS: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  DIVERSITY_INCLUSION: "bg-orange-500/15 text-orange-400 border-orange-500/20",
+  CAREER_DEVELOPMENT: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
+  SUSTAINABILITY: "bg-teal-500/15 text-teal-400 border-teal-500/20",
+  LEADERSHIP: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  SOCIAL: "bg-pink-500/15 text-pink-400 border-pink-500/20",
 };
 
 const statusColors: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
-  PENDING_APPROVAL: "bg-yellow-100 text-yellow-700",
-  APPROVED: "bg-green-100 text-green-700",
-  COMPLETED: "bg-blue-100 text-blue-700",
-  CANCELLED: "bg-red-100 text-red-700",
+  DRAFT: "bg-white/[0.06] text-muted-foreground",
+  PENDING_APPROVAL: "bg-amber-500/15 text-amber-400",
+  APPROVED: "bg-emerald-500/15 text-emerald-400",
+  COMPLETED: "bg-blue-500/15 text-blue-400",
+  CANCELLED: "bg-red-500/15 text-red-400",
 };
 
 const categories = [
@@ -151,43 +151,43 @@ export default function EventDetailPage() {
       </div>
 
       {editing && form ? (
-        <Card>
+        <Card className="border-purple-500/20">
           <CardContent className="p-6 space-y-4">
             <div>
-              <label className="text-sm font-medium">Title</label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <label className="text-sm font-medium text-muted-foreground">Title</label>
+              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-1.5" />
             </div>
             <div>
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium text-muted-foreground">Description</label>
               <textarea
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium">Date</label>
-                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                <label className="text-sm font-medium text-muted-foreground">Date</label>
+                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1.5" />
               </div>
               <div>
-                <label className="text-sm font-medium">Start Time</label>
-                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
+                <label className="text-sm font-medium text-muted-foreground">Start Time</label>
+                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className="mt-1.5" />
               </div>
               <div>
-                <label className="text-sm font-medium">End Time</label>
-                <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />
+                <label className="text-sm font-medium text-muted-foreground">End Time</label>
+                <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className="mt-1.5" />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium">Location</label>
-              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+              <label className="text-sm font-medium text-muted-foreground">Location</label>
+              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="mt-1.5" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Category</label>
+                <label className="text-sm font-medium text-muted-foreground">Category</label>
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
@@ -197,9 +197,9 @@ export default function EventDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium">Status</label>
+                <label className="text-sm font-medium text-muted-foreground">Status</label>
                 <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
@@ -234,34 +234,42 @@ export default function EventDetailPage() {
           <Card>
             <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="p-2 rounded-lg bg-purple-500/10">
+                    <Calendar className="h-4 w-4 text-purple-400" />
+                  </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Date</p>
-                    <p className="font-medium">{formatDate(event.date)}</p>
+                    <p className="text-xs text-muted-foreground">Date</p>
+                    <p className="font-medium text-sm">{formatDate(event.date)}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="p-2 rounded-lg bg-blue-500/10">
+                    <Clock className="h-4 w-4 text-blue-400" />
+                  </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Time</p>
-                    <p className="font-medium">{formatTime(event.startTime)} - {formatTime(event.endTime)}</p>
+                    <p className="text-xs text-muted-foreground">Time</p>
+                    <p className="font-medium text-sm">{formatTime(event.startTime)} - {formatTime(event.endTime)}</p>
                   </div>
                 </div>
                 {event.location && (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <div className="p-2 rounded-lg bg-emerald-500/10">
+                      <MapPin className="h-4 w-4 text-emerald-400" />
+                    </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Location</p>
-                      <p className="font-medium">{event.location}</p>
+                      <p className="text-xs text-muted-foreground">Location</p>
+                      <p className="font-medium text-sm">{event.location}</p>
                     </div>
                   </div>
                 )}
-                <div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="p-2 rounded-lg bg-amber-500/10">
+                    <User className="h-4 w-4 text-amber-400" />
+                  </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Organizer</p>
-                    <p className="font-medium">{event.organizer?.name || "Unknown"}</p>
+                    <p className="text-xs text-muted-foreground">Organizer</p>
+                    <p className="font-medium text-sm">{event.organizer?.name || "Unknown"}</p>
                   </div>
                 </div>
               </div>

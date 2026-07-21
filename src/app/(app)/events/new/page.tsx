@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { Calendar } from "lucide-react";
 
 const categories = [
   { value: "COMMUNITY_BUILDING", label: "Community Building" },
@@ -58,29 +60,41 @@ export default function NewEventPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Create New Event</h1>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-2xl mx-auto"
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500">
+          <Calendar className="h-5 w-5 text-white" />
+        </div>
+        <h1 className="text-3xl font-bold">Create New Event</h1>
+      </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.02] to-blue-500/[0.02]" />
+        <CardHeader className="relative">
           <CardTitle>Event Details</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="relative">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="text-sm font-medium">Title</label>
+              <label className="text-sm font-medium text-muted-foreground">Title</label>
               <Input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="Movie Night, Study Break, Floor Meeting..."
                 required
+                className="mt-1.5"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium">Description</label>
+              <label className="text-sm font-medium text-muted-foreground">Description</label>
               <textarea
-                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="mt-1.5 flex min-h-[100px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Describe your event..."
@@ -89,47 +103,51 @@ export default function NewEventPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium">Date</label>
+                <label className="text-sm font-medium text-muted-foreground">Date</label>
                 <Input
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   required
+                  className="mt-1.5"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Start Time</label>
+                <label className="text-sm font-medium text-muted-foreground">Start Time</label>
                 <Input
                   type="time"
                   value={form.startTime}
                   onChange={(e) => setForm({ ...form, startTime: e.target.value })}
                   required
+                  className="mt-1.5"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">End Time</label>
+                <label className="text-sm font-medium text-muted-foreground">End Time</label>
                 <Input
                   type="time"
                   value={form.endTime}
                   onChange={(e) => setForm({ ...form, endTime: e.target.value })}
                   required
+                  className="mt-1.5"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Location</label>
+              <label className="text-sm font-medium text-muted-foreground">Location</label>
               <Input
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
                 placeholder="Floor lounge, community room, outdoor space..."
+                className="mt-1.5"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium">Category</label>
+              <label className="text-sm font-medium text-muted-foreground">Category</label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
@@ -152,6 +170,6 @@ export default function NewEventPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
