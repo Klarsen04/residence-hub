@@ -9,26 +9,27 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Calendar as CalendarIcon, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatTime } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const categoryColors: Record<string, string> = {
-  COMMUNITY_BUILDING: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  WELLNESS: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  ACADEMIC_SUCCESS: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-  DIVERSITY_INCLUSION: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  CAREER_DEVELOPMENT: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
-  SUSTAINABILITY: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
-  LEADERSHIP: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  SOCIAL: "bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300",
+  COMMUNITY_BUILDING: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  WELLNESS: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  ACADEMIC_SUCCESS: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  DIVERSITY_INCLUSION: "bg-orange-500/15 text-orange-400 border-orange-500/20",
+  CAREER_DEVELOPMENT: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
+  SUSTAINABILITY: "bg-teal-500/15 text-teal-400 border-teal-500/20",
+  LEADERSHIP: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  SOCIAL: "bg-pink-500/15 text-pink-400 border-pink-500/20",
 };
 
 const statusColors: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
-  PENDING_APPROVAL: "bg-yellow-100 text-yellow-700",
-  APPROVED: "bg-green-100 text-green-700",
-  COMPLETED: "bg-blue-100 text-blue-700",
-  CANCELLED: "bg-red-100 text-red-700",
+  DRAFT: "bg-white/[0.06] text-muted-foreground",
+  PENDING_APPROVAL: "bg-amber-500/15 text-amber-400",
+  APPROVED: "bg-emerald-500/15 text-emerald-400",
+  COMPLETED: "bg-blue-500/15 text-blue-400",
+  CANCELLED: "bg-red-500/15 text-red-400",
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -60,11 +61,16 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6 max-w-7xl"
+    >
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Events</h1>
-          <p className="text-muted-foreground">United calendar — all staff events in one place</p>
+          <p className="text-muted-foreground mt-1">United calendar — all staff events in one place</p>
         </div>
         <Link href="/events/new">
           <Button>
@@ -76,19 +82,20 @@ export default function EventsPage() {
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search events..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-10"
           />
         </div>
-        <div className="flex gap-1 border rounded-lg p-1">
+        <div className="flex gap-1 p-1 rounded-xl border border-white/[0.08] bg-white/[0.03]">
           <Button
             variant={view === "calendar" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setView("calendar")}
+            className="rounded-lg"
           >
             <CalendarIcon className="h-4 w-4" />
           </Button>
@@ -96,6 +103,7 @@ export default function EventsPage() {
             variant={view === "list" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setView("list")}
+            className="rounded-lg"
           >
             <List className="h-4 w-4" />
           </Button>
@@ -103,30 +111,33 @@ export default function EventsPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading events...</div>
+        <div className="text-center py-16">
+          <div className="h-8 w-8 rounded-xl gradient-primary animate-pulse glow mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Loading events...</p>
+        </div>
       ) : view === "calendar" ? (
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" size="icon" onClick={prevMonth}>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-5">
+              <Button variant="ghost" size="icon" onClick={prevMonth} className="rounded-xl">
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <h2 className="text-lg font-semibold">
                 {MONTHS[month]} {year}
               </h2>
-              <Button variant="ghost" size="icon" onClick={nextMonth}>
+              <Button variant="ghost" size="icon" onClick={nextMonth} className="rounded-xl">
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
 
-            <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden">
+            <div className="grid grid-cols-7 gap-px bg-white/[0.04] rounded-2xl overflow-hidden border border-white/[0.06]">
               {DAYS.map((day) => (
-                <div key={day} className="bg-background p-2 text-center text-xs font-medium text-muted-foreground">
+                <div key={day} className="bg-card/80 p-3 text-center text-xs font-medium text-muted-foreground">
                   {day}
                 </div>
               ))}
               {Array.from({ length: firstDay }).map((_, i) => (
-                <div key={`empty-${i}`} className="bg-background p-2 min-h-[80px]" />
+                <div key={`empty-${i}`} className="bg-card/40 p-2 min-h-[90px]" />
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1;
@@ -138,17 +149,19 @@ export default function EventsPage() {
                 return (
                   <div
                     key={day}
-                    className={`bg-background p-1 min-h-[80px] ${isToday ? "ring-2 ring-primary ring-inset" : ""}`}
+                    className={`bg-card/40 p-2 min-h-[90px] transition-colors hover:bg-white/[0.04] ${
+                      isToday ? "ring-2 ring-purple-500/50 ring-inset bg-purple-500/[0.05]" : ""
+                    }`}
                   >
-                    <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                    <span className={`text-xs font-medium ${isToday ? "text-purple-400" : "text-muted-foreground"}`}>
                       {day}
                     </span>
                     <div className="mt-1 space-y-0.5">
                       {dayEvents.slice(0, 3).map((event: any) => (
                         <Link key={event.id} href={`/events/${event.id}`}>
                           <div
-                            className={`text-xs px-1 py-0.5 rounded truncate cursor-pointer hover:opacity-80 ${
-                              categoryColors[event.category]?.split(" ").slice(0, 2).join(" ") || "bg-primary/10"
+                            className={`text-[10px] px-1.5 py-0.5 rounded-md truncate cursor-pointer hover:opacity-80 font-medium ${
+                              categoryColors[event.category]?.split(" ").slice(0, 2).join(" ") || "bg-purple-500/15 text-purple-400"
                             }`}
                           >
                             {event.title}
@@ -156,7 +169,7 @@ export default function EventsPage() {
                         </Link>
                       ))}
                       {dayEvents.length > 3 && (
-                        <span className="text-xs text-muted-foreground px-1">
+                        <span className="text-[10px] text-muted-foreground px-1">
                           +{dayEvents.length - 3} more
                         </span>
                       )}
@@ -169,55 +182,61 @@ export default function EventsPage() {
         </Card>
       ) : filteredEvents.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No events found</p>
+          <CardContent className="py-16 text-center">
+            <CalendarIcon className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-muted-foreground mb-4">No events found</p>
             <Link href="/events/new">
-              <Button variant="outline" className="mt-4">
-                Create your first event
-              </Button>
+              <Button variant="outline">Create your first event</Button>
             </Link>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {filteredEvents.map((event: any) => (
-            <Link key={event.id} href={`/events/${event.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center min-w-[50px]">
-                      <p className="text-xs text-muted-foreground uppercase">
-                        {new Date(event.date).toLocaleDateString("en-US", { month: "short" })}
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {new Date(event.date).getDate()}
-                      </p>
+          {filteredEvents.map((event: any, index: number) => (
+            <motion.div
+              key={event.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Link href={`/events/${event.id}`}>
+                <Card className="hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="text-center min-w-[52px] p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                        <p className="text-[10px] text-purple-400 uppercase font-semibold">
+                          {new Date(event.date).toLocaleDateString("en-US", { month: "short" })}
+                        </p>
+                        <p className="text-xl font-bold text-foreground">
+                          {new Date(event.date).getDate()}
+                        </p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{event.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                          {event.location && ` • ${event.location}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {event.organizer?.name}{event.hall ? ` — ${event.hall.name}` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{event.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                        {event.location && ` | ${event.location}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {event.organizer?.name}{event.hall ? ` — ${event.hall.name}` : ""}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <Badge className={categoryColors[event.category] || ""}>
+                        {event.category.replace(/_/g, " ")}
+                      </Badge>
+                      <Badge className={statusColors[event.status] || ""}>
+                        {event.status.replace(/_/g, " ")}
+                      </Badge>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={categoryColors[event.category] || ""}>
-                      {event.category.replace(/_/g, " ")}
-                    </Badge>
-                    <Badge className={statusColors[event.status] || ""}>
-                      {event.status.replace(/_/g, " ")}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
