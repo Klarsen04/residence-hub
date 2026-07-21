@@ -19,6 +19,7 @@ import {
   X,
   Shield,
   Bell,
+  Search,
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,6 +67,17 @@ export function Sidebar() {
                 <p className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">Residence Life OS</p>
               </div>
             </div>
+          </div>
+
+          <div className="px-3 mb-3">
+            <button
+              onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-muted-foreground hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span className="flex-1 text-left text-xs">Search...</span>
+              <kbd className="hidden md:inline-flex text-[10px] font-mono border border-white/[0.1] bg-white/[0.04] rounded px-1 py-0.5">⌘K</kbd>
+            </button>
           </div>
 
           <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
