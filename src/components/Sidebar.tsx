@@ -29,6 +29,7 @@ import {
   StickyNote,
   ShieldCheck,
   AlertTriangle,
+  Home,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -37,6 +38,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "main" },
   { name: "Events", href: "/events", icon: Calendar, group: "main" },
+  { name: "Floor Roster", href: "/residents", icon: Home, group: "main" },
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles, group: "main" },
   { name: "Collaboration", href: "/collaboration", icon: Users, group: "main" },
   { name: "Inspiration", href: "/inspiration", icon: Lightbulb, group: "content" },
