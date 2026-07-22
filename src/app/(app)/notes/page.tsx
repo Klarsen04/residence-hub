@@ -37,6 +37,8 @@ export default function NotesPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
 
   const addNote = () => {
     if (!newTitle.trim() && !newContent.trim()) return;
@@ -62,8 +64,14 @@ export default function NotesPage() {
     setNotes(notes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
   };
 
-  const updateNote = (id: string, title: string, content: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, title, content } : n));
+  const startEditing = (note: Note) => {
+    setEditingId(note.id);
+    setEditTitle(note.title);
+    setEditContent(note.content);
+  };
+
+  const saveEdit = (id: string) => {
+    setNotes(notes.map(n => n.id === id ? { ...n, title: editTitle || "Untitled", content: editContent } : n));
     setEditingId(null);
   };
 
@@ -143,21 +151,17 @@ export default function NotesPage() {
                 {editingId === note.id ? (
                   <div className="space-y-2">
                     <Input
-                      defaultValue={note.title}
-                      id={`title-${note.id}`}
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
                       className="h-8 text-sm font-semibold"
                     />
                     <textarea
-                      defaultValue={note.content}
-                      id={`content-${note.id}`}
-                      className="w-full min-h-[80px] rounded-xl border border-white/[0.1] bg-white/[0.03] px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all"
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all"
                     />
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => {
-                        const title = (document.getElementById(`title-${note.id}`) as HTMLInputElement)?.value;
-                        const content = (document.getElementById(`content-${note.id}`) as HTMLTextAreaElement)?.value;
-                        updateNote(note.id, title || "Untitled", content || "");
-                      }}>Save</Button>
+                      <Button size="sm" onClick={() => saveEdit(note.id)}>Save</Button>
                       <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
                     </div>
                   </div>
@@ -165,7 +169,7 @@ export default function NotesPage() {
                   <>
                     <h3
                       className="font-semibold text-sm mb-2 cursor-pointer hover:text-purple-400 transition-colors"
-                      onClick={() => setEditingId(note.id)}
+                      onClick={() => startEditing(note)}
                     >
                       {note.title}
                     </h3>

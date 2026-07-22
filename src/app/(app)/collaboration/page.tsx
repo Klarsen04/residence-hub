@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, Kanban, GripVertical, CheckCircle2, Circle, Clock, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, Users, Kanban, CheckCircle2, Circle, Clock, ArrowLeft, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 

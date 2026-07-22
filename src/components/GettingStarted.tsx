@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "./ui/card";
-import { Button } from "./ui/button";
 import Link from "next/link";
 import { Calendar, Lightbulb, Users, Home, CheckCircle2, ArrowRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

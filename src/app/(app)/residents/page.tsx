@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Users, Home, Phone, Mail, Plus, Star, AlertCircle } from "lucide-react";
+import { Search, Users, Home, Phone, Mail, Star, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -36,9 +36,8 @@ const defaultResidents: Resident[] = [
 export default function ResidentsPage() {
   const [residents, setResidents] = useState<Resident[]>(defaultResidents);
   const [search, setSearch] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
   const [selectedResident, setSelectedResident] = useState<string | null>(null);
-  const [newNote, setNewNote] = useState("");
+  const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
 
   const filtered = residents.filter(r => {
     const s = search.toLowerCase();
@@ -48,14 +47,15 @@ export default function ResidentsPage() {
   const flagged = residents.filter(r => r.flagged);
 
   const addNote = (id: string) => {
-    if (!newNote.trim()) return;
+    const note = noteInputs[id];
+    if (!note?.trim()) return;
     setResidents(residents.map(r => {
       if (r.id === id) {
-        return { ...r, notes: r.notes ? `${r.notes}\n${newNote}` : newNote };
+        return { ...r, notes: r.notes ? `${r.notes}\n${note}` : note };
       }
       return r;
     }));
-    setNewNote("");
+    setNoteInputs({ ...noteInputs, [id]: "" });
     toast.success("Note added");
   };
 
@@ -155,8 +155,8 @@ export default function ResidentsPage() {
                   )}
                   <div className="flex gap-2">
                     <Input
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
+                      value={noteInputs[resident.id] || ""}
+                      onChange={(e) => setNoteInputs({ ...noteInputs, [resident.id]: e.target.value })}
                       placeholder="Add a note..."
                       className="h-7 text-xs"
                       onClick={(e) => e.stopPropagation()}

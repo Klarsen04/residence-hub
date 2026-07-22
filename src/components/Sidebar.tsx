@@ -101,12 +101,12 @@ export function Sidebar() {
 
           <div className="px-3 mb-3">
             <button
-              onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-white/[0.06] bg-white/[0.02] text-sm text-muted-foreground hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+              onClick={() => document.dispatchEvent(new CustomEvent("open-command-palette"))}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] text-sm text-muted-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:border-black/[0.1] dark:hover:border-white/[0.1] transition-all"
             >
               <Search className="h-3.5 w-3.5" />
               <span className="flex-1 text-left text-xs">Search...</span>
-              <kbd className="hidden md:inline-flex text-[10px] font-mono border border-white/[0.1] bg-white/[0.04] rounded px-1 py-0.5">⌘K</kbd>
+              <kbd className="hidden md:inline-flex text-[10px] font-mono border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.04] dark:bg-white/[0.04] rounded px-1 py-0.5">⌘K</kbd>
             </button>
           </div>
 

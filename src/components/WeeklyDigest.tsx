@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Calendar, Lightbulb, Users, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Calendar, Lightbulb, ArrowUpRight } from "lucide-react";
 
 interface DigestProps {
   eventsCount: number;

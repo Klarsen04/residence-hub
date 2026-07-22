@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Megaphone, AlertTriangle, Info, PartyPopper } from "lucide-react";
+import { X, AlertTriangle, Info, PartyPopper } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Announcement {
@@ -14,9 +14,9 @@ interface Announcement {
 const announcements: Announcement[] = [
   {
     id: "1",
-    type: "celebration",
-    title: "Welcome Back!",
-    message: "The Fall 2026 semester has begun. Check out your event templates to get started planning!",
+    type: "info",
+    title: "Tip: Use Cmd+K to navigate quickly",
+    message: "Press Cmd+K (or Ctrl+K) to open the command palette and jump to any page instantly.",
   },
 ];
 

@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
@@ -8,6 +10,10 @@ import { User, Mail, Shield, Moon, Bell } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
+  const [notifications, setNotifications] = useState(true);
+
+  const isDark = theme === "dark";
 
   return (
     <motion.div
@@ -43,7 +49,7 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Account Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
             <div className="p-2 rounded-lg bg-purple-500/10">
               <User className="h-4 w-4 text-purple-400" />
             </div>
@@ -52,7 +58,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium">{session?.user?.name || "Not set"}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
             <div className="p-2 rounded-lg bg-blue-500/10">
               <Mail className="h-4 w-4 text-blue-400" />
             </div>
@@ -61,7 +67,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium">{session?.user?.email || "Not set"}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
             <div className="p-2 rounded-lg bg-amber-500/10">
               <Shield className="h-4 w-4 text-amber-400" />
             </div>
@@ -78,34 +84,40 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Preferences</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <button
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
+          >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-indigo-500/10">
                 <Moon className="h-4 w-4 text-indigo-400" />
               </div>
-              <div>
+              <div className="text-left">
                 <p className="text-sm font-medium">Dark Mode</p>
-                <p className="text-xs text-muted-foreground">Currently active</p>
+                <p className="text-xs text-muted-foreground">{isDark ? "Currently active" : "Currently off"}</p>
               </div>
             </div>
-            <div className="h-6 w-10 rounded-full bg-purple-500/30 border border-purple-500/50 relative">
-              <div className="absolute right-0.5 top-0.5 h-5 w-5 rounded-full bg-purple-400" />
+            <div className={`h-6 w-10 rounded-full relative transition-colors ${isDark ? "bg-purple-500/30 border border-purple-500/50" : "bg-black/10 border border-black/20"}`}>
+              <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${isDark ? "right-0.5 bg-purple-400" : "left-0.5 bg-gray-400"}`} />
             </div>
-          </div>
-          <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          </button>
+          <button
+            onClick={() => setNotifications(!notifications)}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
+          >
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-emerald-500/10">
                 <Bell className="h-4 w-4 text-emerald-400" />
               </div>
-              <div>
+              <div className="text-left">
                 <p className="text-sm font-medium">Notifications</p>
                 <p className="text-xs text-muted-foreground">Event reminders & updates</p>
               </div>
             </div>
-            <div className="h-6 w-10 rounded-full bg-purple-500/30 border border-purple-500/50 relative">
-              <div className="absolute right-0.5 top-0.5 h-5 w-5 rounded-full bg-purple-400" />
+            <div className={`h-6 w-10 rounded-full relative transition-colors ${notifications ? "bg-purple-500/30 border border-purple-500/50" : "bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20"}`}>
+              <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${notifications ? "right-0.5 bg-purple-400" : "left-0.5 bg-gray-400"}`} />
             </div>
-          </div>
+          </button>
         </CardContent>
       </Card>
     </motion.div>

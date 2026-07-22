@@ -4,12 +4,11 @@ import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Lightbulb, BookOpen, TrendingUp, Users, Sparkles, ArrowRight } from "lucide-react";
-import { formatDate, formatTime } from "@/lib/utils";
+import { Calendar, Lightbulb, BookOpen, Users, Sparkles, ArrowRight } from "lucide-react";
+import { formatTime } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Announcements } from "@/components/Announcements";
-import { WeeklyDigest } from "@/components/WeeklyDigest";
 import { GettingStarted } from "@/components/GettingStarted";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -46,7 +45,7 @@ export default function DashboardPage() {
     { label: "Upcoming Events", value: events.length, icon: Calendar, color: "from-purple-500 to-indigo-500" },
     { label: "Inspirations", value: inspirations.length, icon: Lightbulb, color: "from-amber-500 to-orange-500" },
     { label: "Resources", value: resources.length, icon: BookOpen, color: "from-emerald-500 to-teal-500" },
-    { label: "Team Activity", value: "Active", icon: Users, color: "from-blue-500 to-cyan-500" },
+    { label: "Total Items", value: events.length + inspirations.length + resources.length, icon: Users, color: "from-blue-500 to-cyan-500" },
   ];
 
   return (
@@ -212,7 +211,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-1.5">
                   {resources.map((resource: any) => (
-                    <div key={resource.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                    <Link key={resource.id} href="/resources" className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors">
                       <div className="p-2 rounded-lg bg-emerald-500/10">
                         <BookOpen className="h-3.5 w-3.5 text-emerald-400" />
                       </div>
@@ -222,16 +221,12 @@ export default function DashboardPage() {
                           {resource.type.replace(/_/g, " ")}
                         </p>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
             </CardContent>
           </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <WeeklyDigest eventsCount={events.length} inspirationsCount={inspirations.length} />
         </motion.div>
 
         <motion.div variants={item}>

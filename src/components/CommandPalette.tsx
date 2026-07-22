@@ -32,11 +32,20 @@ const commands = [
   { name: "Analytics", href: "/analytics", icon: BarChart3, category: "Navigation" },
   { name: "Notifications", href: "/notifications", icon: Bell, category: "Navigation" },
   { name: "Budget", href: "/budget", icon: DollarSign, category: "Navigation" },
+  { name: "Floor Roster", href: "/residents", icon: UserCircle, category: "Navigation" },
+  { name: "Check-Ins", href: "/check-ins", icon: UserCircle, category: "Navigation" },
+  { name: "Room Checks", href: "/room-checks", icon: UserCircle, category: "Navigation" },
+  { name: "Incidents", href: "/incidents", icon: Shield, category: "Navigation" },
+  { name: "Duty Schedule", href: "/duty", icon: Shield, category: "Navigation" },
+  { name: "Polls", href: "/polls", icon: UserCircle, category: "Navigation" },
+  { name: "Feedback", href: "/feedback", icon: UserCircle, category: "Navigation" },
+  { name: "Notes", href: "/notes", icon: UserCircle, category: "Navigation" },
   { name: "Team", href: "/team", icon: UserCircle, category: "Navigation" },
   { name: "Settings", href: "/settings", icon: Settings, category: "Navigation" },
   { name: "Admin", href: "/admin", icon: Shield, category: "Navigation" },
   { name: "Create New Event", href: "/events/new", icon: Plus, category: "Actions" },
-  { name: "Save Inspiration", href: "/inspiration", icon: Plus, category: "Actions" },
+  { name: "Event Templates", href: "/events/templates", icon: Sparkles, category: "Actions" },
+  { name: "Log Incident", href: "/incidents", icon: Shield, category: "Actions" },
   { name: "AI Event Ideas", href: "/ai-planner", icon: Sparkles, category: "Actions" },
 ];
 
@@ -60,10 +69,20 @@ export function CommandPalette() {
     if (e.key === "Escape") setOpen(false);
   }, []);
 
+  const handleCustomOpen = useCallback(() => {
+    setOpen(true);
+    setQuery("");
+    setSelectedIndex(0);
+  }, []);
+
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+    document.addEventListener("open-command-palette", handleCustomOpen);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("open-command-palette", handleCustomOpen);
+    };
+  }, [handleKeyDown, handleCustomOpen]);
 
   const navigate = (href: string) => {
     router.push(href);
