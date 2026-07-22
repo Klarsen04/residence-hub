@@ -24,6 +24,7 @@ import {
   UserCircle,
   Sun,
   Moon,
+  BarChart2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -38,6 +39,7 @@ const navigation = [
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles },
   { name: "Collaboration", href: "/collaboration", icon: Users },
   { name: "Budget", href: "/budget", icon: DollarSign },
+  { name: "Polls", href: "/polls", icon: BarChart2 },
   { name: "Team", href: "/team", icon: UserCircle },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Notifications", href: "/notifications", icon: Bell },

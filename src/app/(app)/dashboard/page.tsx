@@ -8,6 +8,7 @@ import { Calendar, Lightbulb, BookOpen, TrendingUp, Users, Sparkles, ArrowRight 
 import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Announcements } from "@/components/Announcements";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -49,6 +50,10 @@ export default function DashboardPage() {
         <p className="text-muted-foreground mt-2 text-base">
           Here&apos;s what&apos;s happening in your residence life community.
         </p>
+      </motion.div>
+
+      <motion.div variants={item}>
+        <Announcements />
       </motion.div>
 
       <motion.div variants={item} className="grid gap-4 grid-cols-2 lg:grid-cols-4">
