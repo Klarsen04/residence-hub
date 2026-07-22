@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Home,
+  ClipboardCheck,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -45,6 +46,7 @@ const navigation = [
   { name: "Decorations", href: "/decorations", icon: Palette, group: "content" },
   { name: "Resources", href: "/resources", icon: BookOpen, group: "content" },
   { name: "Notes", href: "/notes", icon: StickyNote, group: "content" },
+  { name: "Room Checks", href: "/room-checks", icon: ClipboardCheck, group: "tools" },
   { name: "Incidents", href: "/incidents", icon: AlertTriangle, group: "tools" },
   { name: "Budget", href: "/budget", icon: DollarSign, group: "tools" },
   { name: "Duty", href: "/duty", icon: ShieldCheck, group: "tools" },
