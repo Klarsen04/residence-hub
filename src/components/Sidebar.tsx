@@ -25,6 +25,7 @@ import {
   Sun,
   Moon,
   BarChart2,
+  MessageSquare,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -40,6 +41,7 @@ const navigation = [
   { name: "Collaboration", href: "/collaboration", icon: Users },
   { name: "Budget", href: "/budget", icon: DollarSign },
   { name: "Polls", href: "/polls", icon: BarChart2 },
+  { name: "Feedback", href: "/feedback", icon: MessageSquare },
   { name: "Team", href: "/team", icon: UserCircle },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Notifications", href: "/notifications", icon: Bell },

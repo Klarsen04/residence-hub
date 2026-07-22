@@ -9,6 +9,7 @@ import { formatDate, formatTime } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Announcements } from "@/components/Announcements";
+import { WeeklyDigest } from "@/components/WeeklyDigest";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -215,6 +216,10 @@ export default function DashboardPage() {
               )}
             </CardContent>
           </Card>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <WeeklyDigest eventsCount={events.length} inspirationsCount={inspirations.length} />
         </motion.div>
 
         <motion.div variants={item}>
