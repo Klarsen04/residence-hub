@@ -26,6 +26,13 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const { data: dashboardData } = useSWR("/api/dashboard", fetcher);
@@ -45,7 +52,7 @@ export default function DashboardPage() {
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-8 max-w-7xl">
       <motion.div variants={item}>
         <h1 className="text-4xl font-bold">
-          Welcome back,{" "}
+          {getGreeting()},{" "}
           <span className="gradient-text">{session?.user?.name?.split(" ")[0] || "there"}</span>
         </h1>
         <p className="text-muted-foreground mt-2 text-base">
