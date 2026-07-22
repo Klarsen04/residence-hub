@@ -10,6 +10,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Announcements } from "@/components/Announcements";
 import { WeeklyDigest } from "@/components/WeeklyDigest";
+import { GettingStarted } from "@/components/GettingStarted";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -62,6 +63,10 @@ export default function DashboardPage() {
 
       <motion.div variants={item}>
         <Announcements />
+      </motion.div>
+
+      <motion.div variants={item}>
+        <GettingStarted />
       </motion.div>
 
       <motion.div variants={item} className="grid gap-4 grid-cols-2 lg:grid-cols-4">
