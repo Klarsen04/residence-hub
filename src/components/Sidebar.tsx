@@ -26,6 +26,8 @@ import {
   Moon,
   BarChart2,
   MessageSquare,
+  StickyNote,
+  ShieldCheck,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -40,6 +42,8 @@ const navigation = [
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles },
   { name: "Collaboration", href: "/collaboration", icon: Users },
   { name: "Budget", href: "/budget", icon: DollarSign },
+  { name: "Duty", href: "/duty", icon: ShieldCheck },
+  { name: "Notes", href: "/notes", icon: StickyNote },
   { name: "Polls", href: "/polls", icon: BarChart2 },
   { name: "Feedback", href: "/feedback", icon: MessageSquare },
   { name: "Team", href: "/team", icon: UserCircle },
