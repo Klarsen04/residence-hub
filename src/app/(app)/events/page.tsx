@@ -72,12 +72,19 @@ export default function EventsPage() {
           <h1 className="text-3xl font-bold">Events</h1>
           <p className="text-muted-foreground mt-1">United calendar — all staff events in one place</p>
         </div>
-        <Link href="/events/new">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Event
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/events/templates">
+            <Button variant="outline">
+              Templates
+            </Button>
+          </Link>
+          <Link href="/events/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Event
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

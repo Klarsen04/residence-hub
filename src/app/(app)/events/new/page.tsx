@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Calendar } from "lucide-react";
+import Link from "next/link";
 
 const categories = [
   { value: "COMMUNITY_BUILDING", label: "Community Building" },
@@ -22,15 +23,16 @@ const categories = [
 
 export default function NewEventPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    title: "",
-    description: "",
+    title: searchParams.get("title") || "",
+    description: searchParams.get("description") || "",
     date: "",
     startTime: "",
     endTime: "",
     location: "",
-    category: "COMMUNITY_BUILDING",
+    category: searchParams.get("category") || "COMMUNITY_BUILDING",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

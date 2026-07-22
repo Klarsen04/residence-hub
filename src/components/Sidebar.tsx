@@ -20,7 +20,12 @@ import {
   Shield,
   Bell,
   Search,
+  DollarSign,
+  UserCircle,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -32,6 +37,8 @@ const navigation = [
   { name: "Resources", href: "/resources", icon: BookOpen },
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles },
   { name: "Collaboration", href: "/collaboration", icon: Users },
+  { name: "Budget", href: "/budget", icon: DollarSign },
+  { name: "Team", href: "/team", icon: UserCircle },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Notifications", href: "/notifications", icon: Bell },
 ];
@@ -40,6 +47,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   return (
     <>
@@ -136,6 +144,13 @@ export function Sidebar() {
               <Settings className="h-4 w-4" />
               Settings
             </Link>
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all duration-200 w-full"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            </button>
 
             {session?.user && (
               <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-xl bg-white/[0.03] border border-white/[0.06]">

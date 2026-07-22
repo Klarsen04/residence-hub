@@ -17,6 +17,8 @@ import {
   Shield,
   Bell,
   Plus,
+  DollarSign,
+  UserCircle,
 } from "lucide-react";
 
 const commands = [
@@ -29,6 +31,8 @@ const commands = [
   { name: "Collaboration", href: "/collaboration", icon: Users, category: "Navigation" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, category: "Navigation" },
   { name: "Notifications", href: "/notifications", icon: Bell, category: "Navigation" },
+  { name: "Budget", href: "/budget", icon: DollarSign, category: "Navigation" },
+  { name: "Team", href: "/team", icon: UserCircle, category: "Navigation" },
   { name: "Settings", href: "/settings", icon: Settings, category: "Navigation" },
   { name: "Admin", href: "/admin", icon: Shield, category: "Navigation" },
   { name: "Create New Event", href: "/events/new", icon: Plus, category: "Actions" },
