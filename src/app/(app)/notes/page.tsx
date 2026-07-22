@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, StickyNote, Trash2, Pin, PinOff } from "lucide-react";
+import { Plus, StickyNote, Trash2, Pin, PinOff, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Note {
@@ -14,25 +15,27 @@ interface Note {
   color: string;
   pinned: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
-const noteColors = [
-  "from-purple-500/10 to-purple-500/5 border-purple-500/20",
-  "from-blue-500/10 to-blue-500/5 border-blue-500/20",
-  "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-  "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-  "from-pink-500/10 to-pink-500/5 border-pink-500/20",
-  "from-cyan-500/10 to-cyan-500/5 border-cyan-500/20",
-];
+const noteColorNames = ["purple", "blue", "emerald", "amber", "pink", "cyan"];
 
-const defaultNotes: Note[] = [
-  { id: "1", title: "Event Ideas for November", content: "- Friendsgiving dinner\n- Gratitude wall\n- Movie marathon (holiday classics)\n- Care package making", color: noteColors[0], pinned: true, createdAt: "2 days ago" },
-  { id: "2", title: "Maintenance Requests", content: "Room 312 - broken blinds\nRoom 405 - leaky faucet\nLounge - projector bulb needs replacing", color: noteColors[1], pinned: false, createdAt: "1 week ago" },
-  { id: "3", title: "Meeting Notes - 7/18", content: "- New quiet hours policy starts Monday\n- Budget due by Friday\n- Floor Olympics team sign-ups open", color: noteColors[2], pinned: true, createdAt: "3 days ago" },
-];
+function getColorClasses(color: string): string {
+  const map: Record<string, string> = {
+    purple: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
+    blue: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+    emerald: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
+    amber: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
+    pink: "from-pink-500/10 to-pink-500/5 border-pink-500/20",
+    cyan: "from-cyan-500/10 to-cyan-500/5 border-cyan-500/20",
+  };
+  return map[color] || map.purple;
+}
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function NotesPage() {
-  const [notes, setNotes] = useState<Note[]>(defaultNotes);
+  const { data: notes, error, isLoading, mutate } = useSWR<Note[]>("/api/notes", fetcher);
   const [showNew, setShowNew] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
@@ -40,28 +43,34 @@ export default function NotesPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
 
-  const addNote = () => {
+  const addNote = async () => {
     if (!newTitle.trim() && !newContent.trim()) return;
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title: newTitle || "Untitled",
-      content: newContent,
-      color: noteColors[notes.length % noteColors.length],
-      pinned: false,
-      createdAt: "Just now",
-    };
-    setNotes([newNote, ...notes]);
+    const color = noteColorNames[(notes?.length ?? 0) % noteColorNames.length];
+    await fetch("/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: newTitle || "Untitled", content: newContent, color }),
+    });
+    mutate();
     setNewTitle("");
     setNewContent("");
     setShowNew(false);
   };
 
-  const deleteNote = (id: string) => {
-    setNotes(notes.filter(n => n.id !== id));
+  const deleteNote = async (id: string) => {
+    await fetch(`/api/notes?id=${id}`, { method: "DELETE" });
+    mutate();
   };
 
-  const togglePin = (id: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, pinned: !n.pinned } : n));
+  const togglePin = async (id: string) => {
+    const note = notes?.find((n) => n.id === id);
+    if (!note) return;
+    await fetch("/api/notes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, pinned: !note.pinned }),
+    });
+    mutate();
   };
 
   const startEditing = (note: Note) => {
@@ -70,16 +79,37 @@ export default function NotesPage() {
     setEditContent(note.content);
   };
 
-  const saveEdit = (id: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, title: editTitle || "Untitled", content: editContent } : n));
+  const saveEdit = async (id: string) => {
+    await fetch("/api/notes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, title: editTitle || "Untitled", content: editContent }),
+    });
+    mutate();
     setEditingId(null);
   };
 
-  const sortedNotes = [...notes].sort((a, b) => {
+  const sortedNotes = [...(notes || [])].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
     return 0;
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-muted-foreground">Failed to load notes.</p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -142,7 +172,7 @@ export default function NotesPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sortedNotes.map((note) => (
             <motion.div key={note.id} layout>
-              <div className={`group rounded-2xl border bg-gradient-to-br ${note.color} p-5 transition-all duration-200 hover:-translate-y-0.5 relative`}>
+              <div className={`group rounded-2xl border bg-gradient-to-br ${getColorClasses(note.color)} p-5 transition-all duration-200 hover:-translate-y-0.5 relative`}>
                 {note.pinned && (
                   <div className="absolute top-3 right-3">
                     <Pin className="h-3 w-3 text-purple-400 fill-purple-400" />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,50 +23,11 @@ interface Poll {
   totalVotes: number;
   createdAt: string;
   active: boolean;
+  createdBy?: string;
   votedOption?: string;
 }
 
-const mockPolls: Poll[] = [
-  {
-    id: "1",
-    question: "What movie should we watch this Friday?",
-    options: [
-      { id: "a", text: "The Super Mario Bros. Movie", votes: 12 },
-      { id: "b", text: "Spider-Verse", votes: 18 },
-      { id: "c", text: "Barbie", votes: 8 },
-      { id: "d", text: "Oppenheimer", votes: 5 },
-    ],
-    totalVotes: 43,
-    createdAt: "2 days ago",
-    active: true,
-  },
-  {
-    id: "2",
-    question: "Best time for study break during finals?",
-    options: [
-      { id: "a", text: "8 PM", votes: 22 },
-      { id: "b", text: "9 PM", votes: 15 },
-      { id: "c", text: "10 PM", votes: 8 },
-    ],
-    totalVotes: 45,
-    createdAt: "1 week ago",
-    active: false,
-    votedOption: "a",
-  },
-  {
-    id: "3",
-    question: "Floor lounge improvements — what should we add?",
-    options: [
-      { id: "a", text: "Bean bag chairs", votes: 25 },
-      { id: "b", text: "More board games", votes: 14 },
-      { id: "c", text: "Better lighting", votes: 9 },
-      { id: "d", text: "Plants", votes: 18 },
-    ],
-    totalVotes: 66,
-    createdAt: "3 days ago",
-    active: true,
-  },
-];
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const container = {
   hidden: { opacity: 0 },
@@ -78,45 +40,55 @@ const item = {
 };
 
 export default function PollsPage() {
-  const [polls, setPolls] = useState<Poll[]>(mockPolls);
+  const { data: polls, mutate, isLoading } = useSWR<Poll[]>("/api/polls", fetcher);
   const [showForm, setShowForm] = useState(false);
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", "", ""]);
 
-  const vote = (pollId: string, optionId: string) => {
-    setPolls(polls.map(p => {
-      if (p.id === pollId && !p.votedOption) {
-        return {
-          ...p,
-          votedOption: optionId,
-          totalVotes: p.totalVotes + 1,
-          options: p.options.map(o => o.id === optionId ? { ...o, votes: o.votes + 1 } : o),
-        };
-      }
-      return p;
-    }));
-    toast.success("Vote recorded!");
+  const vote = async (pollId: string, optionId: string) => {
+    try {
+      const res = await fetch("/api/polls", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pollId, optionId }),
+      });
+      if (!res.ok) throw new Error("Failed to vote");
+      await mutate();
+      toast.success("Vote recorded!");
+    } catch {
+      toast.error("Failed to record vote");
+    }
   };
 
-  const createPoll = () => {
+  const createPoll = async () => {
     if (!question.trim() || options.filter(o => o.trim()).length < 2) {
       toast.error("Need a question and at least 2 options");
       return;
     }
-    const newPoll: Poll = {
-      id: Date.now().toString(),
-      question,
-      options: options.filter(o => o.trim()).map((text, i) => ({ id: String(i), text, votes: 0 })),
-      totalVotes: 0,
-      createdAt: "Just now",
-      active: true,
-    };
-    setPolls([newPoll, ...polls]);
-    setShowForm(false);
-    setQuestion("");
-    setOptions(["", "", ""]);
-    toast.success("Poll created!");
+    try {
+      const res = await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, options: options.filter(o => o.trim()) }),
+      });
+      if (!res.ok) throw new Error("Failed to create poll");
+      await mutate();
+      setShowForm(false);
+      setQuestion("");
+      setOptions(["", "", ""]);
+      toast.success("Poll created!");
+    } catch {
+      toast.error("Failed to create poll");
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-muted-foreground">Loading polls...</div>
+      </div>
+    );
+  }
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-3xl mx-auto">
@@ -183,7 +155,7 @@ export default function PollsPage() {
       )}
 
       <motion.div variants={item} className="space-y-4">
-        {polls.map((poll) => {
+        {(polls || []).map((poll) => {
           const maxVotes = Math.max(...poll.options.map(o => o.votes));
           return (
             <Card key={poll.id} className={poll.active ? "border-purple-500/10" : ""}>

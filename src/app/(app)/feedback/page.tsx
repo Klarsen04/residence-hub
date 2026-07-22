@@ -31,14 +31,24 @@ export default function FeedbackPage() {
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(true);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mood || !message.trim()) {
       toast.error("Please select a mood and write a message");
       return;
     }
-    setSubmitted(true);
-    toast.success("Feedback submitted! Thank you.");
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mood, category, message, anonymous }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setSubmitted(true);
+      toast.success("Feedback submitted! Thank you.");
+    } catch {
+      toast.error("Failed to submit feedback");
+    }
   };
 
   const reset = () => {

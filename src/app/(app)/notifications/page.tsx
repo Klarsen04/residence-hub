@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import {
   Settings,
   Check,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -22,60 +24,26 @@ interface Notification {
   type: "event" | "approval" | "team" | "resource" | "ai" | "system";
   title: string;
   description: string;
-  time: string;
+  createdAt: string;
   read: boolean;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "approval",
-    title: "Event Approved",
-    description: "Your 'Study Break Social' event has been approved by the RD.",
-    time: "2 hours ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "team",
-    title: "New Team Member",
-    description: "Sarah joined the Residence Hub team as a Peer Success Guide.",
-    time: "5 hours ago",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "event",
-    title: "Event Reminder",
-    description: "Floor Olympics starts tomorrow at 7 PM in the Main Lounge.",
-    time: "1 day ago",
-    read: false,
-  },
-  {
-    id: "4",
-    type: "resource",
-    title: "New Resource Shared",
-    description: "A new 'Conflict Resolution Guide' was added to Resources.",
-    time: "2 days ago",
-    read: true,
-  },
-  {
-    id: "5",
-    type: "ai",
-    title: "AI Suggestion",
-    description: "Based on your events, you might enjoy planning a Wellness Wednesday.",
-    time: "3 days ago",
-    read: true,
-  },
-  {
-    id: "6",
-    type: "system",
-    title: "Welcome to Notifications",
-    description: "You'll receive updates about events, approvals, and team activity here.",
-    time: "1 week ago",
-    read: true,
-  },
-];
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+function formatRelativeTime(dateString: string): string {
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+}
 
 const typeConfig = {
   event: { icon: Calendar, color: "text-purple-400", bg: "bg-purple-500/10" },
@@ -97,23 +65,44 @@ const item = {
 };
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const { data: notifications = [], isLoading, mutate } = useSWR<Notification[]>("/api/notifications", fetcher);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const filtered = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
-  const markAllRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    await fetch("/api/notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markAllRead: true }),
+    });
+    mutate();
   };
 
-  const markRead = (id: string) => {
-    setNotifications(notifications.map((n) => n.id === id ? { ...n, read: true } : n));
+  const markRead = async (id: string) => {
+    await fetch("/api/notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, read: true }),
+    });
+    mutate();
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(notifications.filter((n) => n.id !== id));
+  const deleteNotification = async (id: string) => {
+    await fetch(`/api/notifications?id=${id}`, {
+      method: "DELETE",
+    });
+    mutate();
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -169,7 +158,7 @@ export default function NotificationsPage() {
         <Card>
           <CardContent className="py-16 text-center">
             <Bell className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground">No notifications</p>
+            <p className="text-muted-foreground">No notifications yet</p>
           </CardContent>
         </Card>
       ) : (
@@ -201,7 +190,7 @@ export default function NotificationsPage() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">{notification.description}</p>
-                    <p className="text-[11px] text-muted-foreground/70 mt-1.5">{notification.time}</p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-1.5">{formatRelativeTime(notification.createdAt)}</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}

@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, ChevronLeft, ChevronRight, Moon, Sun, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Shield, ChevronLeft, ChevronRight, Moon, Sun, Clock, Plus } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -25,15 +30,6 @@ const generateWeekDates = (startOfWeek: Date) => {
   });
 };
 
-const mockDutySchedule: DutyShift[] = [
-  { id: "1", date: "2026-07-21", ra: "You", type: "evening" },
-  { id: "2", date: "2026-07-22", ra: "Sarah K.", type: "evening" },
-  { id: "3", date: "2026-07-23", ra: "Marcus J.", type: "evening" },
-  { id: "4", date: "2026-07-24", ra: "You", type: "overnight" },
-  { id: "5", date: "2026-07-25", ra: "Aisha P.", type: "evening" },
-  { id: "6", date: "2026-07-26", ra: "You", type: "weekend", notes: "Swap with Marcus next week" },
-  { id: "7", date: "2026-07-27", ra: "Sarah K.", type: "weekend" },
-];
 
 const typeConfig = {
   evening: { icon: Moon, label: "Evening", color: "bg-purple-500/15 text-purple-400 border-purple-500/20", time: "7 PM - 12 AM" },
@@ -42,6 +38,11 @@ const typeConfig = {
 };
 
 export default function DutyPage() {
+  const { data: shifts, mutate } = useSWR("/api/duty", fetcher);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newShift, setNewShift] = useState({ date: "", type: "evening" });
+  const allShifts: DutyShift[] = (shifts || []).map((s: any) => ({ ...s, ra: s.user?.name || "You" }));
+
   const [currentWeek, setCurrentWeek] = useState(() => {
     const now = new Date();
     const day = now.getDay();
@@ -66,11 +67,11 @@ export default function DutyPage() {
 
   const getShiftsForDate = (date: Date) => {
     const dateStr = date.toISOString().split("T")[0];
-    return mockDutySchedule.filter(s => s.date === dateStr);
+    return allShifts.filter(s => s.date === dateStr);
   };
 
   const today = new Date().toISOString().split("T")[0];
-  const myNextDuty = mockDutySchedule.find(s => s.ra === "You" && s.date >= today);
+  const myNextDuty = allShifts.find(s => s.ra === "You" && s.date >= today);
 
   return (
     <motion.div
@@ -89,7 +90,42 @@ export default function DutyPage() {
             <p className="text-muted-foreground mt-0.5">Track RA duty nights and shifts</p>
           </div>
         </div>
+        <Button onClick={() => setShowAddForm(!showAddForm)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Shift
+        </Button>
       </div>
+
+      {showAddForm && (
+        <Card className="border-purple-500/20">
+          <CardContent className="p-4 flex items-end gap-3">
+            <div className="flex-1">
+              <label className="text-sm font-medium text-muted-foreground">Date</label>
+              <Input type="date" value={newShift.date} onChange={(e) => setNewShift({ ...newShift, date: e.target.value })} className="mt-1" />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium text-muted-foreground">Type</label>
+              <select
+                className="mt-1 flex h-10 w-full rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2 text-sm outline-none"
+                value={newShift.type}
+                onChange={(e) => setNewShift({ ...newShift, type: e.target.value })}
+              >
+                <option value="evening">Evening</option>
+                <option value="overnight">Overnight</option>
+                <option value="weekend">Weekend</option>
+              </select>
+            </div>
+            <Button onClick={async () => {
+              if (!newShift.date) { toast.error("Select a date"); return; }
+              await fetch("/api/duty", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newShift) });
+              mutate();
+              setNewShift({ date: "", type: "evening" });
+              setShowAddForm(false);
+              toast.success("Shift added!");
+            }}>Save</Button>
+          </CardContent>
+        </Card>
+      )}
 
       {myNextDuty && (
         <Card className="border-purple-500/20 overflow-hidden">
@@ -175,7 +211,7 @@ export default function DutyPage() {
       <div className="grid gap-4 md:grid-cols-3">
         {Object.entries(typeConfig).map(([key, config]) => {
           const Icon = config.icon;
-          const count = mockDutySchedule.filter(s => s.ra === "You" && s.type === key).length;
+          const count = allShifts.filter(s => s.ra === "You" && s.type === key).length;
           return (
             <div key={key} className="p-4 rounded-2xl border border-white/[0.08] bg-card/50">
               <div className="flex items-center gap-3">

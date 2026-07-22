@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Plus, User, Clock, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface CheckIn {
   id: string;
@@ -20,24 +23,6 @@ interface CheckIn {
   followUp: boolean;
 }
 
-interface ResidentStatus {
-  name: string;
-  room: string;
-  checkIns: number;
-  lastCheckIn?: string;
-  dueForCheckIn: boolean;
-}
-
-const residentStatuses: ResidentStatus[] = [
-  { name: "Jordan Martinez", room: "301", checkIns: 2, lastCheckIn: "2026-07-15", dueForCheckIn: false },
-  { name: "Priya Patel", room: "302", checkIns: 1, lastCheckIn: "2026-07-01", dueForCheckIn: true },
-  { name: "Marcus Johnson", room: "303", checkIns: 3, lastCheckIn: "2026-07-18", dueForCheckIn: false },
-  { name: "Sarah Kim", room: "304", checkIns: 0, dueForCheckIn: true },
-  { name: "Alex Rivera", room: "305", checkIns: 2, lastCheckIn: "2026-07-10", dueForCheckIn: true },
-  { name: "Taylor Chen", room: "306", checkIns: 1, lastCheckIn: "2026-07-05", dueForCheckIn: true },
-  { name: "Chris O'Brien", room: "307", checkIns: 2, lastCheckIn: "2026-07-16", dueForCheckIn: false },
-  { name: "Aisha Williams", room: "308", checkIns: 3, lastCheckIn: "2026-07-19", dueForCheckIn: false },
-];
 
 const topicOptions = [
   "Academics", "Homesickness", "Roommate", "Social Life",
@@ -53,8 +38,8 @@ const moodConfig = {
 };
 
 export default function CheckInsPage() {
-  const [statuses] = useState(residentStatuses);
-  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
+  const { data: checkIns, mutate } = useSWR("/api/check-ins", fetcher);
+  const { data: residents } = useSWR("/api/residents", fetcher);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
@@ -66,8 +51,9 @@ export default function CheckInsPage() {
     followUp: false,
   });
 
-  const dueCount = statuses.filter(s => s.dueForCheckIn).length;
-  const totalCheckIns = statuses.reduce((sum, s) => sum + s.checkIns, 0) + checkIns.length;
+  const allCheckIns: CheckIn[] = checkIns || [];
+  const allResidents = residents || [];
+  const totalCheckIns = allCheckIns.length;
 
   const toggleTopic = (topic: string) => {
     setForm({
@@ -78,29 +64,34 @@ export default function CheckInsPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.residentName.trim()) {
       toast.error("Please enter resident name");
       return;
     }
-    const newCheckIn: CheckIn = {
-      id: Date.now().toString(),
-      ...form,
-      date: new Date().toISOString(),
-    };
-    setCheckIns([newCheckIn, ...checkIns]);
-    setShowForm(false);
-    setForm({ residentName: "", room: "", mood: "good", topics: [], notes: "", followUp: false });
-    toast.success("Check-in logged!");
+    try {
+      const res = await fetch("/api/check-ins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setShowForm(false);
+      setForm({ residentName: "", room: "", mood: "good", topics: [], notes: "", followUp: false });
+      toast.success("Check-in logged!");
+      mutate();
+    } catch {
+      toast.error("Failed to log check-in");
+    }
   };
 
-  const selectResident = (resident: ResidentStatus) => {
+  const selectResident = (resident: any) => {
     setForm({ ...form, residentName: resident.name, room: resident.room });
     setShowForm(true);
   };
 
-  const filteredStatuses = statuses.filter(s =>
+  const filteredResidents = allResidents.filter((s: any) =>
     s.name.toLowerCase().includes(search.toLowerCase()) || s.room.includes(search)
   );
 
@@ -140,14 +131,14 @@ export default function CheckInsPage() {
             <Clock className="h-4 w-4 text-amber-400" />
             <span className="text-xs text-amber-400">Due for Check-In</span>
           </div>
-          <p className="text-2xl font-bold text-amber-400">{dueCount}</p>
+          <p className="text-2xl font-bold text-amber-400">{allResidents.length}</p>
         </div>
         <div className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05]">
           <div className="flex items-center gap-2 mb-1">
             <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <span className="text-xs text-emerald-400">Up to Date</span>
+            <span className="text-xs text-emerald-400">Residents</span>
           </div>
-          <p className="text-2xl font-bold text-emerald-400">{statuses.length - dueCount}</p>
+          <p className="text-2xl font-bold text-emerald-400">{allResidents.length}</p>
         </div>
       </div>
 
@@ -239,57 +230,50 @@ export default function CheckInsPage() {
           </div>
         </div>
         <div className="grid gap-2 md:grid-cols-2">
-          {filteredStatuses.map((resident) => (
+          {filteredResidents.map((resident: any) => (
             <div
-              key={resident.room}
+              key={resident.id || resident.room}
               onClick={() => selectResident(resident)}
-              className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:-translate-y-0.5 ${
-                resident.dueForCheckIn
-                  ? "border-amber-500/20 bg-amber-500/[0.03] hover:border-amber-500/30"
-                  : "border-white/[0.06] dark:border-white/[0.06] hover:border-purple-500/20"
-              }`}
+              className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.06] dark:border-white/[0.06] hover:border-purple-500/20 cursor-pointer transition-all hover:-translate-y-0.5"
             >
               <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
                 {resident.room}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium truncate">{resident.name}</p>
-                  {resident.dueForCheckIn && <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
-                </div>
+                <p className="text-sm font-medium truncate">{resident.name}</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {resident.checkIns} check-in{resident.checkIns !== 1 ? "s" : ""}
-                  {resident.lastCheckIn && ` • Last: ${new Date(resident.lastCheckIn).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                  {resident.year || "Resident"}{resident.major ? ` • ${resident.major}` : ""}
                 </p>
               </div>
-              <Badge className={resident.dueForCheckIn ? "bg-amber-500/15 text-amber-400 text-[10px]" : "bg-emerald-500/15 text-emerald-400 text-[10px]"}>
-                {resident.dueForCheckIn ? "Due" : "Current"}
-              </Badge>
             </div>
           ))}
         </div>
       </div>
 
-      {checkIns.length > 0 && (
+      {allCheckIns.length > 0 && (
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Recent Check-Ins</h3>
           <div className="space-y-2">
-            {checkIns.map(ci => (
-              <Card key={ci.id}>
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/10">
-                    <User className="h-4 w-4 text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{ci.residentName} (Rm {ci.room})</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {ci.topics.join(", ")} • {new Date(ci.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Badge className={moodConfig[ci.mood].color}>{moodConfig[ci.mood].label}</Badge>
-                </CardContent>
-              </Card>
-            ))}
+            {allCheckIns.map((ci: any) => {
+              const topics = ci.topics ? (typeof ci.topics === "string" ? JSON.parse(ci.topics) : ci.topics) : [];
+              const mood = ci.mood as keyof typeof moodConfig;
+              return (
+                <Card key={ci.id}>
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-500/10">
+                      <User className="h-4 w-4 text-purple-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{ci.residentName}{ci.room ? ` (Rm ${ci.room})` : ""}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {topics.length > 0 ? topics.join(", ") : "General"} • {new Date(ci.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {moodConfig[mood] && <Badge className={moodConfig[mood].color}>{moodConfig[mood].label}</Badge>}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}

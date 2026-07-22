@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-import { ClipboardCheck, Check, X, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
+import { ClipboardCheck, Check, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface RoomCheck {
   room: string;
@@ -44,9 +46,10 @@ const generateRooms = (): RoomCheck[] => {
 const checkTypes = ["Health & Safety", "Wellness Check", "Break Closing"] as const;
 
 export default function RoomChecksPage() {
+  const { data: history, mutate } = useSWR("/api/room-checks", fetcher);
   const [activeCheck, setActiveCheck] = useState<CheckRound | null>(null);
-  const [history, setHistory] = useState<CheckRound[]>([]);
   const [checkType, setCheckType] = useState<typeof checkTypes[number]>("Health & Safety");
+  const allHistory = history || [];
 
   const startCheck = () => {
     setActiveCheck({
@@ -67,11 +70,20 @@ export default function RoomChecksPage() {
     });
   };
 
-  const finishCheck = () => {
+  const finishCheck = async () => {
     if (!activeCheck) return;
-    setHistory([activeCheck, ...history]);
-    setActiveCheck(null);
-    toast.success("Room check complete!");
+    try {
+      await fetch("/api/room-checks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: activeCheck.type, rooms: activeCheck.rooms }),
+      });
+      setActiveCheck(null);
+      mutate();
+      toast.success("Room check complete!");
+    } catch {
+      toast.error("Failed to save room check");
+    }
   };
 
   const completedCount = activeCheck?.rooms.filter(r => r.status !== "pending").length || 0;
@@ -125,12 +137,12 @@ export default function RoomChecksPage() {
             </CardContent>
           </Card>
 
-          {history.length > 0 && (
+          {allHistory.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-muted-foreground">Recent Checks</h3>
-              {history.map(check => {
-                const passCount = check.rooms.filter(r => r.status === "pass").length;
-                const concernCount = check.rooms.filter(r => r.status === "concern").length;
+              {allHistory.map((check: any) => {
+                const passCount = check.rooms.filter((r: any) => r.status === "pass").length;
+                const concernCount = check.rooms.filter((r: any) => r.status === "concern").length;
                 return (
                   <Card key={check.id}>
                     <CardContent className="p-4 flex items-center justify-between">

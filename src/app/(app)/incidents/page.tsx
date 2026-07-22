@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,13 @@ interface Incident {
   actionTaken: string;
   followUpNeeded: boolean;
   status: "open" | "resolved" | "escalated";
+  createdAt?: string;
 }
+
+const fetcher = (url: string) => fetch(url).then((res) => {
+  if (!res.ok) throw new Error("Failed to fetch incidents");
+  return res.json();
+});
 
 const incidentTypes = [
   "Noise Complaint",
@@ -49,47 +56,8 @@ const statusConfig = {
   escalated: { color: "bg-red-500/15 text-red-400", label: "Escalated" },
 };
 
-const mockIncidents: Incident[] = [
-  {
-    id: "1",
-    date: "2026-07-20",
-    time: "11:45 PM",
-    type: "Noise Complaint",
-    severity: "low",
-    location: "Room 312, Floor 3",
-    description: "Loud music reported by neighboring room. Went to speak with resident.",
-    actionTaken: "Spoke with resident, reminded of quiet hours policy. Music was turned down immediately.",
-    followUpNeeded: false,
-    status: "resolved",
-  },
-  {
-    id: "2",
-    date: "2026-07-19",
-    time: "2:30 AM",
-    type: "Wellness Concern",
-    severity: "medium",
-    location: "Floor 2 Bathroom",
-    description: "Found resident visibly upset and crying in bathroom. Checked in on their wellbeing.",
-    actionTaken: "Had a conversation, provided counseling center info. Resident agreed to call in the morning. Submitted a care referral.",
-    followUpNeeded: true,
-    status: "open",
-  },
-  {
-    id: "3",
-    date: "2026-07-18",
-    time: "9:15 PM",
-    type: "Lockout",
-    severity: "low",
-    location: "Room 205",
-    description: "Resident locked out of room, no spare key available.",
-    actionTaken: "Called security for temporary access. Reminded resident about key replacement process.",
-    followUpNeeded: false,
-    status: "resolved",
-  },
-];
-
 export default function IncidentsPage() {
-  const [incidents, setIncidents] = useState<Incident[]>(mockIncidents);
+  const { data: incidents, error, isLoading, mutate } = useSWR<Incident[]>("/api/incidents", fetcher);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -103,25 +71,73 @@ export default function IncidentsPage() {
     followUpNeeded: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description.trim() || !form.location.trim()) {
       toast.error("Please fill in location and description");
       return;
     }
-    const newIncident: Incident = {
-      id: Date.now().toString(),
-      ...form,
-      status: "open",
-    };
-    setIncidents([newIncident, ...incidents]);
-    setShowForm(false);
-    setForm({ date: new Date().toISOString().split("T")[0], time: "", type: "Noise Complaint", severity: "low", location: "", description: "", actionTaken: "", followUpNeeded: false });
-    toast.success("Incident report saved");
+    try {
+      const res = await fetch("/api/incidents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Failed to create incident");
+      await mutate();
+      setShowForm(false);
+      setForm({ date: new Date().toISOString().split("T")[0], time: "", type: "Noise Complaint", severity: "low", location: "", description: "", actionTaken: "", followUpNeeded: false });
+      toast.success("Incident report saved");
+    } catch {
+      toast.error("Failed to save incident report");
+    }
   };
 
-  const openCount = incidents.filter(i => i.status === "open").length;
-  const followUpCount = incidents.filter(i => i.followUpNeeded && i.status !== "resolved").length;
+  const handleStatusChange = async (incident: Incident, newStatus: "resolved" | "escalated") => {
+    try {
+      const res = await fetch("/api/incidents", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: incident.id,
+          status: newStatus,
+          followUpNeeded: newStatus === "resolved" ? false : incident.followUpNeeded,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update incident");
+      await mutate();
+      toast.success(`Incident marked as ${newStatus}`);
+    } catch {
+      toast.error("Failed to update incident status");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-3">
+          <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading incidents...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-3">
+          <AlertTriangle className="h-8 w-8 text-red-400 mx-auto" />
+          <p className="text-muted-foreground text-sm">Failed to load incidents. Please try again.</p>
+          <Button variant="outline" onClick={() => mutate()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const incidentList = incidents ?? [];
+  const openCount = incidentList.filter(i => i.status === "open").length;
+  const followUpCount = incidentList.filter(i => i.followUpNeeded && i.status !== "resolved").length;
 
   return (
     <motion.div
@@ -152,7 +168,7 @@ export default function IncidentsPage() {
             <FileText className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Total Reports</span>
           </div>
-          <p className="text-2xl font-bold">{incidents.length}</p>
+          <p className="text-2xl font-bold">{incidentList.length}</p>
         </div>
         <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05]">
           <div className="flex items-center gap-2 mb-1">
@@ -271,7 +287,7 @@ export default function IncidentsPage() {
       </AnimatePresence>
 
       <div className="space-y-3">
-        {incidents.map((incident) => {
+        {incidentList.map((incident) => {
           const isExpanded = expandedId === incident.id;
           return (
             <Card key={incident.id} className="cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : incident.id)}>
@@ -316,6 +332,26 @@ export default function IncidentsPage() {
                         <div>
                           <p className="text-xs font-medium text-muted-foreground mb-1">Action Taken</p>
                           <p className="text-sm">{incident.actionTaken}</p>
+                        </div>
+                      )}
+                      {incident.status === "open" && (
+                        <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                            onClick={() => handleStatusChange(incident, "resolved")}
+                          >
+                            Mark Resolved
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-400 border-red-500/30 hover:bg-red-500/10"
+                            onClick={() => handleStatusChange(incident, "escalated")}
+                          >
+                            Escalate
+                          </Button>
                         </div>
                       )}
                     </motion.div>
