@@ -28,6 +28,7 @@ import {
   MessageSquare,
   StickyNote,
   ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -42,6 +43,7 @@ const navigation = [
   { name: "Decorations", href: "/decorations", icon: Palette, group: "content" },
   { name: "Resources", href: "/resources", icon: BookOpen, group: "content" },
   { name: "Notes", href: "/notes", icon: StickyNote, group: "content" },
+  { name: "Incidents", href: "/incidents", icon: AlertTriangle, group: "tools" },
   { name: "Budget", href: "/budget", icon: DollarSign, group: "tools" },
   { name: "Duty", href: "/duty", icon: ShieldCheck, group: "tools" },
   { name: "Polls", href: "/polls", icon: BarChart2, group: "tools" },
@@ -74,7 +76,7 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[280px] bg-card/80 backdrop-blur-xl border-r border-white/[0.06] transform transition-transform duration-300 ease-out md:translate-x-0 md:static md:inset-auto",
+          "fixed inset-y-0 left-0 z-40 w-[280px] bg-card/90 backdrop-blur-xl border-r border-black/[0.06] dark:border-white/[0.06] transform transition-transform duration-300 ease-out md:translate-x-0 md:static md:inset-auto",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

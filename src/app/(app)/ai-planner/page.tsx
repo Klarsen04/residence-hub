@@ -5,7 +5,6 @@ import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Sparkles, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";

@@ -56,16 +56,16 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 dark:bg-white/5 dark:border-white/10;
   }
   .glass-card {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-xl shadow-black/5;
+    @apply bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-xl shadow-black/5;
   }
   .gradient-primary {
     @apply bg-gradient-to-r from-purple-500 to-blue-500;
   }
   .gradient-text {
-    @apply bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent;
   }
   .glow {
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.1);
@@ -73,6 +73,19 @@
   .glow-sm {
     box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
   }
+}
+
+/* Light mode overrides for inline opacity-based styles */
+:root {
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --surface-active: rgba(0, 0, 0, 0.06);
+  --surface-border: rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --surface-hover: rgba(255, 255, 255, 0.04);
+  --surface-active: rgba(255, 255, 255, 0.06);
+  --surface-border: rgba(255, 255, 255, 0.08);
 }
 
 @keyframes gradient-shift {
@@ -101,4 +114,9 @@
 
 .animate-pulse-glow {
   animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Select element styling for dark mode */
+select option {
+  @apply bg-card text-foreground;
 }
