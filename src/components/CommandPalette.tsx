@@ -29,6 +29,7 @@ const commands = [
   { name: "Resources", href: "/resources", icon: BookOpen, category: "Navigation" },
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles, category: "Navigation" },
   { name: "Collaboration", href: "/collaboration", icon: Users, category: "Navigation" },
+  { name: "Floor Mixer", href: "/mixer", icon: Users, category: "Navigation" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, category: "Navigation" },
   { name: "Notifications", href: "/notifications", icon: Bell, category: "Navigation" },
   { name: "Budget", href: "/budget", icon: DollarSign, category: "Navigation" },

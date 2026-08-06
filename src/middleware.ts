@@ -15,6 +15,7 @@ export const config = {
     "/resources/:path*",
     "/ai-planner/:path*",
     "/collaboration/:path*",
+    "/mixer/:path*",
     "/analytics/:path*",
     "/settings/:path*",
   ],
