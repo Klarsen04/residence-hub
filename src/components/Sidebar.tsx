@@ -33,6 +33,7 @@ import {
   ClipboardCheck,
   MessageCircle,
   PartyPopper,
+  Gift,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -46,6 +47,7 @@ const navigation = [
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles, group: "main" },
   { name: "Collaboration", href: "/collaboration", icon: Users, group: "main" },
   { name: "Floor Mixer", href: "/mixer", icon: PartyPopper, group: "main" },
+  { name: "Wrapped", href: "/wrapped", icon: Gift, group: "main" },
   { name: "Inspiration", href: "/inspiration", icon: Lightbulb, group: "content" },
   { name: "Decorations", href: "/decorations", icon: Palette, group: "content" },
   { name: "Resources", href: "/resources", icon: BookOpen, group: "content" },

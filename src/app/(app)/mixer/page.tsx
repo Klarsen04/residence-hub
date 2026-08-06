@@ -15,6 +15,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BorderBeam } from "@/components/ui/border-beam";
 import { cn } from "@/lib/utils";
 import { QUESTIONS } from "@/lib/mixer/questions";
 import { buildMockPool } from "@/lib/mixer/mockPool";
@@ -348,10 +349,11 @@ export default function MixerPage() {
               </motion.div>
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
-                {matches.map((m) => (
+                {matches.map((m, i) => (
                   <MatchCard
                     key={m.person.id}
                     match={m}
+                    featured={i === 0}
                     picked={picked.has(m.person.id)}
                     nudged={nudged.has(m.person.id)}
                     onPick={() => togglePick(m.person.id)}
@@ -369,12 +371,14 @@ export default function MixerPage() {
 
 function MatchCard({
   match,
+  featured,
   picked,
   nudged,
   onPick,
   onNudge,
 }: {
   match: RankedMatch;
+  featured?: boolean;
   picked: boolean;
   nudged: boolean;
   onPick: () => void;
@@ -385,7 +389,8 @@ function MatchCard({
 
   return (
     <motion.div variants={item} layout>
-      <Card className={cn("h-full overflow-hidden transition-all", picked && "ring-2 ring-purple-500/60")}>
+      <Card className={cn("relative h-full overflow-hidden transition-all", picked && "ring-2 ring-purple-500/60")}>
+        {featured && <BorderBeam size={90} duration={7} colorFrom="#a855f7" colorTo="#ec4899" />}
         <CardContent className="p-5">
           <div className="flex items-start gap-3">
             <div className="h-12 w-12 rounded-2xl gradient-primary flex items-center justify-center text-xl shrink-0 glow-sm">
