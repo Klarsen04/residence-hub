@@ -26,6 +26,23 @@ export default function AdminPage() {
   const [generating, setGenerating] = useState(false);
   const [selectedRole, setSelectedRole] = useState("RESIDENT_ASSISTANT");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [repairing, setRepairing] = useState(false);
+
+  const handleRepair = async () => {
+    setRepairing(true);
+    try {
+      const res = await fetch("/api/admin/repair-db", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast.success(
+        `Database synced — ${data.tables} tables checked, ${data.columnsAdded} columns added.`
+      );
+    } catch (e: any) {
+      toast.error(e.message || "Repair failed");
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   if (session?.user?.role !== "ADMIN") {
     return (
@@ -76,6 +93,23 @@ export default function AdminPage() {
           <p className="text-muted-foreground">Manage authorization codes for new staff</p>
         </div>
       </div>
+
+      {/* Database sync — creates any missing tables/columns in production Turso.
+          Safe to run anytime; fixes "Failed to load" pages after schema changes. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Database</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-sm text-muted-foreground max-w-md">
+            Sync the database schema. Run this if a page shows &quot;Failed to load&quot; — it
+            creates any missing tables and columns. Safe and idempotent.
+          </p>
+          <Button onClick={handleRepair} disabled={repairing}>
+            {repairing ? "Syncing…" : "Sync database"}
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card className="overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] to-orange-500/[0.03]" />
