@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, DoorOpen, LayoutGrid, Ruler, Trash2, Heart, CheckCircle, Users, DollarSign, Sparkles } from "lucide-react";
+import { Plus, Search, DoorOpen, LayoutGrid, Ruler, Trash2, Heart, CheckCircle, Users, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -50,6 +50,36 @@ export default function DecorationsPage() {
   const [madeData, setMadeData] = useState({ imageUrl: "", notes: "" });
   const [saving, setSaving] = useState(false);
   const { data: decorations, mutate } = useSWR("/api/decorations", fetcher);
+
+  // User-defined custom category filters, persisted locally. Each is { value, label }.
+  const [customCats, setCustomCats] = useState<{ value: string; label: string }[]>([]);
+  const [addingFilter, setAddingFilter] = useState(false);
+  const [newFilter, setNewFilter] = useState("");
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("rh-decor-categories");
+      if (raw) setCustomCats(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+  const allCategories = [...decorationCategories, ...customCats];
+  const addCustomCategory = () => {
+    const label = newFilter.trim();
+    if (!label) return;
+    const value = "CUSTOM_" + label.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+    if (allCategories.some((c) => c.value === value)) { setNewFilter(""); setAddingFilter(false); return; }
+    const next = [...customCats, { value, label }];
+    setCustomCats(next);
+    try { localStorage.setItem("rh-decor-categories", JSON.stringify(next)); } catch { /* ignore */ }
+    setNewFilter("");
+    setAddingFilter(false);
+    setCategoryFilter(value);
+  };
+  const removeCustomCategory = (value: string) => {
+    const next = customCats.filter((c) => c.value !== value);
+    setCustomCats(next);
+    try { localStorage.setItem("rh-decor-categories", JSON.stringify(next)); } catch { /* ignore */ }
+    if (categoryFilter === value) setCategoryFilter("ALL");
+  };
 
   const [form, setForm] = useState({
     title: "",
@@ -180,17 +210,6 @@ export default function DecorationsPage() {
         }
       />
 
-      {suggested !== "ALL" && categoryFilter === "ALL" && (
-        <div className="flex items-center gap-3 mb-8 p-4 rounded-xl bg-[hsl(var(--terracotta)/0.06)] border border-[hsl(var(--terracotta)/0.2)]">
-          <Sparkles className="h-4 w-4 shrink-0 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" />
-          <span className="text-sm flex-1">
-            It&apos;s <span className="font-display text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">{decorationCategories.find((c) => c.value === suggested)?.label}</span> season!
-          </span>
-          <Button size="sm" variant="outline" onClick={() => setCategoryFilter(suggested)}>
-            Show ideas
-          </Button>
-        </div>
-      )}
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
@@ -238,7 +257,7 @@ export default function DecorationsPage() {
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                   >
-                    {decorationCategories.map((c) => (
+                    {allCategories.map((c) => (
                       <option key={c.value} value={c.value}>{c.label}</option>
                     ))}
                   </select>
@@ -326,17 +345,44 @@ export default function DecorationsPage() {
               : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
           }`}
         >All Seasons</button>
-        {decorationCategories.map((c) => (
+        {allCategories.map((c) => {
+          const isCustom = c.value.startsWith("CUSTOM_");
+          return (
+            <span key={c.value} className="inline-flex items-center">
+              <button
+                onClick={() => setCategoryFilter(c.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
+                  categoryFilter === c.value
+                    ? "bg-[hsl(var(--sage)/0.14)] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] border border-[hsl(var(--sage)/0.3)]"
+                    : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
+                }`}
+              >{c.label}</button>
+              {isCustom && (
+                <button onClick={() => removeCustomCategory(c.value)} className="ml-0.5 text-muted-foreground/50 hover:text-red-500" title="Remove filter">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </span>
+          );
+        })}
+        {addingFilter ? (
+          <input
+            autoFocus
+            value={newFilter}
+            onChange={(e) => setNewFilter(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") addCustomCategory(); if (e.key === "Escape") { setAddingFilter(false); setNewFilter(""); } }}
+            onBlur={addCustomCategory}
+            placeholder="Filter name…"
+            className="px-3 py-1.5 rounded-full text-xs bg-transparent border border-black/[0.14] dark:border-white/[0.14] outline-none w-28"
+          />
+        ) : (
           <button
-            key={c.value}
-            onClick={() => setCategoryFilter(c.value)}
-            className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
-              categoryFilter === c.value
-                ? "bg-[hsl(var(--sage)/0.14)] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] border border-[hsl(var(--sage)/0.3)]"
-                : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
-            }`}
-          >{c.label}</button>
-        ))}
+            onClick={() => setAddingFilter(true)}
+            className="px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide border border-dashed border-black/[0.2] dark:border-white/[0.2] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          >
+            <Plus className="h-3 w-3" /> Filter
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (

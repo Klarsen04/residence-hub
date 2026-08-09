@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +63,37 @@ export default function InspirationPage() {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [playingId, setPlayingId] = useState<string | null>(null);
+
+  // User-defined custom category filters, persisted locally.
+  const [customCats, setCustomCats] = useState<string[]>([]);
+  const [addingFilter, setAddingFilter] = useState(false);
+  const [newFilter, setNewFilter] = useState("");
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("rh-inspiration-categories");
+      if (raw) setCustomCats(JSON.parse(raw));
+    } catch { /* ignore */ }
+  }, []);
+  const allCategories = [...categories, ...customCats];
+  const addCustomCategory = () => {
+    const label = newFilter.trim();
+    if (!label) { setAddingFilter(false); return; }
+    const value = label.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+    if (!allCategories.includes(value)) {
+      const next = [...customCats, value];
+      setCustomCats(next);
+      try { localStorage.setItem("rh-inspiration-categories", JSON.stringify(next)); } catch { /* ignore */ }
+      setFilter(value);
+    }
+    setNewFilter("");
+    setAddingFilter(false);
+  };
+  const removeCustomCategory = (value: string) => {
+    const next = customCats.filter((c) => c !== value);
+    setCustomCats(next);
+    try { localStorage.setItem("rh-inspiration-categories", JSON.stringify(next)); } catch { /* ignore */ }
+    if (filter === value) setFilter("All");
+  };
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ title: "", url: "", source: "", category: "", tags: "" });
   const { data: inspirations, mutate } = useSWR("/api/inspiration", fetcher);
@@ -235,7 +266,7 @@ export default function InspirationPage() {
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                   >
-                    {categories.filter((c) => c !== "All").map((c) => (
+                    {allCategories.filter((c) => c !== "All").map((c) => (
                       <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
                     ))}
                   </select>
@@ -309,19 +340,46 @@ export default function InspirationPage() {
       />
 
       <div className="flex gap-2 flex-wrap mb-8">
-        {categories.map((cat) => (
+        {allCategories.map((cat) => {
+          const isCustom = customCats.includes(cat);
+          return (
+            <span key={cat} className="inline-flex items-center">
+              <button
+                onClick={() => setFilter(cat)}
+                className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
+                  filter === cat
+                    ? "bg-[hsl(var(--terracotta)/0.14)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] border border-[hsl(var(--terracotta)/0.3)]"
+                    : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
+                }`}
+              >
+                {cat === "All" ? "All" : cat.replace(/_/g, " ")}
+              </button>
+              {isCustom && (
+                <button onClick={() => removeCustomCategory(cat)} className="ml-0.5 text-muted-foreground/50 hover:text-red-500" title="Remove filter">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </span>
+          );
+        })}
+        {addingFilter ? (
+          <input
+            autoFocus
+            value={newFilter}
+            onChange={(e) => setNewFilter(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") addCustomCategory(); if (e.key === "Escape") { setAddingFilter(false); setNewFilter(""); } }}
+            onBlur={addCustomCategory}
+            placeholder="Filter name…"
+            className="px-3 py-1.5 rounded-full text-xs bg-transparent border border-black/[0.14] dark:border-white/[0.14] outline-none w-28"
+          />
+        ) : (
           <button
-            key={cat}
-            onClick={() => setFilter(cat)}
-            className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
-              filter === cat
-                ? "bg-[hsl(var(--terracotta)/0.14)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] border border-[hsl(var(--terracotta)/0.3)]"
-                : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
-            }`}
+            onClick={() => setAddingFilter(true)}
+            className="px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide border border-dashed border-black/[0.2] dark:border-white/[0.2] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
           >
-            {cat === "All" ? "All" : cat.replace(/_/g, " ")}
+            <Plus className="h-3 w-3" /> Filter
           </button>
-        ))}
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -380,7 +438,7 @@ export default function InspirationPage() {
                           value={editForm.category}
                           onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                         >
-                          {categories.filter((c) => c !== "All").map((c) => (
+                          {allCategories.filter((c) => c !== "All").map((c) => (
                             <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
                           ))}
                         </select>
