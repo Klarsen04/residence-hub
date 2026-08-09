@@ -118,10 +118,11 @@ export default function AIPlannerPage() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      // Fill the scrolling <main> area exactly and don't overflow it, so only
-      // the message thread scrolls (not the whole page). Padding on <main> is
-      // ~4rem (mobile) / 4rem (desktop pt-8 pb-8); calc leaves room for it.
-      className="max-w-6xl flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] min-h-0"
+      // Fill <main>'s content box exactly (h-full = 100% of the already-
+      // padding-subtracted height), so the page never overflows <main> and only
+      // the message thread scrolls. h-full is reliable here because <main> is a
+      // flex-1 child of a min-h-screen row, giving it a definite height.
+      className="max-w-6xl flex flex-col h-full min-h-0"
     >
       <div className="shrink-0">
         <PageHeader
@@ -131,7 +132,7 @@ export default function AIPlannerPage() {
         />
       </div>
 
-      <div className="grid md:grid-cols-[240px_1fr] gap-5 flex-1 min-h-0">
+      <div className="grid md:grid-cols-[240px_1fr] grid-rows-1 gap-5 flex-1 min-h-0">
         {/* Conversation history */}
         <aside className="space-y-2 min-h-0 md:overflow-y-auto">
           <button onClick={newChat} className="w-full inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-medium">

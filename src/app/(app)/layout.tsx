@@ -28,12 +28,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (status === "unauthenticated") return null;
 
   return (
-    <div className="min-h-screen flex bg-background relative">
+    <div className="h-screen overflow-hidden flex bg-background relative">
       <div className="fixed inset-0 grid-lines pointer-events-none opacity-60" />
       <CommandPalette />
       <Sidebar />
-      <main className="flex-1 p-4 md:p-8 overflow-auto pt-16 md:pt-8 relative z-10">
-        {children}
+      {/* h-screen + overflow-hidden makes <main> a fixed-height viewport region.
+          The inner wrapper is the scroller for normal (long) pages; a page that
+          wants to own its own scrolling (e.g. the AI chat) can use h-full on its
+          root and it will fill this box exactly instead of growing the page. */}
+      <main className="flex-1 h-screen overflow-hidden relative z-10 flex flex-col">
+        <div className="flex-1 min-h-0 overflow-auto p-4 md:p-8 pt-16 md:pt-8">
+          {children}
+        </div>
       </main>
     </div>
   );

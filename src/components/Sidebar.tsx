@@ -76,7 +76,7 @@ export function Sidebar() {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-[280px] bg-card/90 backdrop-blur-xl border-r border-black/[0.06] dark:border-white/[0.06] transform transition-transform duration-300 ease-out md:translate-x-0 md:static md:inset-auto",
+          "fixed inset-y-0 left-0 z-40 w-[280px] h-screen md:h-full bg-card/90 backdrop-blur-xl border-r border-black/[0.06] dark:border-white/[0.06] transform transition-transform duration-300 ease-out md:translate-x-0 md:static md:inset-auto",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
