@@ -64,8 +64,13 @@ export default function AIPlannerPage() {
 
   const convos = Array.isArray(conversations) ? conversations : [];
 
+  // Auto-scroll to newest only if the user is already near the bottom, so
+  // reading back through a long reply doesn't yank you down.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
 
   const openConversation = async (id: string) => {
@@ -138,7 +143,7 @@ export default function AIPlannerPage() {
 
         {/* Chat thread */}
         <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-[70vh]">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-5">
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-5">
             {messages.length === 0 && !sending ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-6">
                 <Sparkles className="h-8 w-8 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] mb-3" />
