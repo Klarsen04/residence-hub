@@ -9,31 +9,41 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const status = await getLimitStatus(session.user.id, session.user.role);
-
-  // `used`/`limit`/`remaining` keep the existing UI contract; the per-user daily
-  // numbers drive the progress bar. Infinity (admins) serialises to null.
-  return NextResponse.json({
-    used: status.userUsed,
-    limit: Number.isFinite(status.userLimit) ? status.userLimit : null,
-    remaining: Number.isFinite(status.userRemaining) ? status.userRemaining : null,
-    day: status.day,
-    isAdmin: status.isAdmin,
-    global: {
-      used: status.globalUsed,
-      limit: status.globalLimit || null,
-      remaining: Number.isFinite(status.globalRemaining) ? status.globalRemaining : null,
-    },
-  });
+  // Fail open: if the usage tables aren't reachable, return a neutral status
+  // so the planner page still renders instead of erroring.
+  try {
+    const status = await getLimitStatus(session.user.id, session.user.role);
+    return NextResponse.json({
+      used: status.userUsed,
+      limit: Number.isFinite(status.userLimit) ? status.userLimit : null,
+      remaining: Number.isFinite(status.userRemaining) ? status.userRemaining : null,
+      day: status.day,
+      isAdmin: status.isAdmin,
+      global: {
+        used: status.globalUsed,
+        limit: status.globalLimit || null,
+        remaining: Number.isFinite(status.globalRemaining) ? status.globalRemaining : null,
+      },
+    });
+  } catch {
+    return NextResponse.json({ used: 0, limit: null, remaining: null, isAdmin: session.user.role === "ADMIN", global: {} });
+  }
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const status = await getLimitStatus(session.user.id, session.user.role);
-  if (status.blocked) {
-    return NextResponse.json({ error: limitMessage(status) }, { status: 429 });
+  // Fail OPEN on the rate-limit check: if the usage tables aren't reachable
+  // (e.g. schema not yet synced), don't block generation — just skip limiting.
+  let status: Awaited<ReturnType<typeof getLimitStatus>> | null = null;
+  try {
+    status = await getLimitStatus(session.user.id, session.user.role);
+    if (status.blocked) {
+      return NextResponse.json({ error: limitMessage(status) }, { status: 429 });
+    }
+  } catch (e) {
+    console.error("AI limit check skipped (usage table unavailable):", e);
   }
 
   const body = await req.json();
@@ -79,8 +89,13 @@ Be creative, practical, and budget-conscious. Suggest alternatives if the budget
     // Rotates OpenRouter → NVIDIA → Gemini, failing over on limit/error.
     const { text: response } = await generatePlan(prompt);
 
-    // Count usage only on success (both per-user and global daily counters).
-    await recordUsage(session.user.id);
+    // Count usage only on success; never let a usage-write failure turn a
+    // successful generation into an error.
+    try {
+      await recordUsage(session.user.id);
+    } catch (e) {
+      console.error("AI usage record skipped:", e);
+    }
 
     await prisma.aIPlannerSession.create({
       data: {
@@ -93,7 +108,7 @@ Be creative, practical, and budget-conscious. Suggest alternatives if the budget
       },
     });
 
-    const remaining = Number.isFinite(status.userRemaining)
+    const remaining = status && Number.isFinite(status.userRemaining)
       ? Math.max(0, status.userRemaining - 1)
       : null;
     return NextResponse.json({ response, remaining });
