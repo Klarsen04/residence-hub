@@ -2,33 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function fetchOgData(url: string): Promise<{ imageUrl: string | null; title: string | null }> {
-  try {
-    const response = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; ResidenceHub/1.0)" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!response.ok) return { imageUrl: null, title: null };
-
-    const html = await response.text();
-
-    const imageUrl = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)?.[1]
-      || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i)?.[1]
-      || null;
-
-    const title = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i)?.[1]
-      || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i)?.[1]
-      || html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]
-      || null;
-
-    return { imageUrl, title: title?.trim() || null };
-  } catch {
-    return { imageUrl: null, title: null };
-  }
-}
+import { getLinkPreview } from "@/lib/linkPreview";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -58,7 +32,7 @@ export async function POST(req: NextRequest) {
   let resolvedTitle = title || null;
 
   if (url && !imageUrl) {
-    const ogData = await fetchOgData(url);
+    const ogData = await getLinkPreview(url);
     if (ogData.imageUrl) resolvedImageUrl = ogData.imageUrl;
     if (!title && ogData.title) resolvedTitle = ogData.title;
   }

@@ -262,7 +262,16 @@ export default function InspirationPage() {
                     <video src={preview.videoUrl} controls className="w-full max-h-72 bg-black" />
                   ) : preview?.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={preview.imageUrl} alt={preview.title || "preview"} className="w-full max-h-72 object-cover" />
+                    <img
+                      src={preview.imageUrl}
+                      alt={preview.title || "preview"}
+                      className="w-full max-h-72 object-cover"
+                      onError={(e) => {
+                        // If the upsized Pinterest "originals" URL 404s, fall back to 736x.
+                        const img = e.currentTarget;
+                        if (img.src.includes("/originals/")) img.src = img.src.replace("/originals/", "/736x/");
+                      }}
+                    />
                   ) : (
                     <div className="p-4 text-sm">
                       <p className="font-medium">{preview?.title || "Link preview"}</p>
@@ -426,7 +435,15 @@ export default function InspirationPage() {
                   </div>
                 ) : item.imageUrl ? (
                   <div className="aspect-[4/3] bg-black/[0.03] dark:bg-white/[0.03] overflow-hidden">
-                    <img src={item.imageUrl} alt={item.title || ""} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title || ""}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (img.src.includes("/originals/")) img.src = img.src.replace("/originals/", "/736x/");
+                      }}
+                    />
                   </div>
                 ) : item.url ? (
                   <a
