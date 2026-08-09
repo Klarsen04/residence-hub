@@ -1,6 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* Class-based dark mode (v4 requires declaring the variant explicitly). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Scan @ilamy/calendar's dist so its utility classes get generated (it ships
+   no compiled CSS — the host app must generate the classes it emits). */
+@source "../../node_modules/@ilamy/calendar/dist";
 
 /*
   Residence Hub — warm architectural identity.
@@ -101,70 +107,58 @@
   }
 }
 
-@layer utilities {
-  /*
-    Legacy utility names kept so existing markup retheming is automatic.
-    Reinterpreted for the architectural language: warm paper panels,
-    restrained ink gradients, soft physical shadow instead of neon glow.
-  */
-  .glass {
-    @apply bg-[hsl(var(--card)/0.72)] backdrop-blur-md border border-black/[0.07] dark:border-white/[0.08];
-  }
-  .glass-card {
-    @apply bg-card border border-black/[0.07] dark:border-white/[0.07] shadow-[0_1px_2px_rgba(40,30,20,0.05),0_8px_24px_-12px_rgba(40,30,20,0.12)];
-  }
-  /* "gradient" primary is now a restrained same-family ink wash, not neon */
-  .gradient-primary {
-    @apply bg-gradient-to-br from-[hsl(var(--sage))] to-[hsl(152_30%_20%)] dark:to-[hsl(148_26%_34%)];
-  }
-  .gradient-text {
-    @apply bg-gradient-to-br from-[hsl(var(--charcoal))] to-[hsl(var(--sage))] bg-clip-text text-transparent;
-  }
-  .text-terracotta {
-    color: hsl(var(--terracotta));
-  }
-  .bg-terracotta {
-    background-color: hsl(var(--terracotta));
-  }
-  .text-sage {
-    color: hsl(var(--sage));
-  }
-  /* Physical shadow, not glow — light falling on a surface */
-  .glow {
-    box-shadow: 0 10px 30px -12px hsl(var(--charcoal) / 0.28);
-  }
-  .glow-sm {
-    box-shadow: 0 4px 14px -8px hsl(var(--charcoal) / 0.25);
-  }
-
-  /* ---- Wayfinding language ---- */
-
-  /* Signage label: mono, tracked out, uppercase — floor codes, coordinates */
-  .wayfinding {
-    @apply font-mono uppercase tracking-[0.2em] text-[11px];
-  }
-  .font-display {
-    font-family: var(--font-display), Georgia, serif;
-  }
-
-  /* Blueprint grid — subtle architectural drafting lines */
-  .grid-lines {
-    background-image:
-      linear-gradient(to right, hsl(var(--charcoal) / 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--charcoal) / 0.04) 1px, transparent 1px);
-    background-size: 64px 64px;
-  }
-  .grid-lines-fine {
-    background-image:
-      linear-gradient(to right, hsl(var(--charcoal) / 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--charcoal) / 0.05) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-
-  /* Hairline rule used to divide sections like storeys of a building */
-  .rule {
-    @apply border-t border-black/[0.09] dark:border-white/[0.09];
-  }
+/*
+  Custom utilities — v4 requires `@utility` (not `@layer utilities`) for
+  custom classes to be usable with @apply and to participate in the cascade.
+  Legacy names kept so existing markup rethemes automatically.
+*/
+@utility glass {
+  @apply bg-[hsl(var(--card)/0.72)] backdrop-blur-md border border-black/[0.07] dark:border-white/[0.08];
+}
+@utility glass-card {
+  @apply bg-card border border-black/[0.07] dark:border-white/[0.07] shadow-[0_1px_2px_rgba(40,30,20,0.05),0_8px_24px_-12px_rgba(40,30,20,0.12)];
+}
+@utility gradient-primary {
+  @apply bg-gradient-to-br from-[hsl(var(--sage))] to-[hsl(152_30%_20%)] dark:to-[hsl(148_26%_34%)];
+}
+@utility gradient-text {
+  @apply bg-gradient-to-br from-[hsl(var(--charcoal))] to-[hsl(var(--sage))] bg-clip-text text-transparent;
+}
+@utility text-terracotta {
+  color: hsl(var(--terracotta));
+}
+@utility bg-terracotta {
+  background-color: hsl(var(--terracotta));
+}
+@utility text-sage {
+  color: hsl(var(--sage));
+}
+@utility glow {
+  box-shadow: 0 10px 30px -12px hsl(var(--charcoal) / 0.28);
+}
+@utility glow-sm {
+  box-shadow: 0 4px 14px -8px hsl(var(--charcoal) / 0.25);
+}
+@utility wayfinding {
+  @apply font-mono uppercase tracking-[0.2em] text-[11px];
+}
+@utility font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+@utility grid-lines {
+  background-image:
+    linear-gradient(to right, hsl(var(--charcoal) / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--charcoal) / 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+@utility grid-lines-fine {
+  background-image:
+    linear-gradient(to right, hsl(var(--charcoal) / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--charcoal) / 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+@utility rule {
+  @apply border-t border-black/[0.09] dark:border-white/[0.09];
 }
 
 /* Light/dark inline-opacity surface helpers (kept from prior system) */

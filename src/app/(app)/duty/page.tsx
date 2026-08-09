@@ -1,232 +1,132 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Shield, ChevronLeft, ChevronRight, Moon, Sun, Clock, Plus } from "lucide-react";
+import { IlamyCalendar } from "@ilamy/calendar";
+import { Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// Shift types → time windows + a warm-palette colour for the calendar event.
+const SHIFT_TYPES: Record<string, { label: string; startHour: number; endHour: number; color: string }> = {
+  evening: { label: "Evening", startHour: 19, endHour: 23, color: "#3f6b52" },
+  overnight: { label: "Overnight", startHour: 0, endHour: 8, color: "#c05f3c" },
+  weekend: { label: "Weekend", startHour: 9, endHour: 21, color: "#d99a3e" },
+};
 
-interface DutyShift {
-  id: string;
-  date: string;
-  ra: string;
-  type: "evening" | "overnight" | "weekend";
-  notes?: string;
+function toISO(d: any): string {
+  if (!d) return "";
+  if (typeof d === "string") return d;
+  if (typeof d?.toISOString === "function") return d.toISOString();
+  if (typeof d?.toDate === "function") return d.toDate().toISOString();
+  return String(d);
 }
-
-const generateWeekDates = (startOfWeek: Date) => {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(startOfWeek);
-    d.setDate(d.getDate() + i);
-    return d;
-  });
-};
-
-
-const typeConfig = {
-  evening: { icon: Moon, label: "Evening", color: "bg-primary/15 text-primary border-primary/20", time: "7 PM - 12 AM" },
-  overnight: { icon: Moon, label: "Overnight", color: "bg-accent/15 text-accent border-accent/20", time: "12 AM - 8 AM" },
-  weekend: { icon: Sun, label: "Weekend", color: "bg-amber-500/15 text-amber-400 border-amber-500/20", time: "All Day" },
-};
 
 export default function DutyPage() {
   const { data: shifts, mutate } = useSWR("/api/duty", fetcher);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newShift, setNewShift] = useState({ date: "", type: "evening" });
-  const allShifts: DutyShift[] = (shifts || []).map((s: any) => ({ ...s, ra: s.user?.name || "You" }));
+  const [newType, setNewType] = useState("evening");
 
-  const [currentWeek, setCurrentWeek] = useState(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const start = new Date(now);
-    start.setDate(now.getDate() - day);
-    return start;
-  });
+  const allShifts = Array.isArray(shifts) ? shifts : [];
 
-  const weekDates = generateWeekDates(currentWeek);
+  // Map duty shifts → ilamy calendar events. `date` is a "YYYY-MM-DD" day.
+  const events = useMemo(
+    () =>
+      allShifts.map((s: any) => {
+        const cfg = SHIFT_TYPES[s.type] || SHIFT_TYPES.evening;
+        const day = (s.date || "").slice(0, 10);
+        const start = new Date(`${day}T${String(cfg.startHour).padStart(2, "0")}:00:00`);
+        const end = new Date(`${day}T${String(cfg.endHour).padStart(2, "0")}:59:00`);
+        return {
+          id: s.id,
+          title: `${s.user?.name || "RA"} · ${cfg.label}`,
+          start: start.toISOString(),
+          end: end.toISOString(),
+          color: cfg.color,
+          backgroundColor: cfg.color,
+          data: { type: s.type, ra: s.user?.name },
+        };
+      }),
+    [allShifts]
+  );
 
-  const prevWeek = () => {
-    const d = new Date(currentWeek);
-    d.setDate(d.getDate() - 7);
-    setCurrentWeek(d);
+  // Click an empty day → create a shift of the currently-selected type.
+  const createShift = async (date: any) => {
+    const day = toISO(date).slice(0, 10);
+    if (!day) return;
+    try {
+      const res = await fetch("/api/duty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: day, type: newType }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(`${SHIFT_TYPES[newType].label} shift added for ${day}`);
+      mutate();
+    } catch {
+      toast.error("Failed to add shift");
+    }
   };
 
-  const nextWeek = () => {
-    const d = new Date(currentWeek);
-    d.setDate(d.getDate() + 7);
-    setCurrentWeek(d);
+  const deleteShift = async (id: string) => {
+    try {
+      const res = await fetch(`/api/duty?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Shift removed");
+      mutate();
+    } catch {
+      toast.error("Failed to remove shift");
+    }
   };
-
-  const getShiftsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
-    return allShifts.filter(s => s.date === dateStr);
-  };
-
-  const today = new Date().toISOString().split("T")[0];
-  const myNextDuty = allShifts.find(s => s.ra === "You" && s.date >= today);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-5xl"
+      className="space-y-5 max-w-6xl"
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--sage-soft))]">
             <Shield className="h-5 w-5 text-white" />
           </div>
           <div>
             <h1 className="text-3xl font-bold">Duty Schedule</h1>
-            <p className="text-muted-foreground mt-0.5">Track RA duty nights and shifts</p>
+            <p className="text-muted-foreground mt-0.5">Everyone&apos;s on-duty shifts — click a day to add yours</p>
           </div>
         </div>
-        <Button onClick={() => setShowAddForm(!showAddForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Shift
-        </Button>
+
+        {/* Shift-type picker: the kind of shift a day-click creates */}
+        <div className="flex items-center gap-1.5 rounded-xl border border-black/[0.1] dark:border-white/[0.12] p-1">
+          {Object.entries(SHIFT_TYPES).map(([key, cfg]) => (
+            <button
+              key={key}
+              onClick={() => setNewType(key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                newType === key ? "text-white" : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={newType === key ? { background: cfg.color } : undefined}
+            >
+              {cfg.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {showAddForm && (
-        <Card className="border-primary/20">
-          <CardContent className="p-4 flex items-end gap-3">
-            <div className="flex-1">
-              <label className="text-sm font-medium text-muted-foreground">Date</label>
-              <Input type="date" value={newShift.date} onChange={(e) => setNewShift({ ...newShift, date: e.target.value })} className="mt-1" />
-            </div>
-            <div className="flex-1">
-              <label className="text-sm font-medium text-muted-foreground">Type</label>
-              <select
-                className="mt-1 flex h-10 w-full rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2 text-sm outline-none"
-                value={newShift.type}
-                onChange={(e) => setNewShift({ ...newShift, type: e.target.value })}
-              >
-                <option value="evening">Evening</option>
-                <option value="overnight">Overnight</option>
-                <option value="weekend">Weekend</option>
-              </select>
-            </div>
-            <Button onClick={async () => {
-              if (!newShift.date) { toast.error("Select a date"); return; }
-              await fetch("/api/duty", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newShift) });
-              mutate();
-              setNewShift({ date: "", type: "evening" });
-              setShowAddForm(false);
-              toast.success("Shift added!");
-            }}>Save</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {myNextDuty && (
-        <Card className="border-primary/20 overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-primary to-primary" />
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-primary/10">
-              <Clock className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">Your Next Duty</p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(myNextDuty.date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-                {" "} — {typeConfig[myNextDuty.type].time}
-              </p>
-            </div>
-            <Badge className={`ml-auto ${typeConfig[myNextDuty.type].color}`}>
-              {typeConfig[myNextDuty.type].label}
-            </Badge>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-5">
-            <Button variant="ghost" size="icon" onClick={prevWeek} className="rounded-xl">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <h2 className="text-lg font-semibold">
-              {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} — {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-            </h2>
-            <Button variant="ghost" size="icon" onClick={nextWeek} className="rounded-xl">
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-7 gap-2">
-            {weekDates.map((date, i) => {
-              const dateStr = date.toISOString().split("T")[0];
-              const isToday = dateStr === today;
-              const shifts = getShiftsForDate(date);
-
-              return (
-                <div
-                  key={i}
-                  className={`p-3 rounded-2xl border transition-all min-h-[120px] ${
-                    isToday
-                      ? "border-primary/30 bg-primary/[0.05]"
-                      : "border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
-                  }`}
-                >
-                  <div className="text-center mb-2">
-                    <p className="text-[10px] text-muted-foreground uppercase font-medium">{SHORT_DAYS[i]}</p>
-                    <p className={`text-lg font-bold ${isToday ? "text-primary" : ""}`}>{date.getDate()}</p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {shifts.map((shift) => {
-                      const config = typeConfig[shift.type];
-                      const isMe = shift.ra === "You";
-                      return (
-                        <div
-                          key={shift.id}
-                          className={`p-1.5 rounded-lg text-center ${
-                            isMe ? "bg-primary/15 border border-primary/20" : "bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.06]"
-                          }`}
-                        >
-                          <p className={`text-[10px] font-medium ${isMe ? "text-primary" : "text-muted-foreground"}`}>
-                            {shift.ra}
-                          </p>
-                          <p className="text-[9px] text-muted-foreground">{config.label}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {Object.entries(typeConfig).map(([key, config]) => {
-          const Icon = config.icon;
-          const count = allShifts.filter(s => s.ra === "You" && s.type === key).length;
-          return (
-            <div key={key} className="p-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${config.color.split(" ")[0]}`}>
-                  <Icon className="h-4 w-4 text-current" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{config.label} Shifts</p>
-                  <p className="text-xs text-muted-foreground">{config.time}</p>
-                </div>
-                <span className="ml-auto text-lg font-bold">{count}</span>
-              </div>
-            </div>
-          );
-        })}
+      <div className="ilamy-scope rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card overflow-hidden">
+        <div className="h-[72vh]">
+          <IlamyCalendar
+            events={events as any}
+            initialView={"month" as any}
+            firstDayOfWeek="monday"
+            onCellClick={(cell: any) => createShift(cell?.date ?? cell)}
+            onEventClick={(ev: any) => {
+              if (confirm(`Remove this duty shift?\n${ev.title}`)) deleteShift(String(ev.id));
+            }}
+          />
+        </div>
       </div>
     </motion.div>
   );
