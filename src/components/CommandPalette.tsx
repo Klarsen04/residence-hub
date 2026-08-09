@@ -17,7 +17,6 @@ import {
   Shield,
   Bell,
   Plus,
-  DollarSign,
   UserCircle,
 } from "lucide-react";
 
@@ -29,18 +28,13 @@ const commands = [
   { name: "Resources", href: "/resources", icon: BookOpen, category: "Navigation" },
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles, category: "Navigation" },
   { name: "Collaboration", href: "/collaboration", icon: Users, category: "Navigation" },
-  { name: "Floor Mixer", href: "/mixer", icon: Users, category: "Navigation" },
-  { name: "Wrapped", href: "/wrapped", icon: Sparkles, category: "Navigation" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, category: "Navigation" },
   { name: "Notifications", href: "/notifications", icon: Bell, category: "Navigation" },
-  { name: "Budget", href: "/budget", icon: DollarSign, category: "Navigation" },
   { name: "Floor Roster", href: "/residents", icon: UserCircle, category: "Navigation" },
   { name: "Check-Ins", href: "/check-ins", icon: UserCircle, category: "Navigation" },
   { name: "Room Checks", href: "/room-checks", icon: UserCircle, category: "Navigation" },
   { name: "Incidents", href: "/incidents", icon: Shield, category: "Navigation" },
   { name: "Duty Schedule", href: "/duty", icon: Shield, category: "Navigation" },
-  { name: "Polls", href: "/polls", icon: UserCircle, category: "Navigation" },
-  { name: "Feedback", href: "/feedback", icon: UserCircle, category: "Navigation" },
   { name: "Notes", href: "/notes", icon: UserCircle, category: "Navigation" },
   { name: "Team", href: "/team", icon: UserCircle, category: "Navigation" },
   { name: "Settings", href: "/settings", icon: Settings, category: "Navigation" },
@@ -85,6 +79,18 @@ export function CommandPalette() {
       document.removeEventListener("open-command-palette", handleCustomOpen);
     };
   }, [handleKeyDown, handleCustomOpen]);
+
+  // Lock body scroll while the palette is open; ALWAYS restore on close/unmount
+  // so scrolling can never get stuck after the popup closes.
+  useEffect(() => {
+    if (open) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [open]);
 
   const navigate = (href: string) => {
     router.push(href);

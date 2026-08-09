@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Plus, Clock, FileText, Lock, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, Plus, Clock, FileText, Lock, ChevronDown, ChevronUp, Phone, ExternalLink, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { CAMPUS_RESOURCES, INCIDENT_TRACKS } from "@/lib/nyitResources";
 
 interface Incident {
   id: string;
@@ -30,16 +31,19 @@ const fetcher = (url: string) => fetch(url).then((res) => {
 });
 
 const incidentTypes = [
-  "Noise Complaint",
-  "Policy Violation",
-  "Wellness Concern",
-  "Maintenance Emergency",
+  "Noise / Quiet Hours",
+  "Guest / Visitation",
+  "Prohibited Item",
+  "Vandalism / Damage",
   "Roommate Conflict",
-  "Lockout",
-  "Substance Violation",
+  "Alcohol / Drugs",
+  "Student of Concern (Wellness)",
   "Mental Health Concern",
-  "Fire Alarm",
-  "Safety Concern",
+  "Sexual Misconduct / Title IX",
+  "Bias-Related Conduct",
+  "Maintenance Emergency",
+  "Fire Safety",
+  "Lockout / Key",
   "Other",
 ];
 
@@ -160,6 +164,20 @@ export default function IncidentsPage() {
           <Plus className="h-4 w-4 mr-2" />
           New Report
         </Button>
+      </div>
+
+      {/* Emergency banner — every reporting flow leads with call-911 first */}
+      <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex items-center gap-2 font-semibold text-red-500 dark:text-red-400">
+          <ShieldAlert className="h-5 w-5" />
+          Emergency? Call 911 first, then Campus Security.
+        </div>
+        <a href="tel:5166867789" className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline">
+          <Phone className="h-3.5 w-3.5" /> LI 516.686.7789
+        </a>
+        <a href="tel:6462737789" className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline">
+          <Phone className="h-3.5 w-3.5" /> NYC 646.273.7789
+        </a>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -286,7 +304,55 @@ export default function IncidentsPage() {
         )}
       </AnimatePresence>
 
+      {/* Reporting tracks — where different incident kinds actually route */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3">Reporting tracks</h2>
+        <div className="grid gap-3 md:grid-cols-2">
+          {INCIDENT_TRACKS.map((track) => (
+            <div key={track.key} className="rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-sm">{track.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{track.description}</p>
+                </div>
+                {track.reportUrl && (
+                  <a href={track.reportUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-primary hover:opacity-70" title="Open official report form">
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-2">→ {track.routeTo}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Campus resources */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3">Campus resources</h2>
+        <div className="grid gap-2 md:grid-cols-2">
+          {CAMPUS_RESOURCES.map((r) => (
+            <div key={r.name} className={`rounded-xl border p-3 ${r.emergency ? "border-red-500/25 bg-red-500/[0.04]" : "border-black/[0.08] dark:border-white/[0.08] bg-card"}`}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium text-sm">{r.name}</p>
+                {r.url && (
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:opacity-70 shrink-0">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">{r.detail}</p>
+              <div className="flex gap-4 mt-1.5">
+                {r.phone && <a href={`tel:${r.phone.replace(/\./g, "")}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline"><Phone className="h-3 w-3" /> {r.phone}</a>}
+                {r.email && <a href={`mailto:${r.email}`} className="text-xs font-medium text-primary hover:underline truncate">{r.email}</a>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-3">
+        {incidentList.length > 0 && <h2 className="text-sm font-semibold text-muted-foreground">Your logged incidents</h2>}
         {incidentList.map((incident) => {
           const isExpanded = expandedId === incident.id;
           return (

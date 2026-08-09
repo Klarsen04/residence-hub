@@ -25,38 +25,32 @@ interface CheckRound {
   rooms: RoomCheck[];
 }
 
-const generateRooms = (): RoomCheck[] => {
-  const residents = [
-    { room: "301", name: "Jordan Martinez" },
-    { room: "302", name: "Priya Patel" },
-    { room: "303", name: "Marcus Johnson" },
-    { room: "304", name: "Sarah Kim" },
-    { room: "305", name: "Alex Rivera" },
-    { room: "306", name: "Taylor Chen" },
-    { room: "307", name: "Chris O'Brien" },
-    { room: "308", name: "Aisha Williams" },
-    { room: "309", name: "Devon Park" },
-    { room: "310", name: "Maya Thompson" },
-    { room: "311", name: "Ryan Clark" },
-    { room: "312", name: "Zoe Nguyen" },
-  ];
-  return residents.map(r => ({ room: r.room, resident: r.name, status: "pending" as const }));
-};
-
 const checkTypes = ["Health & Safety", "Wellness Check", "Break Closing"] as const;
 
 export default function RoomChecksPage() {
   const { data: history, mutate } = useSWR("/api/room-checks", fetcher);
+  // Pull the RA's own residents from the floor roster to build the check.
+  const { data: residents } = useSWR("/api/residents", fetcher);
   const [activeCheck, setActiveCheck] = useState<CheckRound | null>(null);
   const [checkType, setCheckType] = useState<typeof checkTypes[number]>("Health & Safety");
   const allHistory = history || [];
 
+  const myResidents = (Array.isArray(residents) ? residents : []).filter((r: any) => r.canEdit);
+
   const startCheck = () => {
+    if (myResidents.length === 0) {
+      toast.error("Add residents to your floor roster first");
+      return;
+    }
+    // One room per resident, sorted by room, pulled live from the roster.
+    const rooms: RoomCheck[] = [...myResidents]
+      .sort((a: any, b: any) => a.room.localeCompare(b.room, undefined, { numeric: true }))
+      .map((r: any) => ({ room: r.room, resident: r.name, status: "pending" as const }));
     setActiveCheck({
       id: Date.now().toString(),
       date: new Date().toISOString(),
       type: checkType,
-      rooms: generateRooms(),
+      rooms,
     });
   };
 

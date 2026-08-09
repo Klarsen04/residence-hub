@@ -7,15 +7,10 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Boards are PUBLIC to the whole platform — everyone sees every board.
   const boards = await prisma.planningBoard.findMany({
-    where: {
-      OR: [
-        { userId: session.user.id },
-        { members: { some: { userId: session.user.id } } },
-      ],
-    },
     include: {
-      user: { select: { name: true } },
+      user: { select: { id: true, name: true } },
       members: { include: { user: { select: { name: true } } } },
       items: { orderBy: { order: "asc" } },
     },

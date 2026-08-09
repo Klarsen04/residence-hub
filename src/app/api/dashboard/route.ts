@@ -23,21 +23,6 @@ export async function GET() {
     take: 5,
   });
 
-  let budget = { allocated: 0, used: 0, remaining: 0 };
-  if (session.user.hallId) {
-    const hallBudget = await prisma.budget.findFirst({
-      where: { hallId: session.user.hallId },
-      orderBy: { createdAt: "desc" },
-    });
-    if (hallBudget) {
-      budget = {
-        allocated: hallBudget.allocated,
-        used: hallBudget.used,
-        remaining: hallBudget.allocated - hallBudget.used,
-      };
-    }
-  }
-
   const inspirations = await prisma.inspiration.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -50,5 +35,5 @@ export async function GET() {
     take: 5,
   });
 
-  return NextResponse.json({ events, budget, inspirations, resources });
+  return NextResponse.json({ events, inspirations, resources });
 }

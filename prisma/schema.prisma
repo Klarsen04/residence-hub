@@ -628,6 +628,7 @@ model Feedback {
 model CheckIn {
   id           String  @id @default(cuid())
   userId       String
+  residentId   String?
   residentName String
   room         String?
   mood         String  @default("good")
@@ -635,7 +636,8 @@ model CheckIn {
   notes        String?
   followUp     Boolean @default(false)
 
-  user User @relation(fields: [userId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  resident Resident? @relation(fields: [residentId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 }
@@ -662,6 +664,8 @@ model Resident {
   userId    String
   name      String
   room      String
+  floor     String?  // "1", "2", "3"
+  wing      String?  // "East", "West", or null (floor 3 = single wing)
   phone     String?
   email     String?
   year      String?
@@ -670,10 +674,13 @@ model Resident {
   flagged   Boolean @default(false)
   moveInDate String?
 
-  user User @relation(fields: [userId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  checkIns CheckIn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // ─── Room Checks ─────────────────────────────────────────────────────────────

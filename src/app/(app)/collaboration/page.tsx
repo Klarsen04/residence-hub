@@ -37,6 +37,8 @@ export default function CollaborationPage() {
   const [newBoardTitle, setNewBoardTitle] = useState("");
   const [newBoardDesc, setNewBoardDesc] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
   const allBoards = boards || [];
   const activeBoard = allBoards.find((b: any) => b.id === selectedBoardId);
@@ -76,6 +78,16 @@ export default function CollaborationPage() {
   };
 
   const updateItemType = async (boardId: string, itemId: string, newType: string) => {
+    // Optimistic: move the card locally, then persist.
+    mutate(
+      (current: any) =>
+        (current || []).map((b: any) =>
+          b.id === boardId
+            ? { ...b, items: b.items.map((it: any) => (it.id === itemId ? { ...it, type: newType } : it)) }
+            : b
+        ),
+      { revalidate: false }
+    );
     try {
       await fetch(`/api/boards/${boardId}/items`, {
         method: "PUT",
@@ -84,8 +96,15 @@ export default function CollaborationPage() {
       });
       mutate();
     } catch {
-      toast.error("Failed to update");
+      toast.error("Failed to move card");
+      mutate();
     }
+  };
+
+  const onDropToColumn = (boardId: string, status: string) => {
+    if (draggingId) updateItemType(boardId, draggingId, status);
+    setDraggingId(null);
+    setDragOverCol(null);
   };
 
   const deleteItem = async (boardId: string, itemId: string) => {
@@ -104,7 +123,7 @@ export default function CollaborationPage() {
       <motion.div variants={item} className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Collaboration</h1>
-          <p className="text-muted-foreground mt-1">Plan together with your team</p>
+          <p className="text-muted-foreground mt-1">Shared boards for everyone on the platform — drag cards to move them</p>
         </div>
         <Button onClick={() => setShowNewBoard(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -253,18 +272,27 @@ export default function CollaborationPage() {
               const nextStatus = status === "TODO" ? "IN_PROGRESS" : status === "IN_PROGRESS" ? "DONE" : "TODO";
 
               return (
-                <div key={status} className="space-y-3">
+                <div
+                  key={status}
+                  className={`space-y-3 rounded-2xl p-2 transition-colors ${dragOverCol === status ? "bg-primary/[0.06] ring-1 ring-primary/20" : ""}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverCol(status); }}
+                  onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOverCol(null); }}
+                  onDrop={() => onDropToColumn(activeBoard.id, status)}
+                >
                   <div className="flex items-center gap-2 px-1">
                     <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"}`} />
                     <span className="text-sm font-medium">{statusLabel}</span>
                     <Badge variant="secondary" className="ml-auto">{tasks.length}</Badge>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-h-[40px]">
                     {tasks.map((task: any) => (
                       <div
                         key={task.id}
-                        className="p-3 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50 hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-200 group/task"
+                        draggable
+                        onDragStart={() => setDraggingId(task.id)}
+                        onDragEnd={() => { setDraggingId(null); setDragOverCol(null); }}
+                        className={`p-3 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-200 group/task cursor-grab active:cursor-grabbing ${draggingId === task.id ? "opacity-40" : ""}`}
                       >
                         <div className="flex items-start gap-2">
                           <button

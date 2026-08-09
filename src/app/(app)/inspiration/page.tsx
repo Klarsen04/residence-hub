@@ -71,6 +71,29 @@ export default function InspirationPage() {
     category: "WELCOME_WEEK",
     tags: "",
   });
+  const [preview, setPreview] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Fetch a live preview (Pinterest-style) when a URL is pasted/blurred.
+  const loadPreview = async (url: string) => {
+    if (!url || !/^https?:\/\//i.test(url)) { setPreview(null); return; }
+    setPreviewLoading(true);
+    try {
+      const res = await fetch("/api/inspiration/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      setPreview(data);
+      // Auto-fill the title from the preview if the user hasn't typed one.
+      if (data.title && !form.title) setForm((f) => ({ ...f, title: data.title }));
+    } catch {
+      setPreview(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +110,7 @@ export default function InspirationPage() {
       toast.success("Inspiration saved!");
       setShowForm(false);
       setForm({ title: "", url: "", source: "PINTEREST", category: "WELCOME_WEEK", tags: "" });
+      setPreview(null);
       mutate();
     } catch {
       toast.error("Failed to save inspiration");
@@ -180,7 +204,9 @@ export default function InspirationPage() {
                     <Input
                       value={form.url}
                       onChange={(e) => setForm({ ...form, url: e.target.value })}
-                      placeholder="https://..."
+                      onBlur={(e) => loadPreview(e.target.value)}
+                      onPaste={(e) => { const v = e.clipboardData.getData("text"); if (v) setTimeout(() => loadPreview(v), 0); }}
+                      placeholder="Paste a link, image, or video URL..."
                       className="mt-1.5"
                     />
                   </div>
@@ -218,9 +244,33 @@ export default function InspirationPage() {
                     className="mt-1.5"
                   />
                 </div>
+                {(previewLoading || preview) && (
+                  <div className="rounded-xl border border-black/[0.08] dark:border-white/[0.08] overflow-hidden bg-black/[0.02] dark:bg-white/[0.02]">
+                    {previewLoading ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground">Loading preview…</div>
+                    ) : preview?.kind === "video" && preview.embedUrl ? (
+                      <div className="aspect-video w-full">
+                        <iframe src={preview.embedUrl} className="w-full h-full" allow="accelerometer; encrypted-media; picture-in-picture" allowFullScreen title="preview" />
+                      </div>
+                    ) : preview?.kind === "video" && preview.videoUrl ? (
+                      <video src={preview.videoUrl} controls className="w-full max-h-72 bg-black" />
+                    ) : preview?.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={preview.imageUrl} alt={preview.title || "preview"} className="w-full max-h-72 object-cover" />
+                    ) : (
+                      <div className="p-4 text-sm">
+                        <p className="font-medium">{preview?.title || "Link preview"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{form.url}</p>
+                      </div>
+                    )}
+                    {preview?.title && (preview.imageUrl || preview.embedUrl) && (
+                      <p className="px-4 py-2 text-xs text-muted-foreground truncate border-t border-black/[0.06] dark:border-white/[0.06]">{preview.title}</p>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button type="submit">Save</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => { setShowForm(false); setPreview(null); }}>Cancel</Button>
                 </div>
               </form>
             </CardContent>

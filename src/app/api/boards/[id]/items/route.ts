@@ -10,16 +10,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { title, type, content } = await req.json();
   const { id: boardId } = await params;
 
-  const board = await prisma.planningBoard.findFirst({
-    where: {
-      id: boardId,
-      OR: [
-        { userId: session.user.id },
-        { members: { some: { userId: session.user.id } } },
-      ],
-    },
-  });
-
+  // Boards are public/collaborative — any signed-in user can add cards.
+  const board = await prisma.planningBoard.findUnique({ where: { id: boardId } });
   if (!board) return NextResponse.json({ error: "Board not found" }, { status: 404 });
 
   const maxOrder = await prisma.planningBoardItem.aggregate({

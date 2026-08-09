@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Users, Home, Phone, Mail, Star, AlertCircle, Plus, X } from "lucide-react";
+import { Search, Users, Home, Phone, Mail, Star, Plus, X, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -14,16 +14,25 @@ interface Resident {
   id: string;
   name: string;
   room: string;
+  floor?: string | null;
+  wing?: string | null;
   phone?: string;
   email?: string;
-  moveInDate: string;
-  year: string;
+  moveInDate?: string;
+  year?: string;
   major?: string;
   notes?: string;
   flagged: boolean;
+  ownerId: string;
+  ownerName: string;
+  canEdit: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+// This dorm's structure: floors 1 & 2 have East/West wings; floor 3 is a single wing.
+const FLOORS = ["1", "2", "3"];
+const wingsFor = (floor: string) => (floor === "3" ? ["Main"] : ["East", "West"]);
 
 export default function ResidentsPage() {
   const { data: residents, error, isLoading, mutate } = useSWR<Resident[]>("/api/residents", fetcher);
@@ -32,60 +41,70 @@ export default function ResidentsPage() {
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [newResident, setNewResident] = useState({
-    name: "",
-    room: "",
-    phone: "",
-    email: "",
-    year: "",
-    major: "",
-    notes: "",
-    moveInDate: "",
+    name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "",
   });
 
-  const filtered = (residents || []).filter((r) => {
+  const list = Array.isArray(residents) ? residents : [];
+
+  const filtered = list.filter((r) => {
     const s = search.toLowerCase();
-    return r.name.toLowerCase().includes(s) || r.room.includes(s) || r.major?.toLowerCase().includes(s);
+    return (
+      r.name.toLowerCase().includes(s) ||
+      r.room.includes(s) ||
+      r.major?.toLowerCase().includes(s) ||
+      r.ownerName.toLowerCase().includes(s)
+    );
   });
 
-  const flagged = (residents || []).filter((r) => r.flagged);
+  // Group by RA (owner), so the roster reads as "each RA's floor".
+  const byRA = filtered.reduce<Record<string, { name: string; residents: Resident[] }>>((acc, r) => {
+    acc[r.ownerId] ??= { name: r.ownerName, residents: [] };
+    acc[r.ownerId].residents.push(r);
+    return acc;
+  }, {});
+  const raGroups = Object.entries(byRA).sort((a, b) => a[1].name.localeCompare(b[1].name));
 
-  const addNote = async (id: string) => {
-    const note = noteInputs[id];
-    if (!note?.trim()) return;
-    const resident = residents?.find((r) => r.id === id);
-    if (!resident) return;
+  const locationLabel = (r: Resident) => {
+    if (!r.floor) return `Rm ${r.room}`;
+    const wing = r.wing && r.wing !== "Main" ? ` ${r.wing}` : "";
+    return `Fl ${r.floor}${wing} · Rm ${r.room}`;
+  };
 
-    const updatedNotes = resident.notes ? `${resident.notes}\n${note}` : note;
-
+  const saveField = async (r: Resident, patch: Partial<Resident>) => {
     try {
       const res = await fetch("/api/residents", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name: resident.name, room: resident.room, phone: resident.phone, email: resident.email, year: resident.year, major: resident.major, notes: updatedNotes, flagged: resident.flagged }),
+        body: JSON.stringify({ id: r.id, ...patch }),
       });
-      if (!res.ok) throw new Error("Failed to update resident");
+      if (!res.ok) throw new Error();
       await mutate();
-      setNoteInputs({ ...noteInputs, [id]: "" });
-      toast.success("Note added");
+      return true;
     } catch {
-      toast.error("Failed to add note");
+      toast.error("Failed to update resident");
+      return false;
     }
   };
 
-  const toggleFlag = async (id: string) => {
-    const resident = residents?.find((r) => r.id === id);
-    if (!resident) return;
+  const addNote = async (r: Resident) => {
+    const note = noteInputs[r.id];
+    if (!note?.trim()) return;
+    const updatedNotes = r.notes ? `${r.notes}\n${note}` : note;
+    if (await saveField(r, { notes: updatedNotes })) {
+      setNoteInputs({ ...noteInputs, [r.id]: "" });
+      toast.success("Note added");
+    }
+  };
 
+  const removeResident = async (r: Resident) => {
+    if (!confirm(`Remove ${r.name} from the roster?`)) return;
     try {
-      const res = await fetch("/api/residents", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name: resident.name, room: resident.room, phone: resident.phone, email: resident.email, year: resident.year, major: resident.major, notes: resident.notes, flagged: !resident.flagged }),
-      });
-      if (!res.ok) throw new Error("Failed to update resident");
+      const res = await fetch(`/api/residents?id=${r.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
       await mutate();
+      toast.success("Resident removed");
     } catch {
-      toast.error("Failed to update flag");
+      toast.error("Failed to remove resident");
     }
   };
 
@@ -94,16 +113,15 @@ export default function ResidentsPage() {
       toast.error("Name and room are required");
       return;
     }
-
     try {
       const res = await fetch("/api/residents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newResident),
       });
-      if (!res.ok) throw new Error("Failed to add resident");
+      if (!res.ok) throw new Error();
       await mutate();
-      setNewResident({ name: "", room: "", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "" });
+      setNewResident({ name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "" });
       setShowAddForm(false);
       toast.success("Resident added");
     } catch {
@@ -112,28 +130,16 @@ export default function ResidentsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground">Loading residents...</p>
-      </div>
-    );
+    return <div className="flex items-center justify-center py-20"><p className="text-muted-foreground">Loading roster...</p></div>;
+  }
+  if (error) {
+    return <div className="flex items-center justify-center py-20"><p className="text-red-500">Failed to load residents.</p></div>;
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-red-400">Failed to load residents.</p>
-      </div>
-    );
-  }
+  const selectClass = "h-10 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-5xl"
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-accent to-[hsl(var(--sage-soft))]">
@@ -141,7 +147,9 @@ export default function ResidentsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Floor Roster</h1>
-            <p className="text-muted-foreground mt-0.5">{(residents || []).length} residents on your floor</p>
+            <p className="text-muted-foreground mt-0.5">
+              {list.length} resident{list.length !== 1 ? "s" : ""} across {raGroups.length} RA{raGroups.length !== 1 ? "s" : ""}
+            </p>
           </div>
         </div>
         <Button onClick={() => setShowAddForm(!showAddForm)} className="gap-2">
@@ -153,159 +161,109 @@ export default function ResidentsPage() {
       {showAddForm && (
         <Card>
           <CardContent className="p-4 space-y-3">
-            <h3 className="font-semibold text-sm">New Resident</h3>
+            <h3 className="font-semibold text-sm">New Resident (added to your floor)</h3>
             <div className="grid gap-3 md:grid-cols-2">
-              <Input
-                placeholder="Name *"
-                value={newResident.name}
-                onChange={(e) => setNewResident({ ...newResident, name: e.target.value })}
-              />
-              <Input
-                placeholder="Room *"
-                value={newResident.room}
-                onChange={(e) => setNewResident({ ...newResident, room: e.target.value })}
-              />
-              <Input
-                placeholder="Phone"
-                value={newResident.phone}
-                onChange={(e) => setNewResident({ ...newResident, phone: e.target.value })}
-              />
-              <Input
-                placeholder="Email"
-                value={newResident.email}
-                onChange={(e) => setNewResident({ ...newResident, email: e.target.value })}
-              />
-              <Input
-                placeholder="Year (e.g. First-Year, Sophomore)"
-                value={newResident.year}
-                onChange={(e) => setNewResident({ ...newResident, year: e.target.value })}
-              />
-              <Input
-                placeholder="Major"
-                value={newResident.major}
-                onChange={(e) => setNewResident({ ...newResident, major: e.target.value })}
-              />
-              <Input
-                placeholder="Move-in date (YYYY-MM-DD)"
-                value={newResident.moveInDate}
-                onChange={(e) => setNewResident({ ...newResident, moveInDate: e.target.value })}
-              />
-              <Input
-                placeholder="Notes"
-                value={newResident.notes}
-                onChange={(e) => setNewResident({ ...newResident, notes: e.target.value })}
-              />
+              <Input placeholder="Name *" value={newResident.name} onChange={(e) => setNewResident({ ...newResident, name: e.target.value })} />
+              <Input placeholder="Room *" value={newResident.room} onChange={(e) => setNewResident({ ...newResident, room: e.target.value })} />
+              <select
+                className={selectClass}
+                value={newResident.floor}
+                onChange={(e) => {
+                  const floor = e.target.value;
+                  setNewResident({ ...newResident, floor, wing: wingsFor(floor)[0] });
+                }}
+              >
+                {FLOORS.map((f) => <option key={f} value={f}>Floor {f}</option>)}
+              </select>
+              <select className={selectClass} value={newResident.wing} onChange={(e) => setNewResident({ ...newResident, wing: e.target.value })}>
+                {wingsFor(newResident.floor).map((w) => <option key={w} value={w}>{w === "Main" ? "Main (single wing)" : `${w} Wing`}</option>)}
+              </select>
+              <Input placeholder="Phone" value={newResident.phone} onChange={(e) => setNewResident({ ...newResident, phone: e.target.value })} />
+              <Input placeholder="Email" value={newResident.email} onChange={(e) => setNewResident({ ...newResident, email: e.target.value })} />
+              <Input placeholder="Year (e.g. First-Year)" value={newResident.year} onChange={(e) => setNewResident({ ...newResident, year: e.target.value })} />
+              <Input placeholder="Major" value={newResident.major} onChange={(e) => setNewResident({ ...newResident, major: e.target.value })} />
             </div>
             <Button onClick={addResident} className="mt-2">Save Resident</Button>
           </CardContent>
         </Card>
       )}
 
-      {flagged.length > 0 && (
-        <Card className="border-amber-500/20 bg-amber-500/[0.03]">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-400 shrink-0" />
-            <div>
-              <p className="text-sm font-medium">{flagged.length} resident{flagged.length > 1 ? "s" : ""} flagged for check-in</p>
-              <p className="text-xs text-muted-foreground">{flagged.map((r) => r.name).join(", ")}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="relative max-w-sm">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name, room, or major..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+        <Input placeholder="Search by name, room, major, or RA..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
       </div>
 
-      {(!residents || residents.length === 0) ? (
+      {list.length === 0 ? (
         <Card>
           <CardContent className="p-10 flex flex-col items-center justify-center text-center">
             <Users className="h-10 w-10 text-muted-foreground mb-3" />
             <h3 className="font-semibold text-lg">Add your first resident</h3>
-            <p className="text-sm text-muted-foreground mt-1">Click the "Add Resident" button above to get started.</p>
+            <p className="text-sm text-muted-foreground mt-1">Click &quot;Add Resident&quot; above to build your floor roster.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {filtered.map((resident) => (
-            <Card
-              key={resident.id}
-              className={`hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer ${resident.flagged ? "border-amber-500/20" : ""}`}
-              onClick={() => setSelectedResident(selectedResident === resident.id ? null : resident.id)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-[hsl(var(--sage-soft))] flex items-center justify-center text-white font-bold text-sm">
-                    {resident.room}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-sm truncate">{resident.name}</h3>
-                      {resident.flagged && <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {resident.year}{resident.major ? ` • ${resident.major}` : ""}
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    Rm {resident.room}
-                  </Badge>
+        <div className="space-y-8">
+          {raGroups.map(([ownerId, group]) => (
+            <div key={ownerId}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-7 w-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold">
+                  {group.name.charAt(0).toUpperCase()}
                 </div>
-
-                {selectedResident === resident.id && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.06] space-y-2"
+                <h2 className="font-semibold text-sm">
+                  {group.name}&apos;s floor
+                  <span className="text-muted-foreground font-normal"> · {group.residents.length}</span>
+                </h2>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {group.residents.map((resident) => (
+                  <Card
+                    key={resident.id}
+                    className={`hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer ${resident.flagged ? "border-amber-500/30" : ""}`}
+                    onClick={() => setSelectedResident(selectedResident === resident.id ? null : resident.id)}
                   >
-                    <div className="flex gap-4 text-xs text-muted-foreground">
-                      {resident.phone && (
-                        <a href={`tel:${resident.phone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                          <Phone className="h-3 w-3" /> {resident.phone}
-                        </a>
-                      )}
-                      {resident.email && (
-                        <a href={`mailto:${resident.email}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                          <Mail className="h-3 w-3" /> {resident.email}
-                        </a>
-                      )}
-                    </div>
-                    {resident.notes && (
-                      <div className="p-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-                        <p className="text-[11px] text-muted-foreground whitespace-pre-line">{resident.notes}</p>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-[hsl(var(--sage-soft))] flex items-center justify-center text-white font-bold text-sm">
+                          {resident.room}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-sm truncate">{resident.name}</h3>
+                            {resident.flagged && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{resident.year}{resident.major ? ` • ${resident.major}` : ""}</p>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] shrink-0">{locationLabel(resident)}</Badge>
                       </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Input
-                        value={noteInputs[resident.id] || ""}
-                        onChange={(e) => setNoteInputs({ ...noteInputs, [resident.id]: e.target.value })}
-                        placeholder="Add a note..."
-                        className="h-7 text-xs"
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); addNote(resident.id); } }}
-                      />
-                      <Button size="sm" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); addNote(resident.id); }}>
-                        Add
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs px-2"
-                        onClick={(e) => { e.stopPropagation(); toggleFlag(resident.id); }}
-                      >
-                        {resident.flagged ? "Unflag" : "Flag"}
-                      </Button>
-                    </div>
-                  </motion.div>
-                )}
-              </CardContent>
-            </Card>
+
+                      {selectedResident === resident.id && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.06] space-y-2">
+                          <div className="flex gap-4 text-xs text-muted-foreground">
+                            {resident.phone && <a href={`tel:${resident.phone}`} className="flex items-center gap-1 hover:text-primary" onClick={(e) => e.stopPropagation()}><Phone className="h-3 w-3" /> {resident.phone}</a>}
+                            {resident.email && <a href={`mailto:${resident.email}`} className="flex items-center gap-1 hover:text-primary" onClick={(e) => e.stopPropagation()}><Mail className="h-3 w-3" /> {resident.email}</a>}
+                          </div>
+                          {resident.notes && (
+                            <div className="p-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
+                              <p className="text-[11px] text-muted-foreground whitespace-pre-line">{resident.notes}</p>
+                            </div>
+                          )}
+                          {resident.canEdit ? (
+                            <div className="flex gap-2 flex-wrap">
+                              <Input value={noteInputs[resident.id] || ""} onChange={(e) => setNoteInputs({ ...noteInputs, [resident.id]: e.target.value })} placeholder="Add a note..." className="h-7 text-xs flex-1 min-w-[120px]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); addNote(resident); } }} />
+                              <Button size="sm" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); addNote(resident); }}>Add</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); saveField(resident, { flagged: !resident.flagged }); }}>{resident.flagged ? "Unflag" : "Flag"}</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-red-500" onClick={(e) => { e.stopPropagation(); removeResident(resident); }}><Trash2 className="h-3 w-3" /></Button>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground italic">Managed by {resident.ownerName}</p>
+                          )}
+                        </motion.div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

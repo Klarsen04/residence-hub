@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, Sparkles, Copy, ArrowRight } from "lucide-react";
+import { Calendar, Clock, Users, Sparkles, Copy, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 const templates = [
@@ -134,6 +134,9 @@ export default function EventTemplatesPage() {
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-7xl">
       <motion.div variants={item}>
+        <Button variant="ghost" size="sm" onClick={() => router.push("/events")} className="mb-4 -ml-2 gap-1.5">
+          <ArrowLeft className="h-4 w-4" /> Back to Events
+        </Button>
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
             <Sparkles className="h-5 w-5 text-white" />

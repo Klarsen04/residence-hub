@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { residentName, room, mood, topics, notes, followUp } = await req.json();
+  const { residentId, residentName, room, mood, topics, notes, followUp } = await req.json();
 
   if (!residentName) {
     return NextResponse.json({ error: "Resident name required" }, { status: 400 });
@@ -28,8 +28,9 @@ export async function POST(req: NextRequest) {
   const checkIn = await prisma.checkIn.create({
     data: {
       userId: session.user.id,
+      residentId: residentId || null,
       residentName,
-      room,
+      room: room || null,
       mood: mood || "good",
       topics: topics ? JSON.stringify(topics) : null,
       notes,

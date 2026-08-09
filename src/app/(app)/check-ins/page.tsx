@@ -43,6 +43,7 @@ export default function CheckInsPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
+    residentId: "",
     residentName: "",
     room: "",
     mood: "good" as CheckIn["mood"],
@@ -51,8 +52,9 @@ export default function CheckInsPage() {
     followUp: false,
   });
 
-  const allCheckIns: CheckIn[] = checkIns || [];
-  const allResidents = residents || [];
+  const allCheckIns: CheckIn[] = Array.isArray(checkIns) ? checkIns : [];
+  // Only your own residents are check-in-able (check-ins are per-RA).
+  const allResidents = (Array.isArray(residents) ? residents : []).filter((r: any) => r.canEdit);
   const totalCheckIns = allCheckIns.length;
 
   const toggleTopic = (topic: string) => {
@@ -78,7 +80,7 @@ export default function CheckInsPage() {
       });
       if (!res.ok) throw new Error("Failed");
       setShowForm(false);
-      setForm({ residentName: "", room: "", mood: "good", topics: [], notes: "", followUp: false });
+      setForm({ residentId: "", residentName: "", room: "", mood: "good", topics: [], notes: "", followUp: false });
       toast.success("Check-in logged!");
       mutate();
     } catch {
@@ -87,7 +89,7 @@ export default function CheckInsPage() {
   };
 
   const selectResident = (resident: any) => {
-    setForm({ ...form, residentName: resident.name, room: resident.room });
+    setForm({ ...form, residentId: resident.id, residentName: resident.name, room: resident.room });
     setShowForm(true);
   };
 
@@ -223,7 +225,7 @@ export default function CheckInsPage() {
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Residents</h3>
+          <h3 className="text-sm font-medium text-muted-foreground">Your Residents — tap to check in</h3>
           <div className="relative w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="h-8 text-xs pl-8" />
