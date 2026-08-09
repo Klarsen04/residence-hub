@@ -13,7 +13,7 @@ import { toast } from "sonner";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const statusColors: Record<string, string> = {
-  DRAFT: "bg-white/[0.06] text-muted-foreground",
+  DRAFT: "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground",
   PENDING: "bg-amber-500/15 text-amber-400",
   APPROVED: "bg-emerald-500/15 text-emerald-400",
   DENIED: "bg-red-500/15 text-red-400",
@@ -84,10 +84,10 @@ export default function BudgetPage() {
   };
 
   const stats = [
-    { label: "Total Requested", value: `$${totalRequested.toFixed(2)}`, icon: DollarSign, color: "from-purple-500 to-indigo-500" },
-    { label: "Approved", value: `$${totalApproved.toFixed(2)}`, icon: Receipt, color: "from-emerald-500 to-teal-500" },
+    { label: "Total Requested", value: `$${totalRequested.toFixed(2)}`, icon: DollarSign, color: "from-primary to-primary" },
+    { label: "Approved", value: `$${totalApproved.toFixed(2)}`, icon: Receipt, color: "from-emerald-500 to-[hsl(var(--sage-soft))]" },
     { label: "Spent", value: `$${totalSpent.toFixed(2)}`, icon: TrendingDown, color: "from-amber-500 to-orange-500" },
-    { label: "Requests", value: allRequests.length, icon: Package, color: "from-blue-500 to-cyan-500" },
+    { label: "Requests", value: allRequests.length, icon: Package, color: "from-accent to-[hsl(var(--sage-soft))]" },
   ];
 
   return (
@@ -107,7 +107,7 @@ export default function BudgetPage() {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-card/50 backdrop-blur-sm p-5 transition-all duration-300 hover:border-white/[0.15]"
+            className="group relative overflow-hidden rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50 backdrop-blur-sm p-5 transition-all duration-300 hover:border-black/[0.15] dark:hover:border-white/[0.15]"
           >
             <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.color} opacity-[0.07] rounded-full blur-2xl -translate-y-4 translate-x-4`} />
             <div className={`inline-flex p-2 rounded-xl bg-gradient-to-br ${stat.color} mb-3`}>
@@ -121,7 +121,7 @@ export default function BudgetPage() {
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-purple-500/20">
+          <Card className="border-primary/20">
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -205,11 +205,11 @@ export default function BudgetPage() {
               const spent = req.expenses?.reduce((s: number, e: any) => s + e.amount, 0) || 0;
               const spentPercent = req.amount > 0 ? (spent / req.amount) * 100 : 0;
               return (
-                <Card key={req.id} className="hover:border-white/[0.15]">
+                <Card key={req.id} className="hover:border-black/[0.15] dark:hover:border-white/[0.15]">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-accent">
                           <DollarSign className="h-4 w-4 text-white" />
                         </div>
                         <div>
@@ -235,14 +235,14 @@ export default function BudgetPage() {
                       </div>
                     </div>
                     {spent > 0 && (
-                      <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                      <div className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.06]">
                         <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                           <span>${spent.toFixed(2)} spent</span>
                           <span>{Math.round(spentPercent)}% of budget</span>
                         </div>
-                        <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div className="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${spentPercent > 90 ? "bg-red-500" : spentPercent > 70 ? "bg-amber-500" : "bg-gradient-to-r from-purple-500 to-blue-500"}`}
+                            className={`h-full rounded-full transition-all duration-500 ${spentPercent > 90 ? "bg-red-500" : spentPercent > 70 ? "bg-amber-500" : "bg-gradient-to-r from-primary to-accent"}`}
                             style={{ width: `${Math.min(spentPercent, 100)}%` }}
                           />
                         </div>

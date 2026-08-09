@@ -80,7 +80,7 @@ export default function AIPlannerPage() {
     >
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 glow-sm">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-accent glow-sm">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
           <span className="gradient-text">AI Event Planner</span>
@@ -93,17 +93,17 @@ export default function AIPlannerPage() {
       {usage && (
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <Zap className="h-4 w-4 text-purple-400" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Zap className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">{usage.used} / {usage.limit} requests this month</span>
-                <span className="text-purple-400 font-medium">{usage.remaining} remaining</span>
+                <span className="text-primary font-medium">{usage.remaining} remaining</span>
               </div>
-              <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
                   style={{ width: `${(usage.used / usage.limit) * 100}%` }}
                 />
               </div>
@@ -118,7 +118,7 @@ export default function AIPlannerPage() {
       )}
 
       <Card className="overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.03] to-blue-500/[0.03]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-accent/[0.03]" />
         <CardHeader className="relative">
           <CardTitle>What are you planning?</CardTitle>
         </CardHeader>
@@ -150,7 +150,7 @@ export default function AIPlannerPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Target Audience</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                   value={form.audience}
                   onChange={(e) => setForm({ ...form, audience: e.target.value })}
                 >
@@ -162,7 +162,7 @@ export default function AIPlannerPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Programming Goal</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                   value={form.goal}
                   onChange={(e) => setForm({ ...form, goal: e.target.value })}
                 >

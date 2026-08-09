@@ -162,7 +162,7 @@ export default function InspirationPage() {
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-purple-500/20">
+          <Card className="border-primary/20">
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -187,7 +187,7 @@ export default function InspirationPage() {
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Source</label>
                     <select
-                      className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                      className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                       value={form.source}
                       onChange={(e) => setForm({ ...form, source: e.target.value })}
                     >
@@ -199,7 +199,7 @@ export default function InspirationPage() {
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Category</label>
                     <select
-                      className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                      className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                       value={form.category}
                       onChange={(e) => setForm({ ...form, category: e.target.value })}
                     >
@@ -247,8 +247,8 @@ export default function InspirationPage() {
             onClick={() => setFilter(cat)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
               filter === cat
-                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-primary/20 text-primary border border-primary/30"
+                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
             }`}
           >
             {cat === "All" ? "All" : cat.replace(/_/g, " ")}
@@ -273,7 +273,7 @@ export default function InspirationPage() {
 
             if (isEditing) {
               return (
-                <Card key={item.id} className="break-inside-avoid overflow-hidden border-purple-500/30">
+                <Card key={item.id} className="break-inside-avoid overflow-hidden border-primary/30">
                   <CardContent className="p-4 space-y-3">
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Title</label>
@@ -295,7 +295,7 @@ export default function InspirationPage() {
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Source</label>
                         <select
-                          className="mt-1 flex h-8 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-2 text-xs"
+                          className="mt-1 flex h-8 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-2 text-xs"
                           value={editForm.source}
                           onChange={(e) => setEditForm({ ...editForm, source: e.target.value })}
                         >
@@ -307,7 +307,7 @@ export default function InspirationPage() {
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Category</label>
                         <select
-                          className="mt-1 flex h-8 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-2 text-xs"
+                          className="mt-1 flex h-8 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-2 text-xs"
                           value={editForm.category}
                           onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                         >
@@ -342,7 +342,7 @@ export default function InspirationPage() {
             }
 
             return (
-              <Card key={item.id} className="break-inside-avoid overflow-hidden group hover:border-white/[0.15] hover:-translate-y-0.5">
+              <Card key={item.id} className="break-inside-avoid overflow-hidden group hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5">
                 {embedUrl && isPlaying ? (
                   <div className="aspect-video">
                     <iframe
@@ -354,18 +354,18 @@ export default function InspirationPage() {
                   </div>
                 ) : thumbnail ? (
                   <div
-                    className="aspect-video bg-white/[0.03] relative cursor-pointer overflow-hidden"
+                    className="aspect-video bg-black/[0.03] dark:bg-white/[0.03] relative cursor-pointer overflow-hidden"
                     onClick={() => setPlayingId(item.id)}
                   >
                     <img src={thumbnail} alt={item.title || ""} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/50 transition-colors">
-                      <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                      <div className="w-12 h-12 rounded-full bg-black/90 dark:bg-white/90 flex items-center justify-center shadow-lg">
                         <Play className="h-5 w-5 text-black ml-0.5" />
                       </div>
                     </div>
                   </div>
                 ) : item.imageUrl ? (
-                  <div className="aspect-[4/3] bg-white/[0.03] overflow-hidden">
+                  <div className="aspect-[4/3] bg-black/[0.03] dark:bg-white/[0.03] overflow-hidden">
                     <img src={item.imageUrl} alt={item.title || ""} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                 ) : item.url ? (
@@ -373,9 +373,9 @@ export default function InspirationPage() {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block p-4 bg-white/[0.03] border-b border-white/[0.06] hover:bg-white/[0.06] transition-colors"
+                    className="block p-4 bg-black/[0.03] dark:bg-white/[0.03] border-b border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors"
                   >
-                    <div className="flex items-center gap-2 text-sm text-purple-400">
+                    <div className="flex items-center gap-2 text-sm text-primary">
                       <ExternalLink className="h-4 w-4 shrink-0" />
                       <span className="truncate">{item.url}</span>
                     </div>
@@ -393,7 +393,7 @@ export default function InspirationPage() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => startEdit(item)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -404,7 +404,7 @@ export default function InspirationPage() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                       {item.url && (
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 transition-all">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       )}
@@ -413,7 +413,7 @@ export default function InspirationPage() {
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {tags.map((tag: string) => (
-                        <span key={tag} className="text-[11px] text-purple-400/70 bg-purple-500/10 px-2 py-0.5 rounded-full">#{tag}</span>
+                        <span key={tag} className="text-[11px] text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full">#{tag}</span>
                       ))}
                     </div>
                   )}

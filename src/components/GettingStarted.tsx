@@ -13,7 +13,7 @@ const steps = [
     description: "Plan a program for your residents",
     href: "/events/templates",
     icon: Calendar,
-    color: "from-purple-500 to-indigo-500",
+    color: "from-primary to-primary",
   },
   {
     id: "roster",
@@ -21,7 +21,7 @@ const steps = [
     description: "Add your residents' info",
     href: "/residents",
     icon: Home,
-    color: "from-blue-500 to-cyan-500",
+    color: "from-accent to-[hsl(var(--sage-soft))]",
   },
   {
     id: "inspiration",
@@ -37,7 +37,7 @@ const steps = [
     description: "See who else is on staff",
     href: "/team",
     icon: Users,
-    color: "from-emerald-500 to-teal-500",
+    color: "from-emerald-500 to-[hsl(var(--sage-soft))]",
   },
 ];
 
@@ -51,7 +51,7 @@ export function GettingStarted() {
     <AnimatePresence>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}>
         <Card className="overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.03] to-blue-500/[0.03]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-accent/[0.03]" />
           <CardContent className="p-5 relative">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -60,7 +60,7 @@ export function GettingStarted() {
               </div>
               <button
                 onClick={() => setDismissed(true)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] dark:hover:bg-white/[0.06] transition-all"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-all"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -77,7 +77,7 @@ export function GettingStarted() {
                     className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
                       isComplete
                         ? "bg-emerald-500/[0.05] border border-emerald-500/20"
-                        : "border border-white/[0.06] dark:border-white/[0.06] hover:border-purple-500/20 hover:bg-purple-500/[0.03]"
+                        : "border border-black/[0.06] dark:border-white/[0.06] hover:border-primary/20 hover:bg-primary/[0.03]"
                     }`}
                   >
                     {isComplete ? (

@@ -181,12 +181,12 @@ export default function DecorationsPage() {
       </div>
 
       {suggested !== "ALL" && categoryFilter === "ALL" && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-purple-500/[0.05] border border-purple-500/20">
-          <div className="p-2 rounded-xl bg-purple-500/10">
-            <Sparkles className="h-4 w-4 text-purple-400" />
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/[0.05] border border-primary/20">
+          <div className="p-2 rounded-xl bg-primary/10">
+            <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <span className="text-sm flex-1">
-            It&apos;s <span className="font-medium text-purple-400">{decorationCategories.find((c) => c.value === suggested)?.label}</span> season!
+            It&apos;s <span className="font-medium text-primary">{decorationCategories.find((c) => c.value === suggested)?.label}</span> season!
           </span>
           <Button size="sm" variant="outline" onClick={() => setCategoryFilter(suggested)}>
             Show ideas
@@ -196,7 +196,7 @@ export default function DecorationsPage() {
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="border-purple-500/20">
+        <Card className="border-primary/20">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -222,7 +222,7 @@ export default function DecorationsPage() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Type *</label>
                   <select
-                    className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                    className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                   >
@@ -234,7 +234,7 @@ export default function DecorationsPage() {
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Season/Theme *</label>
                   <select
-                    className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                    className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                   >
@@ -247,7 +247,7 @@ export default function DecorationsPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Description</label>
                 <textarea
-                  className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all"
+                  className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Brief description..."
@@ -256,7 +256,7 @@ export default function DecorationsPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Instructions</label>
                 <textarea
-                  className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all"
+                  className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
                   value={form.instructions}
                   onChange={(e) => setForm({ ...form, instructions: e.target.value })}
                   placeholder="Step-by-step how to make it..."
@@ -308,8 +308,8 @@ export default function DecorationsPage() {
             onClick={() => setTypeFilter(t.value)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
               typeFilter === t.value
-                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-primary/20 text-primary border border-primary/30"
+                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
             }`}
           >{t.label}</button>
         ))}
@@ -319,8 +319,8 @@ export default function DecorationsPage() {
           onClick={() => setCategoryFilter("ALL")}
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
             categoryFilter === "ALL"
-              ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-              : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08] hover:text-foreground"
+              ? "bg-accent/20 text-accent border border-accent/30"
+              : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
           }`}
         >All Seasons</button>
         {decorationCategories.map((c) => (
@@ -329,8 +329,8 @@ export default function DecorationsPage() {
             onClick={() => setCategoryFilter(c.value)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
               categoryFilter === c.value
-                ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-accent/20 text-accent border border-accent/30"
+                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
             }`}
           >{c.label}</button>
         ))}
@@ -339,7 +339,7 @@ export default function DecorationsPage() {
       {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center space-y-4">
-            <div className="flex justify-center"><div className="p-4 rounded-2xl bg-purple-500/10"><LayoutGrid className="h-12 w-12 text-purple-400" /></div></div>
+            <div className="flex justify-center"><div className="p-4 rounded-2xl bg-primary/10"><LayoutGrid className="h-12 w-12 text-primary" /></div></div>
             <div>
               <h3 className="text-lg font-semibold">No decorations yet</h3>
               <p className="text-muted-foreground max-w-md mx-auto mt-2">Be the first to share! Add photos of your door decs, bulletin boards, or hallway decorations.</p>
@@ -355,12 +355,12 @@ export default function DecorationsPage() {
             const favCount = dec._count?.favoritedBy || 0;
 
             return (
-              <Card key={dec.id} className="overflow-hidden group hover:border-white/[0.15] hover:-translate-y-0.5">
+              <Card key={dec.id} className="overflow-hidden group hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5">
                 {dec.imageUrl ? (
                   <div className="aspect-[4/3] bg-muted relative">
                     <img src={dec.imageUrl} alt={dec.title} className="w-full h-full object-cover" />
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-white/90 hover:bg-white text-red-500">
+                      <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-red-500">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -371,7 +371,7 @@ export default function DecorationsPage() {
                     {dec.type === "BULLETIN_BOARD" && <LayoutGrid className="h-12 w-12 text-primary/30" />}
                     {dec.type === "HALLWAY_DECORATION" && <Ruler className="h-12 w-12 text-primary/30" />}
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-white/90 hover:bg-white text-red-500">
+                      <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-red-500">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>

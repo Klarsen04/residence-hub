@@ -122,8 +122,8 @@ export function CommandPalette() {
             transition={{ duration: 0.15 }}
             className="fixed inset-x-0 top-[20%] z-[101] mx-auto w-full max-w-lg"
           >
-            <div className="mx-4 overflow-hidden rounded-2xl border border-white/[0.1] bg-card/95 backdrop-blur-xl shadow-2xl shadow-black/40">
-              <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3">
+            <div className="mx-4 overflow-hidden rounded-2xl border border-black/[0.1] dark:border-white/[0.1] bg-card/95 backdrop-blur-xl shadow-2xl shadow-black/40">
+              <div className="flex items-center gap-3 border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
                 <Search className="h-5 w-5 text-muted-foreground" />
                 <input
                   autoFocus
@@ -133,7 +133,7 @@ export function CommandPalette() {
                   placeholder="Search pages, actions..."
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 />
-                <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-white/[0.1] bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-muted-foreground font-mono">
+                <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded-md border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.04] dark:bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-muted-foreground font-mono">
                   ESC
                 </kbd>
               </div>
@@ -162,11 +162,11 @@ export function CommandPalette() {
                                 onMouseEnter={() => setSelectedIndex(idx)}
                                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                                   selectedIndex === idx
-                                    ? "bg-purple-500/10 text-foreground"
+                                    ? "bg-primary/10 text-foreground"
                                     : "text-muted-foreground hover:text-foreground"
                                 }`}
                               >
-                                <cmd.icon className={`h-4 w-4 ${selectedIndex === idx ? "text-purple-400" : ""}`} />
+                                <cmd.icon className={`h-4 w-4 ${selectedIndex === idx ? "text-primary" : ""}`} />
                                 <span>{cmd.name}</span>
                               </button>
                             );
@@ -178,13 +178,13 @@ export function CommandPalette() {
                 )}
               </div>
 
-              <div className="border-t border-white/[0.06] px-4 py-2.5 flex items-center gap-4">
+              <div className="border-t border-black/[0.06] dark:border-white/[0.06] px-4 py-2.5 flex items-center gap-4">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <kbd className="rounded border border-white/[0.1] bg-white/[0.04] px-1 py-0.5 font-mono text-[10px]">↑↓</kbd>
+                  <kbd className="rounded border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.04] dark:bg-white/[0.04] px-1 py-0.5 font-mono text-[10px]">↑↓</kbd>
                   Navigate
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <kbd className="rounded border border-white/[0.1] bg-white/[0.04] px-1 py-0.5 font-mono text-[10px]">↵</kbd>
+                  <kbd className="rounded border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.04] dark:bg-white/[0.04] px-1 py-0.5 font-mono text-[10px]">↵</kbd>
                   Select
                 </div>
               </div>

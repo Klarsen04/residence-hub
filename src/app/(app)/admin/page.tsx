@@ -87,7 +87,7 @@ export default function AdminPage() {
             <div className="flex-1 max-w-xs">
               <label className="text-sm font-medium text-muted-foreground">Role</label>
               <select
-                className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
               >
@@ -120,7 +120,7 @@ export default function AdminPage() {
           ) : (
             <div className="space-y-2">
               {codes.map((code: any) => (
-                <div key={code.id} className="flex items-center justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                <div key={code.id} className="flex items-center justify-between p-4 rounded-xl border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors">
                   <div className="flex items-center gap-3">
                     <code className="font-mono text-base font-bold tracking-wider text-foreground">{code.code}</code>
                     <Badge variant={code.usedBy ? "secondary" : "default"}>

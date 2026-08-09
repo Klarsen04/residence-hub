@@ -77,14 +77,14 @@ function NewEventForm() {
       className="max-w-2xl mx-auto"
     >
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500">
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-accent">
           <Calendar className="h-5 w-5 text-white" />
         </div>
         <h1 className="text-3xl font-bold">Create New Event</h1>
       </div>
 
       <Card className="overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.02] to-blue-500/[0.02]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-accent/[0.02]" />
         <CardHeader className="relative">
           <CardTitle>Event Details</CardTitle>
         </CardHeader>
@@ -104,7 +104,7 @@ function NewEventForm() {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Description</label>
               <textarea
-                className="mt-1.5 flex min-h-[100px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                className="mt-1.5 flex min-h-[100px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Describe your event..."
@@ -157,7 +157,7 @@ function NewEventForm() {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Category</label>
               <select
-                className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >

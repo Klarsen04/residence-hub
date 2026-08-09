@@ -46,12 +46,12 @@ function formatRelativeTime(dateString: string): string {
 }
 
 const typeConfig = {
-  event: { icon: Calendar, color: "text-purple-400", bg: "bg-purple-500/10" },
+  event: { icon: Calendar, color: "text-primary", bg: "bg-primary/10" },
   approval: { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  team: { icon: Users, color: "text-blue-400", bg: "bg-blue-500/10" },
+  team: { icon: Users, color: "text-accent", bg: "bg-accent/10" },
   resource: { icon: BookOpen, color: "text-amber-400", bg: "bg-amber-500/10" },
-  ai: { icon: Sparkles, color: "text-pink-400", bg: "bg-pink-500/10" },
-  system: { icon: Settings, color: "text-muted-foreground", bg: "bg-white/[0.06]" },
+  ai: { icon: Sparkles, color: "text-accent", bg: "bg-accent/10" },
+  system: { icon: Settings, color: "text-muted-foreground", bg: "bg-black/[0.06] dark:bg-white/[0.06]" },
 };
 
 const container = {
@@ -116,7 +116,7 @@ export default function NotificationsPage() {
           <h1 className="text-3xl font-bold flex items-center gap-3">
             Notifications
             {unreadCount > 0 && (
-              <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+              <Badge className="bg-primary/20 text-primary border-primary/30">
                 {unreadCount} new
               </Badge>
             )}
@@ -136,8 +136,8 @@ export default function NotificationsPage() {
           onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
             filter === "all"
-              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-              : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08]"
+              ? "bg-primary/20 text-primary border border-primary/30"
+              : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
           }`}
         >
           All ({notifications.length})
@@ -146,8 +146,8 @@ export default function NotificationsPage() {
           onClick={() => setFilter("unread")}
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
             filter === "unread"
-              ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-              : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08]"
+              ? "bg-primary/20 text-primary border border-primary/30"
+              : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
           }`}
         >
           Unread ({unreadCount})
@@ -172,8 +172,8 @@ export default function NotificationsPage() {
                 <div
                   className={`group flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
                     notification.read
-                      ? "border-white/[0.06] bg-card/30 hover:bg-white/[0.03]"
-                      : "border-purple-500/20 bg-purple-500/[0.03] hover:bg-purple-500/[0.05]"
+                      ? "border-black/[0.06] dark:border-white/[0.06] bg-card/30 hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+                      : "border-primary/20 bg-primary/[0.03] hover:bg-primary/[0.05]"
                   }`}
                   onClick={() => markRead(notification.id)}
                 >
@@ -186,7 +186,7 @@ export default function NotificationsPage() {
                         {notification.title}
                       </p>
                       {!notification.read && (
-                        <div className="h-2 w-2 rounded-full bg-purple-400" />
+                        <div className="h-2 w-2 rounded-full bg-primary" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">{notification.description}</p>

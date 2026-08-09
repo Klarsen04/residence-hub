@@ -22,12 +22,12 @@ const noteColorNames = ["purple", "blue", "emerald", "amber", "pink", "cyan"];
 
 function getColorClasses(color: string): string {
   const map: Record<string, string> = {
-    purple: "from-purple-500/10 to-purple-500/5 border-purple-500/20",
-    blue: "from-blue-500/10 to-blue-500/5 border-blue-500/20",
+    purple: "from-primary/10 to-primary/5 border-primary/20",
+    blue: "from-accent/10 to-accent/5 border-accent/20",
     emerald: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
     amber: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-    pink: "from-pink-500/10 to-pink-500/5 border-pink-500/20",
-    cyan: "from-cyan-500/10 to-cyan-500/5 border-cyan-500/20",
+    pink: "from-accent/10 to-accent/5 border-accent/20",
+    cyan: "from-[hsl(var(--sage-soft))] to-[hsl(var(--sage-soft))] border-cyan-500/20",
   };
   return map[color] || map.purple;
 }
@@ -137,7 +137,7 @@ export default function NotesPage() {
       <AnimatePresence>
         {showNew && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            <Card className="border-purple-500/20">
+            <Card className="border-primary/20">
               <CardContent className="p-5 space-y-3">
                 <Input
                   value={newTitle}
@@ -149,7 +149,7 @@ export default function NotesPage() {
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
                   placeholder="Write your note..."
-                  className="w-full min-h-[100px] rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                  className="w-full min-h-[100px] rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                 />
                 <div className="flex gap-2">
                   <Button onClick={addNote}>Save Note</Button>
@@ -175,7 +175,7 @@ export default function NotesPage() {
               <div className={`group rounded-2xl border bg-gradient-to-br ${getColorClasses(note.color)} p-5 transition-all duration-200 hover:-translate-y-0.5 relative`}>
                 {note.pinned && (
                   <div className="absolute top-3 right-3">
-                    <Pin className="h-3 w-3 text-purple-400 fill-purple-400" />
+                    <Pin className="h-3 w-3 text-primary fill-primary" />
                   </div>
                 )}
                 {editingId === note.id ? (
@@ -188,7 +188,7 @@ export default function NotesPage() {
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all"
+                      className="w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
                     />
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => saveEdit(note.id)}>Save</Button>
@@ -198,18 +198,18 @@ export default function NotesPage() {
                 ) : (
                   <>
                     <h3
-                      className="font-semibold text-sm mb-2 cursor-pointer hover:text-purple-400 transition-colors"
+                      className="font-semibold text-sm mb-2 cursor-pointer hover:text-primary transition-colors"
                       onClick={() => startEditing(note)}
                     >
                       {note.title}
                     </h3>
                     <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-6">{note.content}</p>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.06]">
                       <span className="text-[10px] text-muted-foreground">{note.createdAt}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => togglePin(note.id)}
-                          className="p-1 rounded-lg text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 transition-all"
+                          className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
                         >
                           {note.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                         </button>

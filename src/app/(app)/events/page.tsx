@@ -14,21 +14,21 @@ import { motion } from "framer-motion";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const categoryColors: Record<string, string> = {
-  COMMUNITY_BUILDING: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  COMMUNITY_BUILDING: "bg-accent/15 text-accent border-accent/20",
   WELLNESS: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-  ACADEMIC_SUCCESS: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  ACADEMIC_SUCCESS: "bg-primary/15 text-primary border-primary/20",
   DIVERSITY_INCLUSION: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-  CAREER_DEVELOPMENT: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
+  CAREER_DEVELOPMENT: "bg-primary/15 text-primary border-primary/20",
   SUSTAINABILITY: "bg-teal-500/15 text-teal-400 border-teal-500/20",
   LEADERSHIP: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  SOCIAL: "bg-pink-500/15 text-pink-400 border-pink-500/20",
+  SOCIAL: "bg-accent/15 text-accent border-accent/20",
 };
 
 const statusColors: Record<string, string> = {
-  DRAFT: "bg-white/[0.06] text-muted-foreground",
+  DRAFT: "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground",
   PENDING_APPROVAL: "bg-amber-500/15 text-amber-400",
   APPROVED: "bg-emerald-500/15 text-emerald-400",
-  COMPLETED: "bg-blue-500/15 text-blue-400",
+  COMPLETED: "bg-accent/15 text-accent",
   CANCELLED: "bg-red-500/15 text-red-400",
 };
 
@@ -97,7 +97,7 @@ export default function EventsPage() {
             className="pl-10"
           />
         </div>
-        <div className="flex gap-1 p-1 rounded-xl border border-white/[0.08] bg-white/[0.03]">
+        <div className="flex gap-1 p-1 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-black/[0.03] dark:bg-white/[0.03]">
           <Button
             variant={view === "calendar" ? "secondary" : "ghost"}
             size="sm"
@@ -137,7 +137,7 @@ export default function EventsPage() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-7 gap-px bg-white/[0.04] rounded-2xl overflow-hidden border border-white/[0.06]">
+            <div className="grid grid-cols-7 gap-px bg-black/[0.04] dark:bg-white/[0.04] rounded-2xl overflow-hidden border border-black/[0.06] dark:border-white/[0.06]">
               {DAYS.map((day) => (
                 <div key={day} className="bg-card/80 p-3 text-center text-xs font-medium text-muted-foreground">
                   {day}
@@ -156,11 +156,11 @@ export default function EventsPage() {
                 return (
                   <div
                     key={day}
-                    className={`bg-card/40 p-2 min-h-[90px] transition-colors hover:bg-white/[0.04] ${
-                      isToday ? "ring-2 ring-purple-500/50 ring-inset bg-purple-500/[0.05]" : ""
+                    className={`bg-card/40 p-2 min-h-[90px] transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.04] ${
+                      isToday ? "ring-2 ring-primary/50 ring-inset bg-primary/[0.05]" : ""
                     }`}
                   >
-                    <span className={`text-xs font-medium ${isToday ? "text-purple-400" : "text-muted-foreground"}`}>
+                    <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
                       {day}
                     </span>
                     <div className="mt-1 space-y-0.5">
@@ -168,7 +168,7 @@ export default function EventsPage() {
                         <Link key={event.id} href={`/events/${event.id}`}>
                           <div
                             className={`text-[10px] px-1.5 py-0.5 rounded-md truncate cursor-pointer hover:opacity-80 font-medium ${
-                              categoryColors[event.category]?.split(" ").slice(0, 2).join(" ") || "bg-purple-500/15 text-purple-400"
+                              categoryColors[event.category]?.split(" ").slice(0, 2).join(" ") || "bg-primary/15 text-primary"
                             }`}
                           >
                             {event.title}
@@ -207,11 +207,11 @@ export default function EventsPage() {
               transition={{ delay: index * 0.05 }}
             >
               <Link href={`/events/${event.id}`}>
-                <Card className="hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer">
+                <Card className="hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[52px] p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                        <p className="text-[10px] text-purple-400 uppercase font-semibold">
+                      <div className="text-center min-w-[52px] p-2 rounded-xl bg-primary/10 border border-primary/20">
+                        <p className="text-[10px] text-primary uppercase font-semibold">
                           {new Date(event.date).toLocaleDateString("en-US", { month: "short" })}
                         </p>
                         <p className="text-xl font-bold text-foreground">

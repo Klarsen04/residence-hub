@@ -152,7 +152,7 @@ export default function ResourcesPage() {
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="border-purple-500/20">
+        <Card className="border-primary/20">
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -188,7 +188,7 @@ export default function ResourcesPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Category</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                 >
@@ -226,8 +226,8 @@ export default function ResourcesPage() {
             onClick={() => setFilter(t)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
               filter === t
-                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-primary/20 text-primary border border-primary/30"
+                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
             }`}
           >
             {t === "ALL" ? "All" : t.replace(/_/g, " ")}
@@ -239,11 +239,11 @@ export default function ResourcesPage() {
         {filtered.map((resource) => {
           const Icon = typeIcons[resource.type] || BookOpen;
           return (
-            <Card key={resource.id} className="hover:border-white/[0.15] hover:-translate-y-0.5">
+            <Card key={resource.id} className="hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-purple-500/10 shrink-0">
-                    <Icon className="h-4 w-4 text-purple-400" />
+                  <div className="p-2.5 rounded-xl bg-primary/10 shrink-0">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm">{resource.title}</h3>
@@ -255,7 +255,7 @@ export default function ResourcesPage() {
                         {resource.type.replace(/_/g, " ")}
                       </Badge>
                       {resource.isNYIT && (
-                        <Badge className="bg-blue-500/15 text-blue-400 border-blue-500/20">NYIT</Badge>
+                        <Badge className="bg-accent/15 text-accent border-accent/20">NYIT</Badge>
                       )}
                       {!resource.isNYIT && resource.sharedBy && (
                         <span className="text-[11px] text-muted-foreground">by {resource.sharedBy}</span>
@@ -266,7 +266,7 @@ export default function ResourcesPage() {
                         href={resource.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 mt-2.5 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary mt-2.5 transition-colors"
                       >
                         <ExternalLink className="h-3 w-3" />
                         {resource.url.startsWith("tel:") ? "Call" : "Open"}

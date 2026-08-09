@@ -44,7 +44,7 @@ const incidentTypes = [
 ];
 
 const severityConfig = {
-  low: { color: "bg-blue-500/15 text-blue-400 border-blue-500/20", label: "Low" },
+  low: { color: "bg-accent/15 text-accent border-accent/20", label: "Low" },
   medium: { color: "bg-amber-500/15 text-amber-400 border-amber-500/20", label: "Medium" },
   high: { color: "bg-orange-500/15 text-orange-400 border-orange-500/20", label: "High" },
   critical: { color: "bg-red-500/15 text-red-400 border-red-500/20", label: "Critical" },
@@ -163,7 +163,7 @@ export default function IncidentsPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl border border-white/[0.08] dark:border-white/[0.08] bg-card">
+        <div className="p-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card">
           <div className="flex items-center gap-2 mb-1">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Total Reports</span>
@@ -218,7 +218,7 @@ export default function IncidentsPage() {
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Type</label>
                       <select
-                        className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/30"
+                        className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                         value={form.type}
                         onChange={(e) => setForm({ ...form, type: e.target.value })}
                       >
@@ -234,7 +234,7 @@ export default function IncidentsPage() {
                             type="button"
                             onClick={() => setForm({ ...form, severity: s })}
                             className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${
-                              form.severity === s ? severityConfig[s].color : "border-white/[0.06] dark:border-white/[0.06] text-muted-foreground hover:bg-white/[0.04] dark:hover:bg-white/[0.04]"
+                              form.severity === s ? severityConfig[s].color : "border-black/[0.06] dark:border-white/[0.06] text-muted-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
                             }`}
                           >
                             {severityConfig[s].label}
@@ -250,7 +250,7 @@ export default function IncidentsPage() {
                       value={form.description}
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
                       placeholder="Describe the incident objectively..."
-                      className="mt-1.5 w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all placeholder:text-muted-foreground"
+                      className="mt-1.5 w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground"
                       required
                     />
                   </div>
@@ -261,7 +261,7 @@ export default function IncidentsPage() {
                       value={form.actionTaken}
                       onChange={(e) => setForm({ ...form, actionTaken: e.target.value })}
                       placeholder="What did you do in response?"
-                      className="mt-1.5 w-full min-h-[60px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all placeholder:text-muted-foreground"
+                      className="mt-1.5 w-full min-h-[60px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground"
                     />
                   </div>
 
@@ -322,7 +322,7 @@ export default function IncidentsPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mt-4 pt-4 border-t border-white/[0.06] dark:border-white/[0.06] space-y-3"
+                      className="mt-4 pt-4 border-t border-black/[0.06] dark:border-white/[0.06] space-y-3"
                     >
                       <div>
                         <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>

@@ -32,7 +32,7 @@ const topicOptions = [
 
 const moodConfig = {
   great: { label: "Great", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
-  good: { label: "Good", color: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
+  good: { label: "Good", color: "bg-accent/15 text-accent border-accent/20" },
   okay: { label: "Okay", color: "bg-amber-500/15 text-amber-400 border-amber-500/20" },
   struggling: { label: "Struggling", color: "bg-red-500/15 text-red-400 border-red-500/20" },
 };
@@ -104,7 +104,7 @@ export default function CheckInsPage() {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary">
             <MessageCircle className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -119,9 +119,9 @@ export default function CheckInsPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl border border-white/[0.08] dark:border-white/[0.08] bg-card">
+        <div className="p-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card">
           <div className="flex items-center gap-2 mb-1">
-            <MessageCircle className="h-4 w-4 text-purple-400" />
+            <MessageCircle className="h-4 w-4 text-primary" />
             <span className="text-xs text-muted-foreground">Total Check-Ins</span>
           </div>
           <p className="text-2xl font-bold">{totalCheckIns}</p>
@@ -144,7 +144,7 @@ export default function CheckInsPage() {
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-purple-500/20">
+          <Card className="border-primary/20">
             <CardContent className="p-5">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -167,7 +167,7 @@ export default function CheckInsPage() {
                         type="button"
                         onClick={() => setForm({ ...form, mood: key })}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-all ${
-                          form.mood === key ? config.color : "border-white/[0.06] dark:border-white/[0.06] text-muted-foreground"
+                          form.mood === key ? config.color : "border-black/[0.06] dark:border-white/[0.06] text-muted-foreground"
                         }`}
                       >
                         {config.label}
@@ -186,8 +186,8 @@ export default function CheckInsPage() {
                         onClick={() => toggleTopic(topic)}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                           form.topics.includes(topic)
-                            ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                            : "bg-white/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-white/[0.06] dark:border-white/[0.06]"
+                            ? "bg-primary/20 text-primary border border-primary/30"
+                            : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06]"
                         }`}
                       >
                         {topic}
@@ -202,7 +202,7 @@ export default function CheckInsPage() {
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     placeholder="Key takeaways, concerns, follow-ups..."
-                    className="mt-1.5 w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all placeholder:text-muted-foreground"
+                    className="mt-1.5 w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-muted-foreground"
                   />
                 </div>
 
@@ -234,9 +234,9 @@ export default function CheckInsPage() {
             <div
               key={resident.id || resident.room}
               onClick={() => selectResident(resident)}
-              className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.06] dark:border-white/[0.06] hover:border-purple-500/20 cursor-pointer transition-all hover:-translate-y-0.5"
+              className="flex items-center gap-3 p-3 rounded-xl border border-black/[0.06] dark:border-white/[0.06] hover:border-primary/20 cursor-pointer transition-all hover:-translate-y-0.5"
             >
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center text-white font-bold text-xs">
                 {resident.room}
               </div>
               <div className="flex-1 min-w-0">
@@ -260,8 +260,8 @@ export default function CheckInsPage() {
               return (
                 <Card key={ci.id}>
                   <CardContent className="p-3 flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-purple-500/10">
-                      <User className="h-4 w-4 text-purple-400" />
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <User className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{ci.residentName}{ci.room ? ` (Rm ${ci.room})` : ""}</p>

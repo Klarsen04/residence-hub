@@ -92,15 +92,15 @@ export function Sidebar() {
       >
         <div className="flex flex-col h-full">
           <div className="p-6 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl gradient-primary flex items-center justify-center glow-sm">
-                <span className="text-white font-bold text-sm">RH</span>
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="h-9 w-9 rounded-md bg-primary flex items-center justify-center shadow-sm shadow-black/10 group-hover:-translate-y-0.5 transition-transform">
+                <span className="text-primary-foreground font-display font-semibold text-sm">RH</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground">Residence Hub</h1>
-                <p className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">Residence Life OS</p>
+                <h1 className="text-lg font-display font-semibold text-foreground leading-tight">Residence Hub</h1>
+                <p className="wayfinding text-muted-foreground">Residence Life</p>
               </div>
-            </div>
+            </Link>
           </div>
 
           <div className="px-3 mb-3">
@@ -133,23 +133,23 @@ export function Sidebar() {
                           href={item.href}
                           onClick={() => setMobileOpen(false)}
                           className={cn(
-                            "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative group",
+                            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative group",
                             isActive
-                              ? "text-white"
-                              : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                              ? "text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
                           )}
                         >
                           {isActive && (
                             <motion.div
                               layoutId="sidebar-active"
-                              className="absolute inset-0 rounded-xl gradient-primary opacity-90 glow-sm"
+                              className="absolute inset-0 rounded-lg bg-primary shadow-sm shadow-black/15"
                               transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
                             />
                           )}
-                          <item.icon className={cn("h-4 w-4 relative z-10", isActive && "text-white")} />
+                          <item.icon className={cn("h-4 w-4 relative z-10", isActive && "text-primary-foreground")} />
                           <span className="relative z-10">{item.name}</span>
                           {item.name === "AI Planner" && !isActive && (
-                            <span className="ml-auto relative z-10 h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse-glow" />
+                            <span className="ml-auto relative z-10 h-1.5 w-1.5 rounded-full bg-accent animate-pulse-glow" />
                           )}
                         </Link>
                       );
@@ -160,16 +160,16 @@ export function Sidebar() {
             })}
           </nav>
 
-          <div className="p-3 border-t border-white/[0.06] space-y-0.5">
+          <div className="p-3 border-t border-black/[0.08] dark:border-white/[0.07] space-y-0.5">
             {session?.user?.role === "ADMIN" && (
               <Link
                 href="/admin"
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                   pathname === "/admin"
-                    ? "bg-amber-500/10 text-amber-400"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
+                    ? "bg-accent/12 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
                 )}
               >
                 <Shield className="h-4 w-4" />
@@ -179,22 +179,22 @@ export function Sidebar() {
             <Link
               href="/settings"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all duration-200"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all duration-200"
             >
               <Settings className="h-4 w-4" />
               Settings
             </Link>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all duration-200 w-full"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-all duration-200 w-full"
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {theme === "dark" ? "Light Mode" : "Dark Mode"}
             </button>
 
             {session?.user && (
-              <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white">
+              <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.07] dark:border-white/[0.06]">
+                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-xs font-semibold text-primary-foreground">
                   {session.user.name?.charAt(0) || "U"}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -203,7 +203,7 @@ export function Sidebar() {
                 </div>
                 <button
                   onClick={() => signOut()}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors"
                 >
                   <LogOut className="h-4 w-4" />
                 </button>

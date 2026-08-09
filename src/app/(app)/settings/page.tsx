@@ -30,13 +30,13 @@ export default function SettingsPage() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-5">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-purple-500/20">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-primary/20">
               {session?.user?.name?.charAt(0) || "U"}
             </div>
             <div>
               <p className="font-semibold text-lg">{session?.user?.name || "User"}</p>
               <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
-              <Badge className="mt-2 bg-purple-500/15 text-purple-400 border-purple-500/20">
+              <Badge className="mt-2 bg-primary/15 text-primary border-primary/20">
                 {session?.user?.role?.replace(/_/g, " ") || "RESIDENT ASSISTANT"}
               </Badge>
             </div>
@@ -50,8 +50,8 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <User className="h-4 w-4 text-purple-400" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <User className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Name</p>
@@ -59,8 +59,8 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <Mail className="h-4 w-4 text-blue-400" />
+            <div className="p-2 rounded-lg bg-accent/10">
+              <Mail className="h-4 w-4 text-accent" />
             </div>
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Email</p>
@@ -89,16 +89,16 @@ export default function SettingsPage() {
             className="w-full flex items-center justify-between p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-indigo-500/10">
-                <Moon className="h-4 w-4 text-indigo-400" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Moon className="h-4 w-4 text-primary" />
               </div>
               <div className="text-left">
                 <p className="text-sm font-medium">Dark Mode</p>
                 <p className="text-xs text-muted-foreground">{isDark ? "Currently active" : "Currently off"}</p>
               </div>
             </div>
-            <div className={`h-6 w-10 rounded-full relative transition-colors ${isDark ? "bg-purple-500/30 border border-purple-500/50" : "bg-black/10 border border-black/20"}`}>
-              <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${isDark ? "right-0.5 bg-purple-400" : "left-0.5 bg-gray-400"}`} />
+            <div className={`h-6 w-10 rounded-full relative transition-colors ${isDark ? "bg-primary/30 border border-primary/50" : "bg-black/10 border border-black/20"}`}>
+              <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${isDark ? "right-0.5 bg-primary" : "left-0.5 bg-gray-400"}`} />
             </div>
           </button>
           <button
@@ -114,8 +114,8 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground">Event reminders & updates</p>
               </div>
             </div>
-            <div className={`h-6 w-10 rounded-full relative transition-colors ${notifications ? "bg-purple-500/30 border border-purple-500/50" : "bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20"}`}>
-              <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${notifications ? "right-0.5 bg-purple-400" : "left-0.5 bg-gray-400"}`} />
+            <div className={`h-6 w-10 rounded-full relative transition-colors ${notifications ? "bg-primary/30 border border-primary/50" : "bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20"}`}>
+              <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${notifications ? "right-0.5 bg-primary" : "left-0.5 bg-gray-400"}`} />
             </div>
           </button>
         </CardContent>

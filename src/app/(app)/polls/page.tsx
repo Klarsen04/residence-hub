@@ -105,7 +105,7 @@ export default function PollsPage() {
 
       {showForm && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-purple-500/20">
+          <Card className="border-primary/20">
             <CardContent className="p-5 space-y-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Question</label>
@@ -158,7 +158,7 @@ export default function PollsPage() {
         {(polls || []).map((poll) => {
           const maxVotes = Math.max(...poll.options.map(o => o.votes));
           return (
-            <Card key={poll.id} className={poll.active ? "border-purple-500/10" : ""}>
+            <Card key={poll.id} className={poll.active ? "border-primary/10" : ""}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -171,7 +171,7 @@ export default function PollsPage() {
                       <span className="text-xs text-muted-foreground">{poll.createdAt}</span>
                     </div>
                   </div>
-                  <Badge className={poll.active ? "bg-emerald-500/15 text-emerald-400" : "bg-white/[0.06] text-muted-foreground"}>
+                  <Badge className={poll.active ? "bg-emerald-500/15 text-emerald-400" : "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground"}>
                     {poll.active ? "Active" : "Closed"}
                   </Badge>
                 </div>
@@ -189,22 +189,22 @@ export default function PollsPage() {
                         disabled={!poll.active || !!poll.votedOption}
                         className={`w-full text-left relative overflow-hidden rounded-xl border p-3 transition-all duration-200 ${
                           isVoted
-                            ? "border-purple-500/30 bg-purple-500/[0.05]"
+                            ? "border-primary/30 bg-primary/[0.05]"
                             : poll.votedOption || !poll.active
-                            ? "border-white/[0.06] bg-white/[0.02]"
-                            : "border-white/[0.08] bg-white/[0.02] hover:border-purple-500/20 hover:bg-purple-500/[0.03] cursor-pointer"
+                            ? "border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02]"
+                            : "border-black/[0.08] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] hover:border-primary/20 hover:bg-primary/[0.03] cursor-pointer"
                         }`}
                       >
                         {(poll.votedOption || !poll.active) && (
                           <div
-                            className={`absolute inset-y-0 left-0 transition-all duration-500 ${isWinning ? "bg-purple-500/10" : "bg-white/[0.03]"}`}
+                            className={`absolute inset-y-0 left-0 transition-all duration-500 ${isWinning ? "bg-primary/10" : "bg-black/[0.03] dark:bg-white/[0.03]"}`}
                             style={{ width: `${percent}%` }}
                           />
                         )}
                         <div className="relative flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {isVoted && <Check className="h-3.5 w-3.5 text-purple-400" />}
-                            <span className={`text-sm ${isVoted ? "font-medium text-purple-400" : ""}`}>
+                            {isVoted && <Check className="h-3.5 w-3.5 text-primary" />}
+                            <span className={`text-sm ${isVoted ? "font-medium text-primary" : ""}`}>
                               {option.text}
                             </span>
                           </div>

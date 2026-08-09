@@ -136,7 +136,7 @@ export default function ResidentsPage() {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-accent to-[hsl(var(--sage-soft))]">
             <Home className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -236,12 +236,12 @@ export default function ResidentsPage() {
           {filtered.map((resident) => (
             <Card
               key={resident.id}
-              className={`hover:border-white/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer ${resident.flagged ? "border-amber-500/20" : ""}`}
+              className={`hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer ${resident.flagged ? "border-amber-500/20" : ""}`}
               onClick={() => setSelectedResident(selectedResident === resident.id ? null : resident.id)}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-[hsl(var(--sage-soft))] flex items-center justify-center text-white font-bold text-sm">
                     {resident.room}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -262,22 +262,22 @@ export default function ResidentsPage() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="mt-3 pt-3 border-t border-white/[0.06] dark:border-white/[0.06] space-y-2"
+                    className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.06] space-y-2"
                   >
                     <div className="flex gap-4 text-xs text-muted-foreground">
                       {resident.phone && (
-                        <a href={`tel:${resident.phone}`} className="flex items-center gap-1 hover:text-purple-400 transition-colors">
+                        <a href={`tel:${resident.phone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
                           <Phone className="h-3 w-3" /> {resident.phone}
                         </a>
                       )}
                       {resident.email && (
-                        <a href={`mailto:${resident.email}`} className="flex items-center gap-1 hover:text-purple-400 transition-colors">
+                        <a href={`mailto:${resident.email}`} className="flex items-center gap-1 hover:text-primary transition-colors">
                           <Mail className="h-3 w-3" /> {resident.email}
                         </a>
                       )}
                     </div>
                     {resident.notes && (
-                      <div className="p-2 rounded-lg bg-white/[0.03] dark:bg-white/[0.03] border border-white/[0.06] dark:border-white/[0.06]">
+                      <div className="p-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
                         <p className="text-[11px] text-muted-foreground whitespace-pre-line">{resident.notes}</p>
                       </div>
                     )}

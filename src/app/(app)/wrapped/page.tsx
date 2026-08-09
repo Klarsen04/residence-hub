@@ -34,15 +34,15 @@ interface WrappedData {
 }
 
 const STAT_META: { key: keyof WrappedStats; label: string; icon: typeof Calendar; gradient: string }[] = [
-  { key: "events", label: "Events Hosted", icon: Calendar, gradient: "from-purple-500 to-indigo-500" },
-  { key: "totalAttendance", label: "Total Attendance", icon: Users, gradient: "from-pink-500 to-rose-500" },
-  { key: "checkIns", label: "Check-Ins", icon: MessageCircle, gradient: "from-blue-500 to-cyan-500" },
-  { key: "roomChecks", label: "Room Check Rounds", icon: ClipboardCheck, gradient: "from-emerald-500 to-teal-500" },
+  { key: "events", label: "Events Hosted", icon: Calendar, gradient: "from-primary to-primary" },
+  { key: "totalAttendance", label: "Total Attendance", icon: Users, gradient: "from-accent to-rose-500" },
+  { key: "checkIns", label: "Check-Ins", icon: MessageCircle, gradient: "from-accent to-[hsl(var(--sage-soft))]" },
+  { key: "roomChecks", label: "Room Check Rounds", icon: ClipboardCheck, gradient: "from-emerald-500 to-[hsl(var(--sage-soft))]" },
   { key: "residents", label: "Residents", icon: Users, gradient: "from-amber-500 to-orange-500" },
-  { key: "dutyShifts", label: "Duty Shifts", icon: ShieldCheck, gradient: "from-violet-500 to-purple-500" },
-  { key: "polls", label: "Polls Run", icon: BarChart2, gradient: "from-fuchsia-500 to-pink-500" },
+  { key: "dutyShifts", label: "Duty Shifts", icon: ShieldCheck, gradient: "from-primary to-primary" },
+  { key: "polls", label: "Polls Run", icon: BarChart2, gradient: "from-accent to-accent" },
   { key: "decorationsMade", label: "Decorations Made", icon: Palette, gradient: "from-rose-500 to-red-500" },
-  { key: "notes", label: "Notes Kept", icon: StickyNote, gradient: "from-sky-500 to-blue-500" },
+  { key: "notes", label: "Notes Kept", icon: StickyNote, gradient: "from-[hsl(var(--sage-soft))] to-accent" },
   { key: "inspirations", label: "Inspirations", icon: Lightbulb, gradient: "from-yellow-500 to-amber-500" },
   { key: "incidents", label: "Incidents Handled", icon: AlertTriangle, gradient: "from-orange-500 to-red-500" },
 ];
@@ -81,9 +81,9 @@ export default function WrappedPage() {
       {/* Hero */}
       <BlurFade delay={0.05} inView>
         <Card className="relative overflow-hidden mb-8">
-          <BorderBeam size={140} duration={10} colorFrom="#a855f7" colorTo="#ec4899" />
+          <BorderBeam size={140} duration={10} colorFrom="#3f6b52" colorTo="#c05f3c" />
           <div className="relative gradient-primary p-8 md:p-14 text-center text-white">
-            <div className="absolute inset-0 animate-gradient bg-gradient-to-br from-purple-600/40 via-pink-500/30 to-blue-600/40" />
+            <div className="absolute inset-0 animate-gradient bg-gradient-to-br from-primary/40 via-accent/30 to-accent/40" />
             <motion.div
               animate={{ rotate: [0, -8, 8, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -136,7 +136,7 @@ export default function WrappedPage() {
       {/* Stats grid */}
       <BlurFade delay={0.1} inView>
         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-purple-500" /> By the numbers
+          <Sparkles className="h-5 w-5 text-primary" /> By the numbers
         </h2>
       </BlurFade>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">

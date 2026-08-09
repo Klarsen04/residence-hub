@@ -32,8 +32,8 @@ const generateWeekDates = (startOfWeek: Date) => {
 
 
 const typeConfig = {
-  evening: { icon: Moon, label: "Evening", color: "bg-purple-500/15 text-purple-400 border-purple-500/20", time: "7 PM - 12 AM" },
-  overnight: { icon: Moon, label: "Overnight", color: "bg-blue-500/15 text-blue-400 border-blue-500/20", time: "12 AM - 8 AM" },
+  evening: { icon: Moon, label: "Evening", color: "bg-primary/15 text-primary border-primary/20", time: "7 PM - 12 AM" },
+  overnight: { icon: Moon, label: "Overnight", color: "bg-accent/15 text-accent border-accent/20", time: "12 AM - 8 AM" },
   weekend: { icon: Sun, label: "Weekend", color: "bg-amber-500/15 text-amber-400 border-amber-500/20", time: "All Day" },
 };
 
@@ -82,7 +82,7 @@ export default function DutyPage() {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary">
             <Shield className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -97,7 +97,7 @@ export default function DutyPage() {
       </div>
 
       {showAddForm && (
-        <Card className="border-purple-500/20">
+        <Card className="border-primary/20">
           <CardContent className="p-4 flex items-end gap-3">
             <div className="flex-1">
               <label className="text-sm font-medium text-muted-foreground">Date</label>
@@ -128,11 +128,11 @@ export default function DutyPage() {
       )}
 
       {myNextDuty && (
-        <Card className="border-purple-500/20 overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-purple-500 to-indigo-500" />
+        <Card className="border-primary/20 overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-primary to-primary" />
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-purple-500/10">
-              <Clock className="h-5 w-5 text-purple-400" />
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-sm font-medium">Your Next Duty</p>
@@ -173,13 +173,13 @@ export default function DutyPage() {
                   key={i}
                   className={`p-3 rounded-2xl border transition-all min-h-[120px] ${
                     isToday
-                      ? "border-purple-500/30 bg-purple-500/[0.05]"
-                      : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]"
+                      ? "border-primary/30 bg-primary/[0.05]"
+                      : "border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
                   }`}
                 >
                   <div className="text-center mb-2">
                     <p className="text-[10px] text-muted-foreground uppercase font-medium">{SHORT_DAYS[i]}</p>
-                    <p className={`text-lg font-bold ${isToday ? "text-purple-400" : ""}`}>{date.getDate()}</p>
+                    <p className={`text-lg font-bold ${isToday ? "text-primary" : ""}`}>{date.getDate()}</p>
                   </div>
 
                   <div className="space-y-1.5">
@@ -190,10 +190,10 @@ export default function DutyPage() {
                         <div
                           key={shift.id}
                           className={`p-1.5 rounded-lg text-center ${
-                            isMe ? "bg-purple-500/15 border border-purple-500/20" : "bg-white/[0.04] border border-white/[0.06]"
+                            isMe ? "bg-primary/15 border border-primary/20" : "bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.06]"
                           }`}
                         >
-                          <p className={`text-[10px] font-medium ${isMe ? "text-purple-400" : "text-muted-foreground"}`}>
+                          <p className={`text-[10px] font-medium ${isMe ? "text-primary" : "text-muted-foreground"}`}>
                             {shift.ra}
                           </p>
                           <p className="text-[9px] text-muted-foreground">{config.label}</p>
@@ -213,7 +213,7 @@ export default function DutyPage() {
           const Icon = config.icon;
           const count = allShifts.filter(s => s.ra === "You" && s.type === key).length;
           return (
-            <div key={key} className="p-4 rounded-2xl border border-white/[0.08] bg-card/50">
+            <div key={key} className="p-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-xl ${config.color.split(" ")[0]}`}>
                   <Icon className="h-4 w-4 text-current" />

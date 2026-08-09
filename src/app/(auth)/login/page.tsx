@@ -62,8 +62,8 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       <div className="absolute inset-0">
-        <div className="absolute -top-[40%] -left-[20%] w-[70%] h-[70%] rounded-full bg-purple-500/[0.08] blur-[120px]" />
-        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] rounded-full bg-blue-500/[0.06] blur-[120px]" />
+        <div className="absolute -top-[40%] -left-[20%] w-[70%] h-[70%] rounded-full bg-primary/[0.08] blur-[120px]" />
+        <div className="absolute -bottom-[30%] -right-[20%] w-[60%] h-[60%] rounded-full bg-accent/[0.06] blur-[120px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-md mx-4">
@@ -77,7 +77,7 @@ function LoginForm() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-card/50 backdrop-blur-xl p-8 shadow-2xl shadow-black/20">
+        <div className="rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50 backdrop-blur-xl p-8 shadow-2xl shadow-black/20">
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
             {isRegister && (
               <div>
@@ -89,7 +89,7 @@ function LoginForm() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-white/[0.1] bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                  className="w-full px-4 py-2.5 rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                   placeholder="Your name"
                 />
               </div>
@@ -104,7 +104,7 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 rounded-xl border border-white/[0.1] bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                className="w-full px-4 py-2.5 rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                 placeholder="you@example.com"
               />
             </div>
@@ -120,7 +120,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="w-full px-4 py-2.5 pr-10 rounded-xl border border-white/[0.1] bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                  className="w-full px-4 py-2.5 pr-10 rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                   placeholder="At least 8 characters"
                 />
                 <button
@@ -156,7 +156,7 @@ function LoginForm() {
                   value={authCode}
                   onChange={(e) => setAuthCode(e.target.value)}
                   required={isRegister}
-                  className="w-full px-4 py-2.5 rounded-xl border border-white/[0.1] bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                  className="w-full px-4 py-2.5 rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                   placeholder="Enter code from your supervisor"
                 />
                 <p className="text-xs text-muted-foreground mt-1.5">
@@ -174,7 +174,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-xl hover:from-purple-500 hover:to-blue-500 transition-all font-medium disabled:opacity-50 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:-translate-y-0.5 duration-200"
+              className="w-full bg-gradient-to-r from-primary to-accent text-white py-3 px-4 rounded-xl hover:from-primary hover:to-accent transition-all font-medium disabled:opacity-50 shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:-translate-y-0.5 duration-200"
             >
               {loading ? "..." : isRegister ? "Create Account" : "Sign In"}
             </button>
@@ -183,7 +183,7 @@ function LoginForm() {
           <div className="text-center mb-6">
             <button
               onClick={() => { setIsRegister(!isRegister); setError(""); }}
-              className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+              className="text-sm text-primary hover:text-primary transition-colors"
             >
               {isRegister ? "Already have an account? Sign in" : "Don't have an account? Create one"}
             </button>
@@ -191,7 +191,7 @@ function LoginForm() {
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/[0.08]" />
+              <div className="w-full border-t border-black/[0.08] dark:border-white/[0.08]" />
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-3 bg-card/50 text-muted-foreground text-xs">or continue with</span>
@@ -201,7 +201,7 @@ function LoginForm() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => signIn("google", { callbackUrl })}
-              className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 px-4 text-sm font-medium text-foreground hover:bg-white/[0.06] hover:border-white/[0.15] transition-all duration-200"
+              className="flex items-center justify-center gap-2 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-black/[0.03] dark:bg-white/[0.03] py-2.5 px-4 text-sm font-medium text-foreground hover:bg-black/[0.06] dark:hover:bg-white/[0.06] hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-200"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -214,7 +214,7 @@ function LoginForm() {
 
             <button
               onClick={() => signIn("azure-ad", { callbackUrl })}
-              className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] py-2.5 px-4 text-sm font-medium text-foreground hover:bg-white/[0.06] hover:border-white/[0.15] transition-all duration-200"
+              className="flex items-center justify-center gap-2 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-black/[0.03] dark:bg-white/[0.03] py-2.5 px-4 text-sm font-medium text-foreground hover:bg-black/[0.06] dark:hover:bg-white/[0.06] hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-200"
             >
               <svg className="w-4 h-4" viewBox="0 0 21 21" fill="none">
                 <rect x="1" y="1" width="9" height="9" fill="#F25022" />

@@ -99,7 +99,7 @@ export default function RoomChecksPage() {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-[hsl(var(--sage-soft))] to-emerald-500">
             <ClipboardCheck className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -112,7 +112,7 @@ export default function RoomChecksPage() {
       {!activeCheck ? (
         <>
           <Card className="overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/[0.03] to-emerald-500/[0.03]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--sage-soft))]/[0.03] to-emerald-500/[0.03]" />
             <CardContent className="p-6 relative">
               <h3 className="font-semibold mb-3">Start a Room Check</h3>
               <div className="flex gap-2 flex-wrap mb-4">
@@ -123,7 +123,7 @@ export default function RoomChecksPage() {
                     className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                       checkType === type
                         ? "bg-teal-500/20 text-teal-400 border border-teal-500/30"
-                        : "bg-white/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-white/[0.06] dark:border-white/[0.06] hover:bg-white/[0.08] dark:hover:bg-white/[0.08]"
+                        : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
                     }`}
                   >
                     {type}
@@ -181,9 +181,9 @@ export default function RoomChecksPage() {
                   Finish Check
                 </Button>
               </div>
-              <div className="h-2 rounded-full bg-white/[0.06] dark:bg-white/[0.06] overflow-hidden">
+              <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-[hsl(var(--sage-soft))] to-emerald-500 transition-all duration-300"
                   style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
                 />
               </div>
@@ -208,8 +208,8 @@ export default function RoomChecksPage() {
                 className={`p-3 rounded-xl border transition-all ${
                   room.status === "pass" ? "border-emerald-500/20 bg-emerald-500/[0.03]" :
                   room.status === "concern" ? "border-amber-500/20 bg-amber-500/[0.03]" :
-                  room.status === "absent" ? "border-white/[0.06] dark:border-white/[0.06] bg-white/[0.02] dark:bg-white/[0.02] opacity-60" :
-                  "border-white/[0.08] dark:border-white/[0.08] bg-card"
+                  room.status === "absent" ? "border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] opacity-60" :
+                  "border-black/[0.08] dark:border-white/[0.08] bg-card"
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export default function RoomChecksPage() {
                       </button>
                       <button
                         onClick={() => updateRoom(room.room, "absent")}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.06] dark:hover:bg-white/[0.06] text-muted-foreground transition-all"
+                        className="p-1.5 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/[0.06] text-muted-foreground transition-all"
                         title="Not present"
                       >
                         <Clock className="h-4 w-4" />
@@ -245,7 +245,7 @@ export default function RoomChecksPage() {
                     <Badge className={
                       room.status === "pass" ? "bg-emerald-500/15 text-emerald-400" :
                       room.status === "concern" ? "bg-amber-500/15 text-amber-400" :
-                      "bg-white/[0.06] text-muted-foreground"
+                      "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground"
                     }>
                       {room.status === "pass" ? "Pass" : room.status === "concern" ? "Concern" : "Absent"}
                     </Badge>

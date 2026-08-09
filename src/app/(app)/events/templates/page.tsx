@@ -100,12 +100,12 @@ const templates = [
 ];
 
 const categoryColors: Record<string, string> = {
-  COMMUNITY_BUILDING: "from-blue-500 to-cyan-500",
-  WELLNESS: "from-emerald-500 to-teal-500",
-  ACADEMIC_SUCCESS: "from-purple-500 to-indigo-500",
+  COMMUNITY_BUILDING: "from-accent to-[hsl(var(--sage-soft))]",
+  WELLNESS: "from-emerald-500 to-[hsl(var(--sage-soft))]",
+  ACADEMIC_SUCCESS: "from-primary to-primary",
   DIVERSITY_INCLUSION: "from-orange-500 to-amber-500",
-  CAREER_DEVELOPMENT: "from-indigo-500 to-violet-500",
-  SOCIAL: "from-pink-500 to-rose-500",
+  CAREER_DEVELOPMENT: "from-primary to-primary",
+  SOCIAL: "from-accent to-rose-500",
 };
 
 const container = {
@@ -147,20 +147,20 @@ export default function EventTemplatesPage() {
 
       <motion.div variants={item} className="grid gap-4 md:grid-cols-2">
         {templates.map((template) => {
-          const gradient = categoryColors[template.category] || "from-purple-500 to-blue-500";
+          const gradient = categoryColors[template.category] || "from-primary to-accent";
           const isExpanded = expandedId === template.id;
 
           return (
             <Card
               key={template.id}
-              className="overflow-hidden hover:border-white/[0.15] transition-all cursor-pointer"
+              className="overflow-hidden hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all cursor-pointer"
               onClick={() => setExpandedId(isExpanded ? null : template.id)}
             >
               <div className={`h-1 bg-gradient-to-r ${gradient}`} />
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-lg">{template.title}</h3>
-                  <Badge className="bg-white/[0.06] text-muted-foreground text-[10px]">
+                  <Badge className="bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground text-[10px]">
                     {template.category.replace(/_/g, " ")}
                   </Badge>
                 </div>
@@ -176,13 +176,13 @@ export default function EventTemplatesPage() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="mt-4 pt-4 border-t border-white/[0.06] space-y-3"
+                    className="mt-4 pt-4 border-t border-black/[0.06] dark:border-white/[0.06] space-y-3"
                   >
                     <div>
                       <p className="text-xs font-medium text-muted-foreground mb-1">Supplies Needed</p>
                       <div className="flex flex-wrap gap-1.5">
                         {template.supplies.map((s) => (
-                          <span key={s} className="text-[11px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded-full text-muted-foreground">
+                          <span key={s} className="text-[11px] bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.06] px-2 py-0.5 rounded-full text-muted-foreground">
                             {s}
                           </span>
                         ))}

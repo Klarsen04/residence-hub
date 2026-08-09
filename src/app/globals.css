@@ -2,46 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Residence Hub — warm architectural identity.
+  "This is a place. People live here."
+
+  Palette: warm ivory paper, charcoal ink, forest/sage structure,
+  terracotta accent, warm-yellow signage highlight. No neon, no
+  purple/blue AI gradients — colour comes from architecture, not decoration.
+*/
+
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 224 71% 4%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 9% 46%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 262 83% 58%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 262 83% 58%;
-    --radius: 0.75rem;
+    /* Surfaces — warm ivory paper */
+    --background: 40 30% 96%;
+    --foreground: 25 18% 14%;
+    --card: 42 46% 98%;
+    --card-foreground: 25 18% 14%;
+
+    /* Structure — forest / sage */
+    --primary: 152 26% 27%;
+    --primary-foreground: 42 46% 98%;
+
+    /* Warm sand secondary / muted */
+    --secondary: 38 26% 90%;
+    --secondary-foreground: 26 16% 28%;
+    --muted: 38 24% 91%;
+    --muted-foreground: 28 9% 40%;
+
+    /* Terracotta accent */
+    --accent: 16 56% 52%;
+    --accent-foreground: 42 46% 98%;
+
+    --destructive: 8 62% 46%;
+    --destructive-foreground: 42 46% 98%;
+
+    --border: 34 20% 85%;
+    --input: 34 20% 85%;
+    --ring: 152 26% 27%;
+
+    /* Named palette tokens (for direct use in the wayfinding language) */
+    --sage: 152 26% 27%;
+    --sage-soft: 148 22% 42%;
+    --terracotta: 16 56% 52%;
+    --terracotta-soft: 18 58% 62%;
+    --warm-yellow: 42 78% 58%;
+    --charcoal: 25 18% 14%;
+    --ivory: 40 30% 96%;
+
+    /* Architecture uses restrained radii — nothing over-rounded */
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 20% 98%;
-    --card: 224 50% 8%;
-    --card-foreground: 210 20% 98%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 224 50% 12%;
-    --secondary-foreground: 210 20% 80%;
-    --muted: 224 50% 12%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 262 83% 58%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 224 40% 14%;
-    --input: 224 40% 14%;
-    --ring: 262 83% 58%;
+    /* Warm night — deep charcoal & lamplight, not cold slate */
+    --background: 26 14% 9%;
+    --foreground: 40 28% 91%;
+    --card: 26 13% 12%;
+    --card-foreground: 40 28% 91%;
+
+    --primary: 146 30% 46%;
+    --primary-foreground: 26 14% 9%;
+
+    --secondary: 28 12% 17%;
+    --secondary-foreground: 40 20% 80%;
+    --muted: 28 12% 17%;
+    --muted-foreground: 36 12% 58%;
+
+    --accent: 16 62% 56%;
+    --accent-foreground: 26 14% 9%;
+
+    --destructive: 8 58% 46%;
+    --destructive-foreground: 40 28% 91%;
+
+    --border: 30 12% 20%;
+    --input: 30 12% 20%;
+    --ring: 146 30% 46%;
+
+    --sage: 146 30% 46%;
+    --sage-soft: 148 24% 58%;
+    --terracotta: 16 62% 56%;
+    --terracotta-soft: 18 60% 66%;
+    --warm-yellow: 42 74% 62%;
+    --charcoal: 40 28% 91%;
+    --ivory: 26 14% 9%;
   }
 }
 
@@ -51,56 +94,111 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv01";
+  }
+  ::selection {
+    background: hsl(var(--terracotta) / 0.22);
   }
 }
 
 @layer utilities {
+  /*
+    Legacy utility names kept so existing markup retheming is automatic.
+    Reinterpreted for the architectural language: warm paper panels,
+    restrained ink gradients, soft physical shadow instead of neon glow.
+  */
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 dark:bg-white/5 dark:border-white/10;
+    @apply bg-[hsl(var(--card)/0.72)] backdrop-blur-md border border-black/[0.07] dark:border-white/[0.08];
   }
   .glass-card {
-    @apply bg-white/80 dark:bg-white/[0.03] backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-xl shadow-black/5;
+    @apply bg-card border border-black/[0.07] dark:border-white/[0.07] shadow-[0_1px_2px_rgba(40,30,20,0.05),0_8px_24px_-12px_rgba(40,30,20,0.12)];
   }
+  /* "gradient" primary is now a restrained same-family ink wash, not neon */
   .gradient-primary {
-    @apply bg-gradient-to-r from-purple-500 to-blue-500;
+    @apply bg-gradient-to-br from-[hsl(var(--sage))] to-[hsl(152_30%_20%)] dark:to-[hsl(148_26%_34%)];
   }
   .gradient-text {
-    @apply bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-br from-[hsl(var(--charcoal))] to-[hsl(var(--sage))] bg-clip-text text-transparent;
   }
+  .text-terracotta {
+    color: hsl(var(--terracotta));
+  }
+  .bg-terracotta {
+    background-color: hsl(var(--terracotta));
+  }
+  .text-sage {
+    color: hsl(var(--sage));
+  }
+  /* Physical shadow, not glow — light falling on a surface */
   .glow {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.1);
+    box-shadow: 0 10px 30px -12px hsl(var(--charcoal) / 0.28);
   }
   .glow-sm {
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 4px 14px -8px hsl(var(--charcoal) / 0.25);
+  }
+
+  /* ---- Wayfinding language ---- */
+
+  /* Signage label: mono, tracked out, uppercase — floor codes, coordinates */
+  .wayfinding {
+    @apply font-mono uppercase tracking-[0.2em] text-[11px];
+  }
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+  }
+
+  /* Blueprint grid — subtle architectural drafting lines */
+  .grid-lines {
+    background-image:
+      linear-gradient(to right, hsl(var(--charcoal) / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--charcoal) / 0.04) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .grid-lines-fine {
+    background-image:
+      linear-gradient(to right, hsl(var(--charcoal) / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--charcoal) / 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Hairline rule used to divide sections like storeys of a building */
+  .rule {
+    @apply border-t border-black/[0.09] dark:border-white/[0.09];
   }
 }
 
-/* Light mode overrides for inline opacity-based styles */
+/* Light/dark inline-opacity surface helpers (kept from prior system) */
 :root {
-  --surface-hover: rgba(0, 0, 0, 0.04);
-  --surface-active: rgba(0, 0, 0, 0.06);
-  --surface-border: rgba(0, 0, 0, 0.08);
+  --surface-hover: rgba(40, 30, 20, 0.04);
+  --surface-active: rgba(40, 30, 20, 0.06);
+  --surface-border: rgba(40, 30, 20, 0.08);
 }
 
 .dark {
-  --surface-hover: rgba(255, 255, 255, 0.04);
-  --surface-active: rgba(255, 255, 255, 0.06);
-  --surface-border: rgba(255, 255, 255, 0.08);
+  --surface-hover: rgba(255, 250, 240, 0.05);
+  --surface-active: rgba(255, 250, 240, 0.07);
+  --surface-border: rgba(255, 250, 240, 0.08);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+/* Slow architectural drift for background elements */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, -10px); }
 }
 
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
 }
 
 .animate-gradient {
@@ -116,7 +214,22 @@
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
-/* Select element styling for dark mode */
+.animate-drift {
+  animation: drift 9s ease-in-out infinite;
+}
+
+/* Select element styling */
 select option {
   @apply bg-card text-foreground;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

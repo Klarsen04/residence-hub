@@ -14,21 +14,21 @@ import { toast } from "sonner";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const categoryColors: Record<string, string> = {
-  COMMUNITY_BUILDING: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  COMMUNITY_BUILDING: "bg-accent/15 text-accent border-accent/20",
   WELLNESS: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-  ACADEMIC_SUCCESS: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  ACADEMIC_SUCCESS: "bg-primary/15 text-primary border-primary/20",
   DIVERSITY_INCLUSION: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-  CAREER_DEVELOPMENT: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
+  CAREER_DEVELOPMENT: "bg-primary/15 text-primary border-primary/20",
   SUSTAINABILITY: "bg-teal-500/15 text-teal-400 border-teal-500/20",
   LEADERSHIP: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  SOCIAL: "bg-pink-500/15 text-pink-400 border-pink-500/20",
+  SOCIAL: "bg-accent/15 text-accent border-accent/20",
 };
 
 const statusColors: Record<string, string> = {
-  DRAFT: "bg-white/[0.06] text-muted-foreground",
+  DRAFT: "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground",
   PENDING_APPROVAL: "bg-amber-500/15 text-amber-400",
   APPROVED: "bg-emerald-500/15 text-emerald-400",
-  COMPLETED: "bg-blue-500/15 text-blue-400",
+  COMPLETED: "bg-accent/15 text-accent",
   CANCELLED: "bg-red-500/15 text-red-400",
 };
 
@@ -151,7 +151,7 @@ export default function EventDetailPage() {
       </div>
 
       {editing && form ? (
-        <Card className="border-purple-500/20">
+        <Card className="border-primary/20">
           <CardContent className="p-6 space-y-4">
             <div>
               <label className="text-sm font-medium text-muted-foreground">Title</label>
@@ -160,7 +160,7 @@ export default function EventDetailPage() {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Description</label>
               <textarea
-                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all"
+                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
@@ -187,7 +187,7 @@ export default function EventDetailPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Category</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
@@ -199,7 +199,7 @@ export default function EventDetailPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Status</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
@@ -234,18 +234,18 @@ export default function EventDetailPage() {
           <Card>
             <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <div className="p-2 rounded-lg bg-purple-500/10">
-                    <Calendar className="h-4 w-4 text-purple-400" />
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Calendar className="h-4 w-4 text-primary" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Date</p>
                     <p className="font-medium text-sm">{formatDate(event.date)}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Clock className="h-4 w-4 text-blue-400" />
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <Clock className="h-4 w-4 text-accent" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Time</p>
@@ -253,7 +253,7 @@ export default function EventDetailPage() {
                   </div>
                 </div>
                 {event.location && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
                     <div className="p-2 rounded-lg bg-emerald-500/10">
                       <MapPin className="h-4 w-4 text-emerald-400" />
                     </div>
@@ -263,7 +263,7 @@ export default function EventDetailPage() {
                     </div>
                   </div>
                 )}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
                   <div className="p-2 rounded-lg bg-amber-500/10">
                     <User className="h-4 w-4 text-amber-400" />
                   </div>
@@ -289,7 +289,7 @@ export default function EventDetailPage() {
               )}
 
               {event.reflection && (
-                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
                   <p className="text-xs text-muted-foreground mb-1">Reflection</p>
                   <p className="text-sm">{event.reflection}</p>
                 </div>
@@ -361,7 +361,7 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
 
   return (
     <Card className="border-emerald-500/20 overflow-hidden">
-      <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+      <div className="h-1 bg-gradient-to-r from-emerald-500 to-[hsl(var(--sage-soft))]" />
       <CardContent className="p-5">
         {!showForm ? (
           <div className="flex items-center justify-between">
@@ -388,7 +388,7 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
             <div>
               <label className="text-sm font-medium text-muted-foreground">Reflection — what went well? What would you change?</label>
               <textarea
-                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
                 placeholder="The event went great because..."

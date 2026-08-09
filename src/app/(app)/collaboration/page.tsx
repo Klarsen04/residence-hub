@@ -97,7 +97,7 @@ export default function CollaborationPage() {
     }
   };
 
-  const boardColors = ["from-purple-500 to-indigo-500", "from-blue-500 to-cyan-500", "from-emerald-500 to-teal-500", "from-amber-500 to-orange-500"];
+  const boardColors = ["from-primary to-primary", "from-accent to-[hsl(var(--sage-soft))]", "from-emerald-500 to-[hsl(var(--sage-soft))]", "from-amber-500 to-orange-500"];
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-7xl">
@@ -114,7 +114,7 @@ export default function CollaborationPage() {
 
       {showNewBoard && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-purple-500/20">
+          <Card className="border-primary/20">
             <CardContent className="p-5 space-y-3">
               <Input
                 value={newBoardTitle}
@@ -142,8 +142,8 @@ export default function CollaborationPage() {
             <Card>
               <CardContent className="py-16 text-center space-y-4">
                 <div className="flex justify-center">
-                  <div className="p-4 rounded-2xl bg-purple-500/10">
-                    <Kanban className="h-12 w-12 text-purple-400" />
+                  <div className="p-4 rounded-2xl bg-primary/10">
+                    <Kanban className="h-12 w-12 text-primary" />
                   </div>
                 </div>
                 <div>
@@ -171,7 +171,7 @@ export default function CollaborationPage() {
                 return (
                   <Card
                     key={board.id}
-                    className="cursor-pointer hover:border-white/[0.15] hover:-translate-y-1 group overflow-hidden"
+                    className="cursor-pointer hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-1 group overflow-hidden"
                     onClick={() => setSelectedBoardId(board.id)}
                   >
                     <div className={`h-1.5 bg-gradient-to-r ${color}`} />
@@ -194,7 +194,7 @@ export default function CollaborationPage() {
                             <span>{doneCount}/{total} tasks complete</span>
                             <span>{Math.round(progress)}%</span>
                           </div>
-                          <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                          <div className="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
                             <div
                               className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-500`}
                               style={{ width: `${progress}%` }}
@@ -236,7 +236,7 @@ export default function CollaborationPage() {
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
-            <div className="h-6 w-1 rounded-full bg-gradient-to-b from-purple-500 to-blue-500" />
+            <div className="h-6 w-1 rounded-full bg-gradient-to-b from-primary to-accent" />
             <div>
               <h2 className="font-semibold text-lg">{activeBoard.title}</h2>
               {activeBoard.description && (
@@ -264,14 +264,14 @@ export default function CollaborationPage() {
                     {tasks.map((task: any) => (
                       <div
                         key={task.id}
-                        className="p-3 rounded-xl border border-white/[0.08] bg-card/50 hover:border-white/[0.15] transition-all duration-200 group/task"
+                        className="p-3 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50 hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-200 group/task"
                       >
                         <div className="flex items-start gap-2">
                           <button
                             onClick={() => updateItemType(activeBoard.id, task.id, nextStatus)}
                             className="mt-0.5 shrink-0"
                           >
-                            <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"} hover:text-purple-400 transition-colors`} />
+                            <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"} hover:text-primary transition-colors`} />
                           </button>
                           <div className="flex-1 min-w-0">
                             <p className={`text-sm font-medium ${status === "DONE" ? "line-through text-muted-foreground" : ""}`}>
@@ -311,7 +311,7 @@ export default function CollaborationPage() {
                       ) : (
                         <button
                           onClick={() => setShowNewTask(true)}
-                          className="w-full p-2 rounded-xl border border-dashed border-white/[0.08] text-xs text-muted-foreground hover:border-purple-500/30 hover:text-purple-400 transition-all"
+                          className="w-full p-2 rounded-xl border border-dashed border-black/[0.08] dark:border-white/[0.08] text-xs text-muted-foreground hover:border-primary/30 hover:text-primary transition-all"
                         >
                           + Add task
                         </button>

@@ -66,7 +66,7 @@ export default function FeedbackPage() {
       className="space-y-6 max-w-2xl mx-auto"
     >
       <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-accent">
           <MessageSquare className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -96,7 +96,7 @@ export default function FeedbackPage() {
         </motion.div>
       ) : (
         <Card className="overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.02] to-pink-500/[0.02]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-accent/[0.02]" />
           <CardContent className="p-6 relative">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
@@ -115,7 +115,7 @@ export default function FeedbackPage() {
                         className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all duration-200 ${
                           isSelected
                             ? option.color
-                            : "border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.12]"
+                            : "border-black/[0.08] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:border-black/[0.12] dark:hover:border-white/[0.12]"
                         }`}
                       >
                         <Icon className={`h-6 w-6 ${isSelected ? "" : "text-muted-foreground"}`} />
@@ -138,8 +138,8 @@ export default function FeedbackPage() {
                       onClick={() => setCategory(category === cat ? "" : cat)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                         category === cat
-                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                          : "bg-white/[0.04] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.08]"
+                          ? "bg-primary/20 text-primary border border-primary/30"
+                          : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
                       }`}
                     >
                       {cat}
@@ -154,7 +154,7 @@ export default function FeedbackPage() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Tell us what's on your mind..."
-                  className="w-full min-h-[120px] rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all placeholder:text-muted-foreground"
+                  className="w-full min-h-[120px] rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                   required
                 />
               </div>
@@ -165,7 +165,7 @@ export default function FeedbackPage() {
                     type="checkbox"
                     checked={anonymous}
                     onChange={(e) => setAnonymous(e.target.checked)}
-                    className="rounded border-white/[0.2] bg-white/[0.03]"
+                    className="rounded border-black/[0.2] dark:border-white/[0.2] bg-black/[0.03] dark:bg-white/[0.03]"
                   />
                   <span className="text-sm text-muted-foreground">Submit anonymously</span>
                 </label>

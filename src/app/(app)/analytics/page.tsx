@@ -44,7 +44,8 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-const CHART_COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#06b6d4", "#f97316", "#6366f1"];
+// Warm architectural chart palette — sage, terracotta, clay, ochre, olive.
+const CHART_COLORS = ["#3f6b52", "#c05f3c", "#7a9b6e", "#d99a3e", "#9c5a3c", "#5f7d6b", "#e0b15a", "#4a5d4f"];
 
 export default function AnalyticsPage() {
   const { data: events } = useSWR("/api/events/all", fetcher);
@@ -92,7 +93,7 @@ export default function AnalyticsPage() {
       change: "+12%",
       positive: true,
       icon: Calendar,
-      color: "from-purple-500 to-indigo-500",
+      color: "from-primary to-primary",
     },
     {
       label: "Active Users",
@@ -100,7 +101,7 @@ export default function AnalyticsPage() {
       change: "+5%",
       positive: true,
       icon: Users,
-      color: "from-blue-500 to-cyan-500",
+      color: "from-accent to-[hsl(var(--sage-soft))]",
     },
     {
       label: "Inspirations",
@@ -116,7 +117,7 @@ export default function AnalyticsPage() {
       change: "+23%",
       positive: true,
       icon: Activity,
-      color: "from-emerald-500 to-teal-500",
+      color: "from-emerald-500 to-[hsl(var(--sage-soft))]",
     },
   ];
 
@@ -131,7 +132,7 @@ export default function AnalyticsPage() {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-card/50 backdrop-blur-sm p-5 transition-all duration-300 hover:border-white/[0.15] hover:-translate-y-0.5"
+            className="group relative overflow-hidden rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50 backdrop-blur-sm p-5 transition-all duration-300 hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5"
           >
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.color} opacity-[0.07] rounded-full blur-2xl -translate-y-6 translate-x-6 group-hover:opacity-[0.12] transition-opacity`} />
             <div className="flex items-center justify-between mb-3">
@@ -154,8 +155,8 @@ export default function AnalyticsPage() {
           <Card className="h-full">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
-                <div className="p-1.5 rounded-lg bg-purple-500/10">
-                  <BarChart3 className="h-4 w-4 text-purple-400" />
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <BarChart3 className="h-4 w-4 text-primary" />
                 </div>
                 Events by Category
               </CardTitle>
@@ -164,18 +165,18 @@ export default function AnalyticsPage() {
               {categoryData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                    <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(40,30,20,0.08)" />
+                    <XAxis dataKey="name" tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                      labelStyle={{ color: "#e2e8f0" }}
+                      contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                      labelStyle={{ color: "hsl(25 18% 14%)" }}
                     />
                     <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
                     <defs>
                       <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8b5cf6" />
-                        <stop offset="100%" stopColor="#3b82f6" />
+                        <stop offset="0%" stopColor="#3f6b52" />
+                        <stop offset="100%" stopColor="#c05f3c" />
                       </linearGradient>
                     </defs>
                   </BarChart>
@@ -193,8 +194,8 @@ export default function AnalyticsPage() {
           <Card className="h-full">
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
-                <div className="p-1.5 rounded-lg bg-blue-500/10">
-                  <TrendingUp className="h-4 w-4 text-blue-400" />
+                <div className="p-1.5 rounded-lg bg-accent/10">
+                  <TrendingUp className="h-4 w-4 text-accent" />
                 </div>
                 Monthly Activity
               </CardTitle>
@@ -203,20 +204,20 @@ export default function AnalyticsPage() {
               {monthlyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                    <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(40,30,20,0.08)" />
+                    <XAxis dataKey="month" tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                      labelStyle={{ color: "#e2e8f0" }}
+                      contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                      labelStyle={{ color: "hsl(25 18% 14%)" }}
                     />
                     <Line
                       type="monotone"
                       dataKey="events"
-                      stroke="#8b5cf6"
+                      stroke="#3f6b52"
                       strokeWidth={2.5}
-                      dot={{ fill: "#8b5cf6", strokeWidth: 0, r: 4 }}
-                      activeDot={{ fill: "#8b5cf6", strokeWidth: 2, stroke: "#fff", r: 6 }}
+                      dot={{ fill: "#3f6b52", strokeWidth: 0, r: 4 }}
+                      activeDot={{ fill: "#3f6b52", strokeWidth: 2, stroke: "hsl(42 46% 98%)", r: 6 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -258,7 +259,7 @@ export default function AnalyticsPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px" }}
+                        contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px" }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -294,8 +295,8 @@ export default function AnalyticsPage() {
             <CardContent>
               <div className="space-y-3">
                 {allEvents.slice(0, 5).map((event: any) => (
-                  <div key={event.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.04] transition-colors">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white">
+                  <div key={event.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] font-bold text-white">
                       {event.organizer?.name?.charAt(0) || "?"}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -23,9 +23,9 @@ const announcements: Announcement[] = [
 const typeConfig = {
   info: {
     icon: Info,
-    bg: "bg-blue-500/[0.08] border-blue-500/20",
-    iconBg: "bg-blue-500/15",
-    iconColor: "text-blue-400",
+    bg: "bg-accent/[0.08] border-accent/20",
+    iconBg: "bg-accent/15",
+    iconColor: "text-accent",
   },
   warning: {
     icon: AlertTriangle,
@@ -35,9 +35,9 @@ const typeConfig = {
   },
   celebration: {
     icon: PartyPopper,
-    bg: "bg-purple-500/[0.08] border-purple-500/20",
-    iconBg: "bg-purple-500/15",
-    iconColor: "text-purple-400",
+    bg: "bg-primary/[0.08] border-primary/20",
+    iconBg: "bg-primary/15",
+    iconColor: "text-primary",
   },
 };
 
@@ -71,7 +71,7 @@ export function Announcements() {
             </div>
             <button
               onClick={() => setDismissed([...dismissed, announcement.id])}
-              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors shrink-0"
+              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors shrink-0"
             >
               <X className="h-3.5 w-3.5" />
             </button>

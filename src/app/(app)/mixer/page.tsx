@@ -134,7 +134,7 @@ export default function MixerPage() {
           >
             <Card className="overflow-hidden">
               <div className="relative gradient-primary p-8 md:p-12 text-center text-white">
-                <div className="absolute inset-0 animate-gradient bg-gradient-to-br from-purple-500/40 via-pink-500/30 to-blue-500/40" />
+                <div className="absolute inset-0 animate-gradient bg-gradient-to-br from-primary/40 via-accent/30 to-accent/40" />
                 <motion.div
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -161,7 +161,7 @@ export default function MixerPage() {
                       key={f.title}
                       className="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] p-4 text-center"
                     >
-                      <f.icon className="h-6 w-6 mx-auto mb-2 text-purple-500" />
+                      <f.icon className="h-6 w-6 mx-auto mb-2 text-primary" />
                       <p className="font-semibold text-sm text-black/90 dark:text-white/90">{f.title}</p>
                       <p className="text-xs text-black/50 dark:text-white/50 mt-1">{f.desc}</p>
                     </div>
@@ -215,7 +215,7 @@ export default function MixerPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -30 }}
                     >
-                      <span className="text-xs font-mono uppercase tracking-wider text-purple-500">
+                      <span className="text-xs font-mono uppercase tracking-wider text-primary">
                         ✦ last one
                       </span>
                       <h2 className="text-xl md:text-2xl font-bold mt-2 mb-1 text-black/90 dark:text-white/90">
@@ -227,7 +227,7 @@ export default function MixerPage() {
                       <div className="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] p-6">
                         <div className="flex justify-between text-sm font-medium mb-3">
                           <span>🧘 Kindred</span>
-                          <span className="text-purple-500 text-xs self-center">
+                          <span className="text-primary text-xs self-center">
                             {chaos < 0.25
                               ? "safe, closest matches"
                               : chaos > 0.7
@@ -243,7 +243,7 @@ export default function MixerPage() {
                           step={0.05}
                           value={chaos}
                           onChange={(e) => setChaos(Number(e.target.value))}
-                          className="w-full accent-purple-500 cursor-pointer"
+                          className="w-full accent-primary cursor-pointer"
                           aria-label="Match variety from kindred to chaos"
                         />
                       </div>
@@ -259,7 +259,7 @@ export default function MixerPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -30 }}
                     >
-                      <span className="text-xs font-mono uppercase tracking-wider text-purple-500">
+                      <span className="text-xs font-mono uppercase tracking-wider text-primary">
                         ✦ vibe check
                       </span>
                       <h2 className="text-xl md:text-2xl font-bold mt-2 mb-6 text-black/90 dark:text-white/90">
@@ -275,8 +275,8 @@ export default function MixerPage() {
                               className={cn(
                                 "w-full flex items-center gap-3 p-4 rounded-2xl border text-left transition-all duration-200",
                                 isPicked
-                                  ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/10"
-                                  : "border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] hover:border-purple-500/40 hover:bg-purple-500/[0.04]"
+                                  ? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
+                                  : "border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] hover:border-primary/40 hover:bg-primary/[0.04]"
                               )}
                             >
                               <span
@@ -310,7 +310,7 @@ export default function MixerPage() {
               <Card className="mb-6">
                 <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex items-center gap-3 flex-1">
-                    <Heart className="h-5 w-5 text-pink-500 shrink-0" />
+                    <Heart className="h-5 w-5 text-accent shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-black/90 dark:text-white/90">
                         {matches.length} matches for your floor
@@ -324,7 +324,7 @@ export default function MixerPage() {
                           step={0.05}
                           value={temperature}
                           onChange={(e) => setTemperature(Number(e.target.value))}
-                          className="flex-1 accent-purple-500 cursor-pointer max-w-[220px]"
+                          className="flex-1 accent-primary cursor-pointer max-w-[220px]"
                           aria-label="Adjust match variety"
                         />
                         <span className="text-[11px] text-muted-foreground">Chaos 🎲</span>
@@ -389,8 +389,8 @@ function MatchCard({
 
   return (
     <motion.div variants={item} layout>
-      <Card className={cn("relative h-full overflow-hidden transition-all", picked && "ring-2 ring-purple-500/60")}>
-        {featured && <BorderBeam size={90} duration={7} colorFrom="#a855f7" colorTo="#ec4899" />}
+      <Card className={cn("relative h-full overflow-hidden transition-all", picked && "ring-2 ring-primary/60")}>
+        {featured && <BorderBeam size={90} duration={7} colorFrom="#3f6b52" colorTo="#c05f3c" />}
         <CardContent className="p-5">
           <div className="flex items-start gap-3">
             <div className="h-12 w-12 rounded-2xl gradient-primary flex items-center justify-center text-xl shrink-0 glow-sm">
