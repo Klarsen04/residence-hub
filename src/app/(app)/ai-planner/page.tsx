@@ -114,16 +114,26 @@ export default function AIPlannerPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="max-w-6xl">
-      <PageHeader
-        code="✦ · AI PLANNER"
-        title="Planning Assistant"
-        subtitle="Chat through event ideas, budgets, and timelines. Ask follow-ups — it remembers the conversation."
-      />
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      // Fill the scrolling <main> area exactly and don't overflow it, so only
+      // the message thread scrolls (not the whole page). Padding on <main> is
+      // ~4rem (mobile) / 4rem (desktop pt-8 pb-8); calc leaves room for it.
+      className="max-w-6xl flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] min-h-0"
+    >
+      <div className="shrink-0">
+        <PageHeader
+          code="✦ · AI PLANNER"
+          title="Planning Assistant"
+          subtitle="Chat through event ideas, budgets, and timelines. Ask follow-ups — it remembers the conversation."
+        />
+      </div>
 
-      <div className="grid md:grid-cols-[240px_1fr] gap-5">
+      <div className="grid md:grid-cols-[240px_1fr] gap-5 flex-1 min-h-0">
         {/* Conversation history */}
-        <aside className="space-y-2">
+        <aside className="space-y-2 min-h-0 md:overflow-y-auto">
           <button onClick={newChat} className="w-full inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-medium">
             <Plus className="h-4 w-4" /> New chat
           </button>
@@ -142,7 +152,7 @@ export default function AIPlannerPage() {
         </aside>
 
         {/* Chat thread */}
-        <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-[70vh]">
+        <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-full min-h-0 overflow-hidden">
           <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-5">
             {messages.length === 0 && !sending ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-6">

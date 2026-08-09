@@ -434,7 +434,13 @@ export default function InspirationPage() {
                     </div>
                   </div>
                 ) : item.imageUrl ? (
-                  <div className="aspect-[4/3] bg-black/[0.03] dark:bg-white/[0.03] overflow-hidden">
+                  <a
+                    href={item.url || item.imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block aspect-[4/3] bg-black/[0.03] dark:bg-white/[0.03] overflow-hidden relative group/img"
+                    title={item.url ? "Open source link" : "Open image"}
+                  >
                     <img
                       src={item.imageUrl}
                       alt={item.title || ""}
@@ -444,7 +450,10 @@ export default function InspirationPage() {
                         if (img.src.includes("/originals/")) img.src = img.src.replace("/originals/", "/736x/");
                       }}
                     />
-                  </div>
+                    <span className="absolute top-2 right-2 opacity-0 group-hover/img:opacity-100 transition-opacity bg-black/60 text-white rounded-md p-1.5">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </span>
+                  </a>
                 ) : item.url ? (
                   <a
                     href={item.url}
