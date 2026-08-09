@@ -55,15 +55,30 @@ export async function POST(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ kind: "link", imageUrl: null, title: null });
     const html = await res.text();
 
-    const og = (prop: string) =>
-      html.match(new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`, "i"))?.[1] ||
-      html.match(new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`, "i"))?.[1] ||
-      null;
+    // Robust OG/Twitter meta extractor: scans every <meta> tag, tolerant of
+    // attribute order and of `property=` vs `name=` (Pinterest uses name=, and
+    // puts content= first). Falls back to twitter:* then <title>.
+    const metas = html.match(/<meta\b[^>]*>/gi) || [];
+    const attr = (tag: string, a: string) =>
+      tag.match(new RegExp(`\\b${a}=["']([^"']*)["']`, "i"))?.[1] || null;
+    const metaContent = (...keys: string[]): string | null => {
+      for (const tag of metas) {
+        const key = (attr(tag, "property") || attr(tag, "name") || "").toLowerCase();
+        if (keys.includes(key)) {
+          const c = attr(tag, "content");
+          if (c) return c;
+        }
+      }
+      return null;
+    };
 
-    const imageUrl = og("image");
-    const title = og("title") || html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() || null;
-    const description = og("description");
-    const ogVideo = og("video") || og("video:url");
+    const imageUrl = metaContent("og:image", "og:image:url", "og:image:secure_url", "twitter:image", "twitter:image:src");
+    const title =
+      metaContent("og:title", "twitter:title") ||
+      html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() ||
+      null;
+    const description = metaContent("og:description", "twitter:description");
+    const ogVideo = metaContent("og:video", "og:video:url", "og:video:secure_url");
 
     return NextResponse.json({
       kind: ogVideo ? "video" : imageUrl ? "image" : "link",
