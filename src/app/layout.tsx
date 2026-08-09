@@ -4,7 +4,6 @@ import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SmoothScroll } from "@/components/SmoothScroll";
 import { Toaster } from "sonner";
 
 // Body / UI text — quiet, legible workhorse.
@@ -45,7 +44,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <TooltipProvider>
             <SessionProvider>
-              <SmoothScroll>{children}</SmoothScroll>
+              {/* Lenis smooth-scroll is applied only on the marketing landing
+                  page (which needs it for scroll animation) — NOT app-wide, since
+                  it hijacks the wheel and breaks native scrolling (e.g. the chat
+                  thread) on interior pages. */}
+              {children}
               <Toaster position="bottom-right" theme="light" />
             </SessionProvider>
           </TooltipProvider>
