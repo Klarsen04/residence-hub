@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Bell,
   Calendar,
@@ -18,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { PageHeader, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 interface Notification {
   id: string;
@@ -46,12 +45,12 @@ function formatRelativeTime(dateString: string): string {
 }
 
 const typeConfig = {
-  event: { icon: Calendar, color: "text-primary", bg: "bg-primary/10" },
-  approval: { icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  team: { icon: Users, color: "text-accent", bg: "bg-accent/10" },
-  resource: { icon: BookOpen, color: "text-amber-400", bg: "bg-amber-500/10" },
-  ai: { icon: Sparkles, color: "text-accent", bg: "bg-accent/10" },
-  system: { icon: Settings, color: "text-muted-foreground", bg: "bg-black/[0.06] dark:bg-white/[0.06]" },
+  event: { icon: Calendar, color: "text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" },
+  approval: { icon: CheckCircle2, color: "text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" },
+  team: { icon: Users, color: "text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" },
+  resource: { icon: BookOpen, color: "text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" },
+  ai: { icon: Sparkles, color: "text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" },
+  system: { icon: Settings, color: "text-muted-foreground" },
 };
 
 const container = {
@@ -109,45 +108,39 @@ export default function NotificationsPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-3xl mx-auto"
+      className="max-w-3xl"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            Notifications
-            {unreadCount > 0 && (
-              <Badge className="bg-primary/20 text-primary border-primary/30">
-                {unreadCount} new
-              </Badge>
-            )}
-          </h1>
-          <p className="text-muted-foreground mt-1">Stay up to date with your team</p>
-        </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllRead}>
-            <Check className="h-3.5 w-3.5 mr-1.5" />
-            Mark all read
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        code={`G · NOTIFICATIONS${unreadCount > 0 ? ` · ${unreadCount} NEW` : ""}`}
+        title="Notifications"
+        subtitle="The front-desk log — every message that came in for your floor."
+        action={
+          unreadCount > 0 ? (
+            <Button variant="outline" size="sm" onClick={markAllRead}>
+              <Check className="h-3.5 w-3.5 mr-1.5" />
+              Mark all read
+            </Button>
+          ) : undefined
+        }
+      />
 
-      <div className="flex gap-2">
+      <div className="flex gap-6 mb-6">
         <button
           onClick={() => setFilter("all")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+          className={`wayfinding pb-1.5 border-b-2 transition-colors ${
             filter === "all"
-              ? "bg-primary/20 text-primary border border-primary/30"
-              : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
+              ? "border-[hsl(var(--terracotta))] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           All ({notifications.length})
         </button>
         <button
           onClick={() => setFilter("unread")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+          className={`wayfinding pb-1.5 border-b-2 transition-colors ${
             filter === "unread"
-              ? "bg-primary/20 text-primary border border-primary/30"
-              : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08]"
+              ? "border-[hsl(var(--terracotta))] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           Unread ({unreadCount})
@@ -155,14 +148,19 @@ export default function NotificationsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Bell className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground">No notifications yet</p>
-          </CardContent>
-        </Card>
+        <EmptyPlate
+          code="G · EMPTY"
+          title="No notifications yet"
+          hint="Messages for your floor will land here at the front desk."
+          icon={<Bell className="h-7 w-7" strokeWidth={1.5} />}
+        />
       ) : (
-        <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
+        <motion.div
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] bg-card"
+        >
           {filtered.map((notification) => {
             const config = typeConfig[notification.type];
             const Icon = config.icon;
@@ -170,27 +168,25 @@ export default function NotificationsPage() {
             return (
               <motion.div key={notification.id} variants={item}>
                 <div
-                  className={`group flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200 cursor-pointer ${
+                  className={`group flex items-start gap-4 p-4 rule first:border-t-0 cursor-pointer transition-colors ${
                     notification.read
-                      ? "border-black/[0.06] dark:border-white/[0.06] bg-card/30 hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
-                      : "border-primary/20 bg-primary/[0.03] hover:bg-primary/[0.05]"
+                      ? "hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+                      : "bg-[hsl(var(--terracotta)/0.04)] hover:bg-[hsl(var(--terracotta)/0.07)]"
                   }`}
                   onClick={() => markRead(notification.id)}
                 >
-                  <div className={`p-2.5 rounded-xl ${config.bg} shrink-0`}>
-                    <Icon className={`h-4 w-4 ${config.color}`} />
-                  </div>
+                  <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${config.color}`} strokeWidth={1.75} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className={`text-sm font-medium ${notification.read ? "text-muted-foreground" : "text-foreground"}`}>
                         {notification.title}
                       </p>
                       {!notification.read && (
-                        <div className="h-2 w-2 rounded-full bg-primary" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--terracotta))] dark:bg-[hsl(var(--terracotta-soft))]" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">{notification.description}</p>
-                    <p className="text-[11px] text-muted-foreground/70 mt-1.5">{formatRelativeTime(notification.createdAt)}</p>
+                    <p className="wayfinding text-muted-foreground/70 mt-1.5">{formatRelativeTime(notification.createdAt)}</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}

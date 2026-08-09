@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Search, Users, Home, Phone, Mail, Star, Plus, X, Trash2 } from "lucide-react";
+import { Search, Home, Phone, Mail, Star, Plus, X, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 interface Resident {
   id: string;
@@ -130,117 +129,107 @@ export default function ResidentsPage() {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-20"><p className="text-muted-foreground">Loading roster...</p></div>;
+    return <div className="flex items-center justify-center py-20"><p className="wayfinding text-muted-foreground">Loading roster…</p></div>;
   }
   if (error) {
-    return <div className="flex items-center justify-center py-20"><p className="text-red-500">Failed to load residents.</p></div>;
+    return <div className="flex items-center justify-center py-20"><p className="text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">Failed to load residents.</p></div>;
   }
 
   const selectClass = "h-10 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-accent to-[hsl(var(--sage-soft))]">
-            <Home className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Floor Roster</h1>
-            <p className="text-muted-foreground mt-0.5">
-              {list.length} resident{list.length !== 1 ? "s" : ""} across {raGroups.length} RA{raGroups.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => setShowAddForm(!showAddForm)} className="gap-2">
-          {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showAddForm ? "Cancel" : "Add Resident"}
-        </Button>
-      </div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="max-w-5xl">
+      <PageHeader
+        code="02 · FLOOR ROSTER"
+        title="Floor Roster"
+        subtitle={`${list.length} resident${list.length !== 1 ? "s" : ""} across ${raGroups.length} RA${raGroups.length !== 1 ? "s" : ""} — the directory for your building, room by room.`}
+        action={
+          <Button onClick={() => setShowAddForm(!showAddForm)} className="gap-2">
+            {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showAddForm ? "Cancel" : "Add Resident"}
+          </Button>
+        }
+      />
 
       {showAddForm && (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <h3 className="font-semibold text-sm">New Resident (added to your floor)</h3>
-            <div className="grid gap-3 md:grid-cols-2">
-              <Input placeholder="Name *" value={newResident.name} onChange={(e) => setNewResident({ ...newResident, name: e.target.value })} />
-              <Input placeholder="Room *" value={newResident.room} onChange={(e) => setNewResident({ ...newResident, room: e.target.value })} />
-              <select
-                className={selectClass}
-                value={newResident.floor}
-                onChange={(e) => {
-                  const floor = e.target.value;
-                  setNewResident({ ...newResident, floor, wing: wingsFor(floor)[0] });
-                }}
-              >
-                {FLOORS.map((f) => <option key={f} value={f}>Floor {f}</option>)}
-              </select>
-              <select className={selectClass} value={newResident.wing} onChange={(e) => setNewResident({ ...newResident, wing: e.target.value })}>
-                {wingsFor(newResident.floor).map((w) => <option key={w} value={w}>{w === "Main" ? "Main (single wing)" : `${w} Wing`}</option>)}
-              </select>
-              <Input placeholder="Phone" value={newResident.phone} onChange={(e) => setNewResident({ ...newResident, phone: e.target.value })} />
-              <Input placeholder="Email" value={newResident.email} onChange={(e) => setNewResident({ ...newResident, email: e.target.value })} />
-              <Input placeholder="Year (e.g. First-Year)" value={newResident.year} onChange={(e) => setNewResident({ ...newResident, year: e.target.value })} />
-              <Input placeholder="Major" value={newResident.major} onChange={(e) => setNewResident({ ...newResident, major: e.target.value })} />
-            </div>
-            <Button onClick={addResident} className="mt-2">Save Resident</Button>
-          </CardContent>
-        </Card>
+        <div className="mb-8 rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-5 space-y-4">
+          <div className="flex items-baseline gap-3">
+            <span className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">NEW ENTRY</span>
+            <h3 className="font-display text-xl">Added to your floor</h3>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input placeholder="Name *" value={newResident.name} onChange={(e) => setNewResident({ ...newResident, name: e.target.value })} />
+            <Input placeholder="Room *" value={newResident.room} onChange={(e) => setNewResident({ ...newResident, room: e.target.value })} />
+            <select
+              className={selectClass}
+              value={newResident.floor}
+              onChange={(e) => {
+                const floor = e.target.value;
+                setNewResident({ ...newResident, floor, wing: wingsFor(floor)[0] });
+              }}
+            >
+              {FLOORS.map((f) => <option key={f} value={f}>Floor {f}</option>)}
+            </select>
+            <select className={selectClass} value={newResident.wing} onChange={(e) => setNewResident({ ...newResident, wing: e.target.value })}>
+              {wingsFor(newResident.floor).map((w) => <option key={w} value={w}>{w === "Main" ? "Main (single wing)" : `${w} Wing`}</option>)}
+            </select>
+            <Input placeholder="Phone" value={newResident.phone} onChange={(e) => setNewResident({ ...newResident, phone: e.target.value })} />
+            <Input placeholder="Email" value={newResident.email} onChange={(e) => setNewResident({ ...newResident, email: e.target.value })} />
+            <Input placeholder="Year (e.g. First-Year)" value={newResident.year} onChange={(e) => setNewResident({ ...newResident, year: e.target.value })} />
+            <Input placeholder="Major" value={newResident.major} onChange={(e) => setNewResident({ ...newResident, major: e.target.value })} />
+          </div>
+          <Button onClick={addResident}>Save Resident</Button>
+        </div>
       )}
 
-      <div className="relative max-w-sm">
+      <div className="relative max-w-sm mb-10">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Search by name, room, major, or RA..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
       </div>
 
       {list.length === 0 ? (
-        <Card>
-          <CardContent className="p-10 flex flex-col items-center justify-center text-center">
-            <Users className="h-10 w-10 text-muted-foreground mb-3" />
-            <h3 className="font-semibold text-lg">Add your first resident</h3>
-            <p className="text-sm text-muted-foreground mt-1">Click &quot;Add Resident&quot; above to build your floor roster.</p>
-          </CardContent>
-        </Card>
+        <EmptyPlate
+          code="02 · EMPTY"
+          title="Add your first resident"
+          hint='Click "Add Resident" above to build your floor roster.'
+          icon={<Home className="h-7 w-7" strokeWidth={1.5} />}
+        />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-12">
           {raGroups.map(([ownerId, group]) => (
             <div key={ownerId}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-7 w-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold">
-                  {group.name.charAt(0).toUpperCase()}
-                </div>
-                <h2 className="font-semibold text-sm">
-                  {group.name}&apos;s floor
-                  <span className="text-muted-foreground font-normal"> · {group.residents.length}</span>
-                </h2>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
+              <SectionMarker
+                code={group.name.charAt(0).toUpperCase()}
+                label={`${group.name}'s floor`}
+                right={<span className="wayfinding text-muted-foreground">{group.residents.length} rooms</span>}
+              />
+              <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
                 {group.residents.map((resident) => (
-                  <Card
+                  <div
                     key={resident.id}
-                    className={`hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5 cursor-pointer ${resident.flagged ? "border-amber-500/30" : ""}`}
+                    className="group bg-card cursor-pointer transition-colors hover:bg-[hsl(var(--sage)/0.06)]"
                     onClick={() => setSelectedResident(selectedResident === resident.id ? null : resident.id)}
                   >
-                    <CardContent className="p-4">
+                    <div className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-accent to-[hsl(var(--sage-soft))] flex items-center justify-center text-white font-bold text-sm">
+                        <div className={`h-11 w-11 rounded-lg flex items-center justify-center font-display text-lg tabular-nums shrink-0 ${resident.flagged ? "bg-[hsl(var(--terracotta)/0.14)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" : "bg-black/[0.05] dark:bg-white/[0.06] text-foreground"}`}>
                           {resident.room}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-sm truncate">{resident.name}</h3>
-                            {resident.flagged && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
+                            <h3 className="font-medium text-sm truncate">{resident.name}</h3>
+                            {resident.flagged && <Star className="h-3 w-3 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] fill-current shrink-0" />}
                           </div>
                           <p className="text-xs text-muted-foreground">{resident.year}{resident.major ? ` • ${resident.major}` : ""}</p>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] shrink-0">{locationLabel(resident)}</Badge>
+                        <span className="wayfinding text-muted-foreground shrink-0 text-right">{locationLabel(resident)}</span>
                       </div>
 
                       {selectedResident === resident.id && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.06] space-y-2">
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-3 pt-3 rule space-y-2">
                           <div className="flex gap-4 text-xs text-muted-foreground">
-                            {resident.phone && <a href={`tel:${resident.phone}`} className="flex items-center gap-1 hover:text-primary" onClick={(e) => e.stopPropagation()}><Phone className="h-3 w-3" /> {resident.phone}</a>}
-                            {resident.email && <a href={`mailto:${resident.email}`} className="flex items-center gap-1 hover:text-primary" onClick={(e) => e.stopPropagation()}><Mail className="h-3 w-3" /> {resident.email}</a>}
+                            {resident.phone && <a href={`tel:${resident.phone}`} className="flex items-center gap-1 hover:text-[hsl(var(--terracotta))] dark:hover:text-[hsl(var(--terracotta-soft))]" onClick={(e) => e.stopPropagation()}><Phone className="h-3 w-3" /> {resident.phone}</a>}
+                            {resident.email && <a href={`mailto:${resident.email}`} className="flex items-center gap-1 hover:text-[hsl(var(--terracotta))] dark:hover:text-[hsl(var(--terracotta-soft))]" onClick={(e) => e.stopPropagation()}><Mail className="h-3 w-3" /> {resident.email}</a>}
                           </div>
                           {resident.notes && (
                             <div className="p-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
@@ -252,15 +241,15 @@ export default function ResidentsPage() {
                               <Input value={noteInputs[resident.id] || ""} onChange={(e) => setNoteInputs({ ...noteInputs, [resident.id]: e.target.value })} placeholder="Add a note..." className="h-7 text-xs flex-1 min-w-[120px]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); addNote(resident); } }} />
                               <Button size="sm" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); addNote(resident); }}>Add</Button>
                               <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); saveField(resident, { flagged: !resident.flagged }); }}>{resident.flagged ? "Unflag" : "Flag"}</Button>
-                              <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-red-500" onClick={(e) => { e.stopPropagation(); removeResident(resident); }}><Trash2 className="h-3 w-3" /></Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" onClick={(e) => { e.stopPropagation(); removeResident(resident); }}><Trash2 className="h-3 w-3" /></Button>
                             </div>
                           ) : (
                             <p className="text-[11px] text-muted-foreground italic">Managed by {resident.ownerName}</p>
                           )}
                         </motion.div>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

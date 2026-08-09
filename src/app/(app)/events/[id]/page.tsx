@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Calendar, Clock, MapPin, User, Pencil, Trash2 } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
+import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -50,6 +50,8 @@ const statuses = [
   { value: "COMPLETED", label: "Completed" },
   { value: "CANCELLED", label: "Cancelled" },
 ];
+
+const labelClass = "wayfinding text-muted-foreground";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -110,7 +112,7 @@ export default function EventDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">Loading event...</p>
+        <p className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] animate-pulse">Reading the placard…</p>
       </div>
     );
   }
@@ -118,7 +120,7 @@ export default function EventDetailPage() {
   if (!event || event.error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <p className="text-muted-foreground">Event not found</p>
+        <p className="font-display text-2xl">Event not found</p>
         <Button variant="outline" onClick={() => router.push("/events")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Events
@@ -127,11 +129,13 @@ export default function EventDetailPage() {
     );
   }
 
+  const eventDate = new Date(event.date);
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => router.push("/events")}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
+    <div className="max-w-3xl mx-auto">
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="ghost" onClick={() => router.push("/events")} className="-ml-2 gap-1.5">
+          <ArrowLeft className="h-4 w-4" />
           Back to Events
         </Button>
         <div className="flex gap-2">
@@ -151,43 +155,44 @@ export default function EventDetailPage() {
       </div>
 
       {editing && form ? (
-        <Card className="border-primary/20">
-          <CardContent className="p-6 space-y-4">
+        <>
+          <PageHeader code="01 · EDIT" title="Edit Event" subtitle="Update the listing — changes go straight to the board." />
+          <div className="space-y-5">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Title</label>
+              <label className={labelClass}>Title</label>
               <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="mt-1.5" />
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Description</label>
+              <label className={labelClass}>Description</label>
               <textarea
-                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
+                className="mt-1.5 flex min-h-[80px] w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Date</label>
+                <label className={labelClass}>Date</label>
                 <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1.5" />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Start Time</label>
+                <label className={labelClass}>Start Time</label>
                 <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} className="mt-1.5" />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">End Time</label>
+                <label className={labelClass}>End Time</label>
                 <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} className="mt-1.5" />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Location</label>
+              <label className={labelClass}>Location</label>
               <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="mt-1.5" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Category</label>
+                <label className={labelClass}>Category</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
@@ -197,9 +202,9 @@ export default function EventDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Status</label>
+                <label className={labelClass}>Status</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
@@ -215,99 +220,107 @@ export default function EventDetailPage() {
               </Button>
               <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </>
       ) : (
         <>
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold">{event.title}</h1>
-              <Badge className={statusColors[event.status] || ""}>
-                {event.status.replace(/_/g, " ")}
-              </Badge>
+          {/* ---- Placard: big editorial date + title ---- */}
+          <div className="flex items-start gap-6 mb-2">
+            <div className="text-center shrink-0">
+              <p className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">
+                {eventDate.toLocaleDateString("en-US", { month: "short" })}
+              </p>
+              <p className="font-display text-6xl leading-none tabular-nums">{eventDate.getDate()}</p>
+              <p className="wayfinding text-muted-foreground mt-1">
+                {eventDate.toLocaleDateString("en-US", { weekday: "short" })}
+              </p>
             </div>
-            <Badge className={categoryColors[event.category] || ""}>
-              {event.category.replace(/_/g, " ")}
-            </Badge>
+            <div className="min-w-0 flex-1 pt-1">
+              <div className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] mb-2 flex items-center gap-2">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
+                01 · EVENT
+              </div>
+              <h1 className="font-display text-4xl leading-[1.05] tracking-tight">{event.title}</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <Badge className={categoryColors[event.category] || ""}>
+                  {event.category.replace(/_/g, " ")}
+                </Badge>
+                <Badge className={statusColors[event.status] || ""}>
+                  {event.status.replace(/_/g, " ")}
+                </Badge>
+              </div>
+            </div>
           </div>
 
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Calendar className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Date</p>
-                    <p className="font-medium text-sm">{formatDate(event.date)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-                  <div className="p-2 rounded-lg bg-accent/10">
-                    <Clock className="h-4 w-4 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Time</p>
-                    <p className="font-medium text-sm">{formatTime(event.startTime)} - {formatTime(event.endTime)}</p>
-                  </div>
-                </div>
-                {event.location && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-                    <div className="p-2 rounded-lg bg-emerald-500/10">
-                      <MapPin className="h-4 w-4 text-emerald-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Location</p>
-                      <p className="font-medium text-sm">{event.location}</p>
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-                  <div className="p-2 rounded-lg bg-amber-500/10">
-                    <User className="h-4 w-4 text-amber-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Organizer</p>
-                    <p className="font-medium text-sm">{event.organizer?.name || "Unknown"}</p>
-                  </div>
+          <div className="mt-5 h-px w-full bg-black/[0.1] dark:bg-white/[0.1] mb-8" />
+
+          {/* ---- Details as a hairline register ---- */}
+          <SectionMarker code="i" label="Details" />
+          <div className="rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-black/[0.08] dark:bg-white/[0.08]">
+              <div className="flex items-center gap-3 px-5 py-4 bg-card">
+                <Calendar className="h-4 w-4 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] shrink-0" strokeWidth={1.75} />
+                <div>
+                  <p className={labelClass}>Date</p>
+                  <p className="font-medium text-sm mt-0.5">{formatDate(event.date)}</p>
                 </div>
               </div>
-
-              {event.hall && (
+              <div className="flex items-center gap-3 px-5 py-4 bg-card">
+                <Clock className="h-4 w-4 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] shrink-0" strokeWidth={1.75} />
                 <div>
-                  <p className="text-sm text-muted-foreground">Hall</p>
-                  <p className="font-medium">{event.hall.name}</p>
+                  <p className={labelClass}>Time</p>
+                  <p className="font-medium text-sm mt-0.5">{formatTime(event.startTime)} - {formatTime(event.endTime)}</p>
                 </div>
-              )}
-
-              {event.description && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Description</p>
-                  <p className="text-sm">{event.description}</p>
-                </div>
-              )}
-
-              {event.reflection && (
-                <div className="p-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06]">
-                  <p className="text-xs text-muted-foreground mb-1">Reflection</p>
-                  <p className="text-sm">{event.reflection}</p>
-                </div>
-              )}
-
-              {event.attendance && (
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/20">
-                  <div className="p-2 rounded-lg bg-emerald-500/10">
-                    <User className="h-4 w-4 text-emerald-400" />
-                  </div>
+              </div>
+              {event.location && (
+                <div className="flex items-center gap-3 px-5 py-4 bg-card">
+                  <MapPin className="h-4 w-4 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] shrink-0" strokeWidth={1.75} />
                   <div>
-                    <p className="text-xs text-muted-foreground">Attendance</p>
-                    <p className="font-medium text-sm text-emerald-400">{event.attendance} residents</p>
+                    <p className={labelClass}>Location</p>
+                    <p className="font-medium text-sm mt-0.5">{event.location}</p>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-3 px-5 py-4 bg-card">
+                <User className="h-4 w-4 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] shrink-0" strokeWidth={1.75} />
+                <div>
+                  <p className={labelClass}>Organizer</p>
+                  <p className="font-medium text-sm mt-0.5">{event.organizer?.name || "Unknown"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {event.hall && (
+            <div className="mb-6">
+              <p className={labelClass}>Hall</p>
+              <p className="font-medium mt-1">{event.hall.name}</p>
+            </div>
+          )}
+
+          {event.description && (
+            <div className="mb-6">
+              <SectionMarker code="ii" label="About" />
+              <p className="text-sm leading-relaxed text-black/70 dark:text-white/70">{event.description}</p>
+            </div>
+          )}
+
+          {event.reflection && (
+            <div className="rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card px-5 py-4 mb-6">
+              <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mb-1.5">Reflection</p>
+              <p className="text-sm leading-relaxed text-black/70 dark:text-white/70">{event.reflection}</p>
+            </div>
+          )}
+
+          {event.attendance && (
+            <div className="flex items-center gap-3 rounded-xl border border-[hsl(var(--sage)/0.3)] bg-[hsl(var(--sage)/0.06)] px-5 py-4 mb-6">
+              <User className="h-4 w-4 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] shrink-0" strokeWidth={1.75} />
+              <div>
+                <p className={labelClass}>Attendance</p>
+                <p className="font-display text-2xl leading-none mt-1 tabular-nums">{event.attendance} <span className="text-sm font-normal text-muted-foreground">residents</span></p>
+              </div>
+            </div>
+          )}
 
           <EventReflection event={event} onUpdate={mutate} />
         </>
@@ -360,49 +373,47 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
   };
 
   return (
-    <Card className="border-emerald-500/20 overflow-hidden">
-      <div className="h-1 bg-gradient-to-r from-emerald-500 to-[hsl(var(--sage-soft))]" />
-      <CardContent className="p-5">
-        {!showForm ? (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">Post-Event Reflection</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Record attendance and what went well</p>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
-              Add Reflection
+    <div className="rounded-xl border border-[hsl(var(--sage)/0.3)] bg-[hsl(var(--sage)/0.05)] px-5 py-5">
+      {!showForm ? (
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mb-1">Post-Event</p>
+            <p className="font-display text-lg">Reflection</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Record attendance and what went well</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+            Add Reflection
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <label className="wayfinding text-muted-foreground">How many residents attended?</label>
+            <Input
+              type="number"
+              value={attendance}
+              onChange={(e) => setAttendance(e.target.value)}
+              placeholder="e.g. 25"
+              className="mt-1.5"
+            />
+          </div>
+          <div>
+            <label className="wayfinding text-muted-foreground">Reflection — what went well? What would you change?</label>
+            <textarea
+              className="mt-1.5 flex min-h-[80px] w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
+              value={reflection}
+              onChange={(e) => setReflection(e.target.value)}
+              placeholder="The event went great because..."
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : "Save Reflection"}
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">How many residents attended?</label>
-              <Input
-                type="number"
-                value={attendance}
-                onChange={(e) => setAttendance(e.target.value)}
-                placeholder="e.g. 25"
-                className="mt-1.5"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Reflection — what went well? What would you change?</label>
-              <textarea
-                className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
-                value={reflection}
-                onChange={(e) => setReflection(e.target.value)}
-                placeholder="The event went great because..."
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : "Save Reflection"}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }

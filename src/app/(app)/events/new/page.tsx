@@ -2,13 +2,11 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Calendar } from "lucide-react";
-import Link from "next/link";
+import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 
 const categories = [
   { value: "COMMUNITY_BUILDING", label: "Community Building" },
@@ -69,29 +67,27 @@ function NewEventForm() {
     }
   };
 
+  const labelClass = "wayfinding text-muted-foreground";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="max-w-2xl mx-auto"
+      className="max-w-2xl"
     >
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-accent">
-          <Calendar className="h-5 w-5 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold">Create New Event</h1>
-      </div>
+      <PageHeader
+        code="01·A · NEW"
+        title="Post an Event"
+        subtitle="Add a new listing to the board — residents will see it the moment it goes up."
+      />
 
-      <Card className="overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] to-accent/[0.02]" />
-        <CardHeader className="relative">
-          <CardTitle>Event Details</CardTitle>
-        </CardHeader>
-        <CardContent className="relative">
-          <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <section>
+          <SectionMarker code="A" label="The basics" />
+          <div className="space-y-5">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Title</label>
+              <label className={labelClass}>Title</label>
               <Input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -102,18 +98,23 @@ function NewEventForm() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Description</label>
+              <label className={labelClass}>Description</label>
               <textarea
-                className="mt-1.5 flex min-h-[100px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
+                className="mt-1.5 flex min-h-[100px] w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 placeholder="Describe your event..."
               />
             </div>
+          </div>
+        </section>
 
+        <section>
+          <SectionMarker code="B" label="When & where" />
+          <div className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Date</label>
+                <label className={labelClass}>Date</label>
                 <Input
                   type="date"
                   value={form.date}
@@ -123,7 +124,7 @@ function NewEventForm() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Start Time</label>
+                <label className={labelClass}>Start Time</label>
                 <Input
                   type="time"
                   value={form.startTime}
@@ -133,7 +134,7 @@ function NewEventForm() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">End Time</label>
+                <label className={labelClass}>End Time</label>
                 <Input
                   type="time"
                   value={form.endTime}
@@ -145,7 +146,7 @@ function NewEventForm() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Location</label>
+              <label className={labelClass}>Location</label>
               <Input
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
@@ -153,33 +154,36 @@ function NewEventForm() {
                 className="mt-1.5"
               />
             </div>
+          </div>
+        </section>
 
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Category</label>
-              <select
-                className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-              >
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <section>
+          <SectionMarker code="C" label="Category" />
+          <div>
+            <label className={labelClass}>Category</label>
+            <select
+              className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create Event"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => router.back()}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="flex gap-3 pt-2 rule pt-6">
+          <Button type="submit" disabled={loading}>
+            {loading ? "Creating..." : "Create Event"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+        </div>
+      </form>
     </motion.div>
   );
 }

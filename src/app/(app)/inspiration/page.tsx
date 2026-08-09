@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ExternalLink, Play, Pencil, Trash2, X, Check } from "lucide-react";
+import { Plus, Search, ExternalLink, Play, Pencil, Trash2, X, Check, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -54,6 +53,10 @@ function getThumbnail(url: string, source: string): string | null {
   }
   return null;
 }
+
+const selectClass =
+  "mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] focus:border-[hsl(var(--terracotta)/0.4)] transition-all";
+const fieldLabel = "wayfinding text-muted-foreground";
 
 export default function InspirationPage() {
   const [showForm, setShowForm] = useState(false);
@@ -171,134 +174,140 @@ export default function InspirationPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-7xl"
+      className="max-w-7xl"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Inspiration</h1>
-          <p className="text-muted-foreground mt-1">Save and organize your programming ideas</p>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Save Inspiration
-        </Button>
-      </div>
+      <PageHeader
+        code="L3 · INSPIRATION"
+        title="Inspiration"
+        subtitle="A pinboard for the programming ideas and references you want to keep."
+        action={
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Save Inspiration
+          </Button>
+        }
+      />
 
       {showForm && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-primary/20">
-            <CardContent className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Title</label>
-                    <Input
-                      value={form.title}
-                      onChange={(e) => setForm({ ...form, title: e.target.value })}
-                      placeholder="Name this inspiration..."
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">URL</label>
-                    <Input
-                      value={form.url}
-                      onChange={(e) => setForm({ ...form, url: e.target.value })}
-                      onBlur={(e) => loadPreview(e.target.value)}
-                      onPaste={(e) => { const v = e.clipboardData.getData("text"); if (v) setTimeout(() => loadPreview(v), 0); }}
-                      placeholder="Paste a link, image, or video URL..."
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Source</label>
-                    <select
-                      className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
-                      value={form.source}
-                      onChange={(e) => setForm({ ...form, source: e.target.value })}
-                    >
-                      {sources.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Category</label>
-                    <select
-                      className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
-                      value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    >
-                      {categories.filter((c) => c !== "All").map((c) => (
-                        <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+          <div className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-6">
+            <div className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] mb-5">
+              New pin
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tags (comma separated)</label>
+                  <label className={fieldLabel}>Title</label>
                   <Input
-                    value={form.tags}
-                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                    placeholder="cozy, fall, movie night..."
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    placeholder="Name this inspiration..."
                     className="mt-1.5"
                   />
                 </div>
-                {(previewLoading || preview) && (
-                  <div className="rounded-xl border border-black/[0.08] dark:border-white/[0.08] overflow-hidden bg-black/[0.02] dark:bg-white/[0.02]">
-                    {previewLoading ? (
-                      <div className="p-6 text-center text-sm text-muted-foreground">Loading preview…</div>
-                    ) : preview?.kind === "video" && preview.embedUrl ? (
-                      <div className="aspect-video w-full">
-                        <iframe src={preview.embedUrl} className="w-full h-full" allow="accelerometer; encrypted-media; picture-in-picture" allowFullScreen title="preview" />
-                      </div>
-                    ) : preview?.kind === "video" && preview.videoUrl ? (
-                      <video src={preview.videoUrl} controls className="w-full max-h-72 bg-black" />
-                    ) : preview?.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={preview.imageUrl} alt={preview.title || "preview"} className="w-full max-h-72 object-cover" />
-                    ) : (
-                      <div className="p-4 text-sm">
-                        <p className="font-medium">{preview?.title || "Link preview"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{form.url}</p>
-                      </div>
-                    )}
-                    {preview?.title && (preview.imageUrl || preview.embedUrl) && (
-                      <p className="px-4 py-2 text-xs text-muted-foreground truncate border-t border-black/[0.06] dark:border-white/[0.06]">{preview.title}</p>
-                    )}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Button type="submit">Save</Button>
-                  <Button type="button" variant="outline" onClick={() => { setShowForm(false); setPreview(null); }}>Cancel</Button>
+                <div>
+                  <label className={fieldLabel}>URL</label>
+                  <Input
+                    value={form.url}
+                    onChange={(e) => setForm({ ...form, url: e.target.value })}
+                    onBlur={(e) => loadPreview(e.target.value)}
+                    onPaste={(e) => { const v = e.clipboardData.getData("text"); if (v) setTimeout(() => loadPreview(v), 0); }}
+                    placeholder="Paste a link, image, or video URL..."
+                    className="mt-1.5"
+                  />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+                <div>
+                  <label className={fieldLabel}>Source</label>
+                  <select
+                    className={selectClass}
+                    value={form.source}
+                    onChange={(e) => setForm({ ...form, source: e.target.value })}
+                  >
+                    {sources.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={fieldLabel}>Category</label>
+                  <select
+                    className={selectClass}
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  >
+                    {categories.filter((c) => c !== "All").map((c) => (
+                      <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className={fieldLabel}>Tags (comma separated)</label>
+                <Input
+                  value={form.tags}
+                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  placeholder="cozy, fall, movie night..."
+                  className="mt-1.5"
+                />
+              </div>
+              {(previewLoading || preview) && (
+                <div className="rounded-lg border border-black/[0.08] dark:border-white/[0.08] overflow-hidden bg-black/[0.02] dark:bg-white/[0.02]">
+                  {previewLoading ? (
+                    <div className="p-6 text-center text-sm text-muted-foreground">Loading preview…</div>
+                  ) : preview?.kind === "video" && preview.embedUrl ? (
+                    <div className="aspect-video w-full">
+                      <iframe src={preview.embedUrl} className="w-full h-full" allow="accelerometer; encrypted-media; picture-in-picture" allowFullScreen title="preview" />
+                    </div>
+                  ) : preview?.kind === "video" && preview.videoUrl ? (
+                    <video src={preview.videoUrl} controls className="w-full max-h-72 bg-black" />
+                  ) : preview?.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={preview.imageUrl} alt={preview.title || "preview"} className="w-full max-h-72 object-cover" />
+                  ) : (
+                    <div className="p-4 text-sm">
+                      <p className="font-medium">{preview?.title || "Link preview"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{form.url}</p>
+                    </div>
+                  )}
+                  {preview?.title && (preview.imageUrl || preview.embedUrl) && (
+                    <p className="px-4 py-2 text-xs text-muted-foreground truncate border-t border-black/[0.06] dark:border-white/[0.06]">{preview.title}</p>
+                  )}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button type="submit">Save</Button>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setPreview(null); }}>Cancel</Button>
+              </div>
+            </form>
+          </div>
         </motion.div>
       )}
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search inspiration..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+      <SectionMarker
+        code="✦"
+        label="The wall"
+        right={
+          <div className="relative w-52">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search inspiration..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+        }
+      />
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap mb-8">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setFilter(cat)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
               filter === cat
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-[hsl(var(--terracotta)/0.14)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] border border-[hsl(var(--terracotta)/0.3)]"
+                : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
             }`}
           >
             {cat === "All" ? "All" : cat.replace(/_/g, " ")}
@@ -307,11 +316,12 @@ export default function InspirationPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <p className="text-muted-foreground">No inspiration found. Start saving ideas!</p>
-          </CardContent>
-        </Card>
+        <EmptyPlate
+          code="L3 · EMPTY"
+          title="Nothing pinned yet"
+          hint="Paste a link, image, or video and it lands on the wall."
+          icon={<Lightbulb className="h-7 w-7" strokeWidth={1.5} />}
+        />
       ) : (
         <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
           {filtered.map((item: any) => {
@@ -323,10 +333,10 @@ export default function InspirationPage() {
 
             if (isEditing) {
               return (
-                <Card key={item.id} className="break-inside-avoid overflow-hidden border-primary/30">
-                  <CardContent className="p-4 space-y-3">
+                <div key={item.id} className="break-inside-avoid overflow-hidden rounded-xl border border-[hsl(var(--terracotta)/0.35)] bg-card">
+                  <div className="p-4 space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">Title</label>
+                      <label className="wayfinding text-muted-foreground">Title</label>
                       <Input
                         value={editForm.title}
                         onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
@@ -334,7 +344,7 @@ export default function InspirationPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">URL</label>
+                      <label className="wayfinding text-muted-foreground">URL</label>
                       <Input
                         value={editForm.url}
                         onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
@@ -343,7 +353,7 @@ export default function InspirationPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Source</label>
+                        <label className="wayfinding text-muted-foreground">Source</label>
                         <select
                           className="mt-1 flex h-8 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-2 text-xs"
                           value={editForm.source}
@@ -355,7 +365,7 @@ export default function InspirationPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Category</label>
+                        <label className="wayfinding text-muted-foreground">Category</label>
                         <select
                           className="mt-1 flex h-8 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-2 text-xs"
                           value={editForm.category}
@@ -368,7 +378,7 @@ export default function InspirationPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">Tags</label>
+                      <label className="wayfinding text-muted-foreground">Tags</label>
                       <Input
                         value={editForm.tags}
                         onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
@@ -386,13 +396,13 @@ export default function InspirationPage() {
                         Cancel
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             }
 
             return (
-              <Card key={item.id} className="break-inside-avoid overflow-hidden group hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5">
+              <div key={item.id} className="break-inside-avoid overflow-hidden rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card group hover:border-[hsl(var(--terracotta)/0.4)] transition-colors">
                 {embedUrl && isPlaying ? (
                   <div className="aspect-video">
                     <iframe
@@ -425,25 +435,23 @@ export default function InspirationPage() {
                     rel="noopener noreferrer"
                     className="block p-4 bg-black/[0.03] dark:bg-white/[0.03] border-b border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors"
                   >
-                    <div className="flex items-center gap-2 text-sm text-primary">
+                    <div className="flex items-center gap-2 text-sm text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">
                       <ExternalLink className="h-4 w-4 shrink-0" />
                       <span className="truncate">{item.url}</span>
                     </div>
                   </a>
                 ) : null}
 
-                <CardContent className="p-4">
+                <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-medium text-sm">{item.title || "Untitled"}</p>
-                      <Badge variant="secondary" className="mt-1.5">
-                        {item.source}
-                      </Badge>
+                    <div className="min-w-0">
+                      <p className="font-display text-base leading-snug">{item.title || "Untitled"}</p>
+                      <span className="wayfinding text-muted-foreground mt-1.5 inline-block">{item.source}</span>
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={() => startEdit(item)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] opacity-0 group-hover:opacity-100 transition-all"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -454,21 +462,21 @@ export default function InspirationPage() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                       {item.url && (
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] transition-all">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       )}
                     </div>
                   </div>
                   {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
+                    <div className="flex flex-wrap gap-1.5 mt-3">
                       {tags.map((tag: string) => (
-                        <span key={tag} className="text-[11px] text-primary/70 bg-primary/10 px-2 py-0.5 rounded-full">#{tag}</span>
+                        <span key={tag} className="text-[11px] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] bg-[hsl(var(--sage)/0.1)] px-2 py-0.5 rounded-full">#{tag}</span>
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>

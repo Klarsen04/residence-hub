@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Plus, Clock, FileText, Lock, ChevronDown, ChevronUp, Phone, ExternalLink, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Plus, Lock, ChevronDown, ChevronUp, Phone, ExternalLink, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { CAMPUS_RESOURCES, INCIDENT_TRACKS } from "@/lib/nyitResources";
+import { PageHeader, SectionMarker, Plate, PlateRow, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 interface Incident {
   id: string;
@@ -148,26 +149,22 @@ export default function IncidentsPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-4xl mx-auto"
+      className="max-w-4xl mx-auto"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-red-500 to-orange-500">
-            <AlertTriangle className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Incident Reports</h1>
-            <p className="text-muted-foreground mt-0.5">Document and track floor incidents</p>
-          </div>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Report
-        </Button>
-      </div>
+      <PageHeader
+        code="G · INCIDENTS"
+        title="Front desk log"
+        subtitle="Document and track floor incidents, and route each one to the right office."
+        action={
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Report
+          </Button>
+        }
+      />
 
       {/* Emergency banner — every reporting flow leads with call-911 first */}
-      <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+      <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.06] p-4 mb-10 flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-center gap-2 font-semibold text-red-500 dark:text-red-400">
           <ShieldAlert className="h-5 w-5" />
           Emergency? Call 911 first, then Campus Security.
@@ -180,33 +177,17 @@ export default function IncidentsPage() {
         </a>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card">
-          <div className="flex items-center gap-2 mb-1">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Total Reports</span>
-          </div>
-          <p className="text-2xl font-bold">{incidentList.length}</p>
-        </div>
-        <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05]">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="h-4 w-4 text-amber-400" />
-            <span className="text-xs text-amber-400">Open</span>
-          </div>
-          <p className="text-2xl font-bold text-amber-400">{openCount}</p>
-        </div>
-        <div className="p-4 rounded-2xl border border-red-500/20 bg-red-500/[0.05]">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-            <span className="text-xs text-red-400">Follow-up</span>
-          </div>
-          <p className="text-2xl font-bold text-red-400">{followUpCount}</p>
-        </div>
+      <div className="mb-10">
+        <PlateRow className="grid-cols-3">
+          <Plate code="01" value={incidentList.length} label="Total reports" accent />
+          <Plate code="02" value={openCount} label="Open" />
+          <Plate code="03" value={followUpCount} label="Follow-up" />
+        </PlateRow>
       </div>
 
       <AnimatePresence>
         {showForm && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-10">
             <Card className="border-red-500/20">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -305,38 +286,38 @@ export default function IncidentsPage() {
       </AnimatePresence>
 
       {/* Reporting tracks — where different incident kinds actually route */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3">Reporting tracks</h2>
-        <div className="grid gap-3 md:grid-cols-2">
+      <div className="mb-10">
+        <SectionMarker code="G.1" label="Reporting tracks" />
+        <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
           {INCIDENT_TRACKS.map((track) => (
-            <div key={track.key} className="rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card p-4">
+            <div key={track.key} className="bg-card p-5">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-sm">{track.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{track.description}</p>
+                  <p className="font-display text-lg leading-tight">{track.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{track.description}</p>
                 </div>
                 {track.reportUrl && (
-                  <a href={track.reportUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-primary hover:opacity-70" title="Open official report form">
+                  <a href={track.reportUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-70" title="Open official report form">
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground mt-2">→ {track.routeTo}</p>
+              <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mt-3">→ {track.routeTo}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Campus resources */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3">Campus resources</h2>
-        <div className="grid gap-2 md:grid-cols-2">
+      <div className="mb-10">
+        <SectionMarker code="G.2" label="Campus resources" />
+        <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
           {CAMPUS_RESOURCES.map((r) => (
-            <div key={r.name} className={`rounded-xl border p-3 ${r.emergency ? "border-red-500/25 bg-red-500/[0.04]" : "border-black/[0.08] dark:border-white/[0.08] bg-card"}`}>
+            <div key={r.name} className={`p-4 ${r.emergency ? "bg-red-500/[0.05]" : "bg-card"}`}>
               <div className="flex items-center justify-between gap-2">
                 <p className="font-medium text-sm">{r.name}</p>
                 {r.url && (
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:opacity-70 shrink-0">
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-70 shrink-0">
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
@@ -344,15 +325,24 @@ export default function IncidentsPage() {
               <p className="text-xs text-muted-foreground mt-0.5">{r.detail}</p>
               <div className="flex gap-4 mt-1.5">
                 {r.phone && <a href={`tel:${r.phone.replace(/\./g, "")}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline"><Phone className="h-3 w-3" /> {r.phone}</a>}
-                {r.email && <a href={`mailto:${r.email}`} className="text-xs font-medium text-primary hover:underline truncate">{r.email}</a>}
+                {r.email && <a href={`mailto:${r.email}`} className="text-xs font-medium text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:underline truncate">{r.email}</a>}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="space-y-3">
-        {incidentList.length > 0 && <h2 className="text-sm font-semibold text-muted-foreground">Your logged incidents</h2>}
+      <div>
+        <SectionMarker code="G.3" label="Logged incidents" />
+        {incidentList.length === 0 ? (
+          <EmptyPlate
+            code="G.3 · EMPTY"
+            title="No incidents logged yet"
+            hint="File a report and it will appear here for tracking and follow-up."
+            icon={<AlertTriangle className="h-7 w-7" strokeWidth={1.5} />}
+          />
+        ) : (
+        <div className="space-y-3">
         {incidentList.map((incident) => {
           const isExpanded = expandedId === incident.id;
           return (
@@ -427,6 +417,8 @@ export default function IncidentsPage() {
             </Card>
           );
         })}
+        </div>
+        )}
       </div>
     </motion.div>
   );

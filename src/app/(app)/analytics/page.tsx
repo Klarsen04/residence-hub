@@ -1,8 +1,7 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import useSWR from "swr";
+import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
   Users,
@@ -10,8 +9,6 @@ import {
   Lightbulb,
   BarChart3,
   Activity,
-  ArrowUpRight,
-  ArrowDownRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -28,6 +25,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { PageHeader, SectionMarker, Plate, PlateRow } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -46,6 +44,32 @@ const item = {
 
 // Warm architectural chart palette — sage, terracotta, clay, ochre, olive.
 const CHART_COLORS = ["#3f6b52", "#c05f3c", "#7a9b6e", "#d99a3e", "#9c5a3c", "#5f7d6b", "#e0b15a", "#4a5d4f"];
+
+// Shared card shell — a wall-mounted "readings" panel with a coded header.
+function Panel({
+  code,
+  title,
+  icon,
+  children,
+}: {
+  code: string;
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="h-full rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card p-5 md:p-6">
+      <div className="flex items-center gap-3 mb-5">
+        <span className="text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]">{icon}</span>
+        <div>
+          <p className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">{code}</p>
+          <h2 className="font-display text-xl leading-tight">{title}</h2>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
   const { data: events } = useSWR("/api/events/all", fetcher);
@@ -87,237 +111,163 @@ export default function AnalyticsPage() {
   }, []);
 
   const stats = [
-    {
-      label: "Total Events",
-      value: allEvents.length,
-      change: "+12%",
-      positive: true,
-      icon: Calendar,
-      color: "from-primary to-primary",
-    },
-    {
-      label: "Active Users",
-      value: new Set(allEvents.map((e: any) => e.organizerId)).size || 1,
-      change: "+5%",
-      positive: true,
-      icon: Users,
-      color: "from-accent to-[hsl(var(--sage-soft))]",
-    },
-    {
-      label: "Inspirations",
-      value: allInspirations.length,
-      change: "+8%",
-      positive: true,
-      icon: Lightbulb,
-      color: "from-amber-500 to-orange-500",
-    },
-    {
-      label: "Engagement",
-      value: "High",
-      change: "+23%",
-      positive: true,
-      icon: Activity,
-      color: "from-emerald-500 to-[hsl(var(--sage-soft))]",
-    },
+    { code: "01", label: "Total Events", value: allEvents.length, accent: true },
+    { code: "02", label: "Active Users", value: new Set(allEvents.map((e: any) => e.organizerId)).size || 1, accent: false },
+    { code: "03", label: "Inspirations", value: allInspirations.length, accent: false },
+    { code: "04", label: "Engagement", value: "High", accent: false },
   ];
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-7xl">
+    <motion.div variants={container} initial="hidden" animate="show" className="max-w-6xl">
       <motion.div variants={item}>
-        <h1 className="text-3xl font-bold">Analytics</h1>
-        <p className="text-muted-foreground mt-1">Track your team&apos;s performance and engagement</p>
+        <PageHeader
+          code="G · ANALYTICS"
+          title="Analytics"
+          subtitle="The building's readings — track your team's performance and engagement across the floor."
+        />
       </motion.div>
 
-      <motion.div variants={item} className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="group relative overflow-hidden rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50 backdrop-blur-sm p-5 transition-all duration-300 hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5"
-          >
-            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.color} opacity-[0.07] rounded-full blur-2xl -translate-y-6 translate-x-6 group-hover:opacity-[0.12] transition-opacity`} />
-            <div className="flex items-center justify-between mb-3">
-              <div className={`inline-flex p-2 rounded-xl bg-gradient-to-br ${stat.color}`}>
-                <stat.icon className="h-4 w-4 text-white" />
+      {/* ---- Readings at a glance ---- */}
+      <motion.div variants={item} className="mb-12">
+        <PlateRow className="grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <Plate key={stat.label} code={stat.code} value={stat.value} label={stat.label} accent={stat.accent} />
+          ))}
+        </PlateRow>
+      </motion.div>
+
+      <motion.div variants={item}>
+        <SectionMarker code="✦" label="Readings" />
+      </motion.div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <motion.div variants={item}>
+          <Panel code="R1" title="Events by Category" icon={<BarChart3 className="h-5 w-5" strokeWidth={1.5} />}>
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(40,30,20,0.08)" />
+                  <XAxis dataKey="name" tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                    labelStyle={{ color: "hsl(25 18% 14%)" }}
+                  />
+                  <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3f6b52" />
+                      <stop offset="100%" stopColor="#c05f3c" />
+                    </linearGradient>
+                  </defs>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+                Create events to see category breakdown
               </div>
-              <div className={`flex items-center gap-0.5 text-xs font-medium ${stat.positive ? "text-emerald-400" : "text-red-400"}`}>
-                {stat.positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                {stat.change}
+            )}
+          </Panel>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Panel code="R2" title="Monthly Activity" icon={<TrendingUp className="h-5 w-5" strokeWidth={1.5} />}>
+            {monthlyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(40,30,20,0.08)" />
+                  <XAxis dataKey="month" tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
+                    labelStyle={{ color: "hsl(25 18% 14%)" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="events"
+                    stroke="#3f6b52"
+                    strokeWidth={2.5}
+                    dot={{ fill: "#3f6b52", strokeWidth: 0, r: 4 }}
+                    activeDot={{ fill: "#3f6b52", strokeWidth: 2, stroke: "hsl(42 46% 98%)", r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+                Create events to see monthly trends
               </div>
+            )}
+          </Panel>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Panel code="R3" title="Event Status" icon={<Activity className="h-5 w-5" strokeWidth={1.5} />}>
+            {statusData.length > 0 ? (
+              <div className="flex items-center gap-6">
+                <ResponsiveContainer width="50%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {statusData.map((_: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {statusData.map((s: any, i: number) => (
+                    <div key={s.name} className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="text-xs text-muted-foreground">{s.name}</span>
+                      <span className="text-xs font-medium ml-auto tabular-nums">{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                No event data available yet
+              </div>
+            )}
+          </Panel>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Panel code="R4" title="Recent Activity" icon={<Lightbulb className="h-5 w-5" strokeWidth={1.5} />}>
+            <div>
+              {allEvents.slice(0, 5).map((event: any) => (
+                <div key={event.id} className="group flex items-center gap-4 py-3 rule first:border-t-0">
+                  <div className="h-8 w-8 rounded-lg border border-black/[0.1] dark:border-white/[0.12] bg-[hsl(var(--sage)/0.1)] flex items-center justify-center text-[11px] font-display text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]">
+                    {event.organizer?.name?.charAt(0) || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{event.title}</p>
+                    <p className="wayfinding text-muted-foreground mt-0.5">
+                      {event.organizer?.name} · {new Date(event.date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                    {event.status?.replace(/_/g, " ")}
+                  </Badge>
+                </div>
+              ))}
+              {allEvents.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No activity yet
+                </div>
+              )}
             </div>
-            <p className="text-2xl font-bold">{stat.value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-          </div>
-        ))}
-      </motion.div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <motion.div variants={item}>
-          <Card className="h-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="p-1.5 rounded-lg bg-primary/10">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                </div>
-                Events by Category
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {categoryData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={categoryData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(40,30,20,0.08)" />
-                    <XAxis dataKey="name" tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                      labelStyle={{ color: "hsl(25 18% 14%)" }}
-                    />
-                    <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} />
-                    <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#3f6b52" />
-                        <stop offset="100%" stopColor="#c05f3c" />
-                      </linearGradient>
-                    </defs>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
-                  Create events to see category breakdown
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card className="h-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="p-1.5 rounded-lg bg-accent/10">
-                  <TrendingUp className="h-4 w-4 text-accent" />
-                </div>
-                Monthly Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {monthlyData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={monthlyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(40,30,20,0.08)" />
-                    <XAxis dataKey="month" tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "hsl(28 9% 40%)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" }}
-                      labelStyle={{ color: "hsl(25 18% 14%)" }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="events"
-                      stroke="#3f6b52"
-                      strokeWidth={2.5}
-                      dot={{ fill: "#3f6b52", strokeWidth: 0, r: 4 }}
-                      activeDot={{ fill: "#3f6b52", strokeWidth: 2, stroke: "hsl(42 46% 98%)", r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
-                  Create events to see monthly trends
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card className="h-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10">
-                  <Activity className="h-4 w-4 text-emerald-400" />
-                </div>
-                Event Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {statusData.length > 0 ? (
-                <div className="flex items-center gap-6">
-                  <ResponsiveContainer width="50%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {statusData.map((_: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ background: "hsl(42 46% 98%)", border: "1px solid hsl(34 20% 85%)", color: "hsl(25 18% 14%)", borderRadius: "12px" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="space-y-2">
-                    {statusData.map((s: any, i: number) => (
-                      <div key={s.name} className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                        <span className="text-xs text-muted-foreground">{s.name}</span>
-                        <span className="text-xs font-medium ml-auto">{s.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-                  No event data available yet
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card className="h-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <div className="p-1.5 rounded-lg bg-amber-500/10">
-                  <Lightbulb className="h-4 w-4 text-amber-400" />
-                </div>
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {allEvents.slice(0, 5).map((event: any) => (
-                  <div key={event.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] font-bold text-white">
-                      {event.organizer?.name?.charAt(0) || "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{event.title}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {event.organizer?.name} • {new Date(event.date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {event.status?.replace(/_/g, " ")}
-                    </Badge>
-                  </div>
-                ))}
-                {allEvents.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No activity yet
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          </Panel>
         </motion.div>
       </div>
     </motion.div>

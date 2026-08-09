@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, Sparkles, Copy, ArrowRight, ArrowLeft } from "lucide-react";
+import { Clock, Users, Copy, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { PageHeader } from "@/components/wayfinding/PageChrome";
 
 const templates = [
   {
@@ -99,15 +99,6 @@ const templates = [
   },
 ];
 
-const categoryColors: Record<string, string> = {
-  COMMUNITY_BUILDING: "from-accent to-[hsl(var(--sage-soft))]",
-  WELLNESS: "from-emerald-500 to-[hsl(var(--sage-soft))]",
-  ACADEMIC_SUCCESS: "from-primary to-primary",
-  DIVERSITY_INCLUSION: "from-orange-500 to-amber-500",
-  CAREER_DEVELOPMENT: "from-primary to-primary",
-  SOCIAL: "from-accent to-rose-500",
-};
-
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.06 } },
@@ -132,82 +123,84 @@ export default function EventTemplatesPage() {
   };
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-7xl">
+    <motion.div variants={container} initial="hidden" animate="show" className="max-w-4xl">
       <motion.div variants={item}>
         <Button variant="ghost" size="sm" onClick={() => router.push("/events")} className="mb-4 -ml-2 gap-1.5">
           <ArrowLeft className="h-4 w-4" /> Back to Events
         </Button>
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Event Templates</h1>
-            <p className="text-muted-foreground mt-0.5">Proven event ideas ready to use</p>
-          </div>
-        </div>
+        <PageHeader
+          code="01·T · TEMPLATES"
+          title="Program Playbook"
+          subtitle="Proven event ideas, ready to lift straight onto the board."
+        />
       </motion.div>
 
-      <motion.div variants={item} className="grid gap-4 md:grid-cols-2">
-        {templates.map((template) => {
-          const gradient = categoryColors[template.category] || "from-primary to-accent";
+      <motion.div
+        variants={item}
+        className="rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08]"
+      >
+        {templates.map((template, i) => {
           const isExpanded = expandedId === template.id;
 
           return (
-            <Card
+            <div
               key={template.id}
-              className="overflow-hidden hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all cursor-pointer"
+              className="bg-card border-t border-black/[0.08] dark:border-white/[0.08] first:border-t-0 cursor-pointer transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
               onClick={() => setExpandedId(isExpanded ? null : template.id)}
             >
-              <div className={`h-1 bg-gradient-to-r ${gradient}`} />
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-lg">{template.title}</h3>
-                  <Badge className="bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground text-[10px]">
-                    {template.category.replace(/_/g, " ")}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{template.description}</p>
+              <div className="flex items-start gap-5 px-5 py-4">
+                <span className="font-mono text-sm text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] tabular-nums mt-1 shrink-0">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-display text-xl">{template.title}</h3>
+                    <Badge className="bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground text-[10px] shrink-0">
+                      {template.category.replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
 
-                <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{template.duration}</span>
-                  <span className="flex items-center gap-1"><Users className="h-3 w-3" />{template.attendance}</span>
-                  <span className="flex items-center gap-1">💰 {template.budget}</span>
-                </div>
+                  <div className="flex flex-wrap gap-4 mt-3 wayfinding text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" />{template.duration}</span>
+                    <span className="flex items-center gap-1.5"><Users className="h-3 w-3" />{template.attendance}</span>
+                    <span className="flex items-center gap-1.5">💰 {template.budget}</span>
+                  </div>
 
-                {isExpanded && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="mt-4 pt-4 border-t border-black/[0.06] dark:border-white/[0.06] space-y-3"
-                  >
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Supplies Needed</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {template.supplies.map((s) => (
-                          <span key={s} className="text-[11px] bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.06] px-2 py-0.5 rounded-full text-muted-foreground">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Tips</p>
-                      <p className="text-xs text-muted-foreground">{template.tips}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); useTemplate(template); }}
-                      className="mt-2"
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mt-4 pt-4 rule space-y-3"
                     >
-                      <Copy className="h-3 w-3 mr-1.5" />
-                      Use This Template
-                      <ArrowRight className="h-3 w-3 ml-1.5" />
-                    </Button>
-                  </motion.div>
-                )}
-              </CardContent>
-            </Card>
+                      <div>
+                        <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mb-2">Supplies Needed</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {template.supplies.map((s) => (
+                            <span key={s} className="text-[11px] bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.06] px-2 py-0.5 rounded-full text-muted-foreground">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mb-1">Tips</p>
+                        <p className="text-sm text-muted-foreground">{template.tips}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); useTemplate(template); }}
+                        className="mt-2"
+                      >
+                        <Copy className="h-3 w-3 mr-1.5" />
+                        Use This Template
+                        <ArrowRight className="h-3 w-3 ml-1.5" />
+                      </Button>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </div>
           );
         })}
       </motion.div>

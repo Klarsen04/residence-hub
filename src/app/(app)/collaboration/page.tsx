@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, Kanban, CheckCircle2, Circle, Clock, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, Kanban, CheckCircle2, Circle, Clock, ArrowLeft, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -116,23 +117,24 @@ export default function CollaborationPage() {
     }
   };
 
-  const boardColors = ["from-primary to-primary", "from-accent to-[hsl(var(--sage-soft))]", "from-emerald-500 to-[hsl(var(--sage-soft))]", "from-amber-500 to-orange-500"];
-
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6 max-w-7xl">
-      <motion.div variants={item} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Collaboration</h1>
-          <p className="text-muted-foreground mt-1">Shared boards for everyone on the platform — drag cards to move them</p>
-        </div>
-        <Button onClick={() => setShowNewBoard(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Board
-        </Button>
+    <motion.div variants={container} initial="hidden" animate="show" className="max-w-7xl">
+      <motion.div variants={item}>
+        <PageHeader
+          code="L3 · COLLABORATION"
+          title="Shared planning boards"
+          subtitle="Shared boards for everyone on the platform — drag cards between columns to move them."
+          action={
+            <Button onClick={() => setShowNewBoard(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Board
+            </Button>
+          }
+        />
       </motion.div>
 
       {showNewBoard && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <Card className="border-primary/20">
             <CardContent className="p-5 space-y-3">
               <Input
@@ -158,29 +160,21 @@ export default function CollaborationPage() {
       {!activeBoard ? (
         <motion.div variants={item}>
           {allBoards.length === 0 && !showNewBoard ? (
-            <Card>
-              <CardContent className="py-16 text-center space-y-4">
-                <div className="flex justify-center">
-                  <div className="p-4 rounded-2xl bg-primary/10">
-                    <Kanban className="h-12 w-12 text-primary" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">No boards yet</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto mt-2">
-                    Create collaborative planning boards to brainstorm, share inspiration, and coordinate events.
-                  </p>
-                </div>
+            <EmptyPlate
+              code="L3 · EMPTY"
+              title="No boards yet"
+              hint="Create collaborative planning boards to brainstorm, share inspiration, and coordinate events."
+              icon={<Kanban className="h-8 w-8" strokeWidth={1.5} />}
+              action={
                 <Button onClick={() => setShowNewBoard(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Create Your First Board
                 </Button>
-              </CardContent>
-            </Card>
+              }
+            />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
               {allBoards.map((board: any, idx: number) => {
-                const color = boardColors[idx % boardColors.length];
                 const todoCount = board.items?.filter((i: any) => i.type === "TODO" || i.type === "TASK").length || 0;
                 const inProgressCount = board.items?.filter((i: any) => i.type === "IN_PROGRESS").length || 0;
                 const doneCount = board.items?.filter((i: any) => i.type === "DONE").length || 0;
@@ -188,61 +182,59 @@ export default function CollaborationPage() {
                 const progress = total > 0 ? (doneCount / total) * 100 : 0;
 
                 return (
-                  <Card
+                  <div
                     key={board.id}
-                    className="cursor-pointer hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-1 group overflow-hidden"
+                    className="group cursor-pointer bg-card p-5 hover:bg-[hsl(var(--sage)/0.06)] transition-colors"
                     onClick={() => setSelectedBoardId(board.id)}
                   >
-                    <div className={`h-1.5 bg-gradient-to-r ${color}`} />
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-lg">{board.title}</h3>
-                          {board.description && (
-                            <p className="text-sm text-muted-foreground mt-0.5">{board.description}</p>
-                          )}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="min-w-0">
+                        <span className="font-mono text-xs text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
+                        <h3 className="font-display text-xl leading-tight mt-2">{board.title}</h3>
+                        {board.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{board.description}</p>
+                        )}
+                      </div>
+                      <Kanban className="h-5 w-5 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] shrink-0" strokeWidth={1.5} />
+                    </div>
+
+                    {total > 0 && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                          <span>{doneCount}/{total} tasks complete</span>
+                          <span className="tabular-nums">{Math.round(progress)}%</span>
                         </div>
-                        <div className={`p-2 rounded-xl bg-gradient-to-br ${color} opacity-80`}>
-                          <Kanban className="h-4 w-4 text-white" />
+                        <div className="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[hsl(var(--terracotta))] dark:bg-[hsl(var(--terracotta-soft))] transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                          />
                         </div>
                       </div>
+                    )}
 
-                      {total > 0 && (
-                        <div className="mt-4">
-                          <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                            <span>{doneCount}/{total} tasks complete</span>
-                            <span>{Math.round(progress)}%</span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
-                            <div
-                              className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-500`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex gap-3 mt-4">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Circle className="h-3 w-3" />
-                          {todoCount} todo
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-amber-400">
-                          <Clock className="h-3 w-3" />
-                          {inProgressCount} active
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-400">
-                          <CheckCircle2 className="h-3 w-3" />
-                          {doneCount} done
-                        </div>
+                    <div className="flex gap-3 mt-4">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Circle className="h-3 w-3" />
+                        {todoCount} todo
                       </div>
+                      <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                        <Clock className="h-3 w-3" />
+                        {inProgressCount} active
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {doneCount} done
+                      </div>
+                    </div>
 
-                      <p className="text-[11px] text-muted-foreground mt-3">
-                        Created by {board.user?.name}
-                        {board.members?.length > 0 && ` • ${board.members.length} member${board.members.length > 1 ? "s" : ""}`}
-                      </p>
-                    </CardContent>
-                  </Card>
+                    <p className="wayfinding text-muted-foreground mt-4">
+                      By {board.user?.name}
+                      {board.members?.length > 0 && ` · ${board.members.length} member${board.members.length > 1 ? "s" : ""}`}
+                    </p>
+                  </div>
                 );
               })}
             </div>
@@ -250,16 +242,16 @@ export default function CollaborationPage() {
         </motion.div>
       ) : (
         <motion.div variants={item}>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-4 mb-6">
             <Button variant="ghost" size="sm" onClick={() => setSelectedBoardId(null)}>
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
-            <div className="h-6 w-1 rounded-full bg-gradient-to-b from-primary to-accent" />
+            <div className="h-8 w-px bg-black/[0.12] dark:bg-white/[0.12]" />
             <div>
-              <h2 className="font-semibold text-lg">{activeBoard.title}</h2>
+              <h2 className="font-display text-2xl leading-tight">{activeBoard.title}</h2>
               {activeBoard.description && (
-                <p className="text-xs text-muted-foreground">{activeBoard.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{activeBoard.description}</p>
               )}
             </div>
           </div>
@@ -279,10 +271,10 @@ export default function CollaborationPage() {
                   onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOverCol(null); }}
                   onDrop={() => onDropToColumn(activeBoard.id, status)}
                 >
-                  <div className="flex items-center gap-2 px-1">
+                  <div className="flex items-center gap-2 px-1 pb-2 border-b border-black/[0.09] dark:border-white/[0.09]">
                     <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"}`} />
-                    <span className="text-sm font-medium">{statusLabel}</span>
-                    <Badge variant="secondary" className="ml-auto">{tasks.length}</Badge>
+                    <span className="wayfinding text-black/70 dark:text-white/70">{statusLabel}</span>
+                    <Badge variant="secondary" className="ml-auto tabular-nums">{tasks.length}</Badge>
                   </div>
 
                   <div className="space-y-2 min-h-[40px]">

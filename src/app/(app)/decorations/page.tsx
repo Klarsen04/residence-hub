@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, DoorOpen, LayoutGrid, Ruler, Trash2, Heart, CheckCircle, Users, DollarSign, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -169,24 +168,23 @@ export default function DecorationsPage() {
       transition={{ duration: 0.4 }}
       className="space-y-6 max-w-7xl"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Decoration Hub</h1>
-          <p className="text-muted-foreground mt-1">Share and discover door decs, bulletin boards, and hallway ideas</p>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Decoration
-        </Button>
-      </div>
+      <PageHeader
+        code="L3 · DECORATIONS"
+        title="Decoration Hub"
+        subtitle="A craft catalog — door decs, bulletin boards, and hallway ideas with materials and costs."
+        action={
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Decoration
+          </Button>
+        }
+      />
 
       {suggested !== "ALL" && categoryFilter === "ALL" && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/[0.05] border border-primary/20">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Sparkles className="h-4 w-4 text-primary" />
-          </div>
+        <div className="flex items-center gap-3 mb-8 p-4 rounded-xl bg-[hsl(var(--terracotta)/0.06)] border border-[hsl(var(--terracotta)/0.2)]">
+          <Sparkles className="h-4 w-4 shrink-0 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" />
           <span className="text-sm flex-1">
-            It&apos;s <span className="font-medium text-primary">{decorationCategories.find((c) => c.value === suggested)?.label}</span> season!
+            It&apos;s <span className="font-display text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">{decorationCategories.find((c) => c.value === suggested)?.label}</span> season!
           </span>
           <Button size="sm" variant="outline" onClick={() => setCategoryFilter(suggested)}>
             Show ideas
@@ -195,13 +193,15 @@ export default function DecorationsPage() {
       )}
 
       {showForm && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="border-primary/20">
-          <CardContent className="p-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+          <div className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-6">
+            <div className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] mb-5">
+              New craft
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Title *</label>
+                  <label className="wayfinding text-muted-foreground">Title *</label>
                   <Input
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -211,7 +211,7 @@ export default function DecorationsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Photo URL</label>
+                  <label className="wayfinding text-muted-foreground">Photo URL</label>
                   <Input
                     value={form.imageUrl}
                     onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
@@ -220,9 +220,9 @@ export default function DecorationsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Type *</label>
+                  <label className="wayfinding text-muted-foreground">Type *</label>
                   <select
-                    className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+                    className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] focus:border-[hsl(var(--terracotta)/0.4)] transition-all"
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                   >
@@ -232,9 +232,9 @@ export default function DecorationsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Season/Theme *</label>
+                  <label className="wayfinding text-muted-foreground">Season/Theme *</label>
                   <select
-                    className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+                    className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] focus:border-[hsl(var(--terracotta)/0.4)] transition-all"
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                   >
@@ -245,18 +245,18 @@ export default function DecorationsPage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Description</label>
+                <label className="wayfinding text-muted-foreground">Description</label>
                 <textarea
-                  className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
+                  className="mt-1.5 flex min-h-[80px] w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] focus:border-[hsl(var(--terracotta)/0.4)] transition-all"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Brief description..."
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Instructions</label>
+                <label className="wayfinding text-muted-foreground">Instructions</label>
                 <textarea
-                  className="mt-1.5 flex min-h-[80px] w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
+                  className="mt-1.5 flex min-h-[80px] w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] focus:border-[hsl(var(--terracotta)/0.4)] transition-all"
                   value={form.instructions}
                   onChange={(e) => setForm({ ...form, instructions: e.target.value })}
                   placeholder="Step-by-step how to make it..."
@@ -264,7 +264,7 @@ export default function DecorationsPage() {
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium">Materials Needed</label>
+                  <label className="wayfinding text-muted-foreground">Materials Needed</label>
                   <Button type="button" variant="outline" size="sm" onClick={addMaterial}>+ Add</Button>
                 </div>
                 <div className="space-y-2">
@@ -281,72 +281,72 @@ export default function DecorationsPage() {
                 </div>
               </div>
               <div className="w-32">
-                <label className="text-sm font-medium">Est. Total Cost</label>
-                <Input type="number" step="0.01" value={form.costEstimate} onChange={(e) => setForm({ ...form, costEstimate: e.target.value })} placeholder="$0.00" />
+                <label className="wayfinding text-muted-foreground">Est. Total Cost</label>
+                <Input type="number" step="0.01" value={form.costEstimate} onChange={(e) => setForm({ ...form, costEstimate: e.target.value })} placeholder="$0.00" className="mt-1.5" />
               </div>
               <div className="flex gap-2 pt-2">
                 <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Add Decoration"}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
         </motion.div>
       )}
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search decorations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-        </div>
-      </div>
+      <SectionMarker
+        code="✦"
+        label="Catalog"
+        right={
+          <div className="relative w-52">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search decorations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+          </div>
+        }
+      />
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap mb-3">
         {types.map((t) => (
           <button
             key={t.value}
             onClick={() => setTypeFilter(t.value)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
               typeFilter === t.value
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-[hsl(var(--terracotta)/0.14)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] border border-[hsl(var(--terracotta)/0.3)]"
+                : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
             }`}
           >{t.label}</button>
         ))}
       </div>
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap mb-8">
         <button
           onClick={() => setCategoryFilter("ALL")}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+          className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
             categoryFilter === "ALL"
-              ? "bg-accent/20 text-accent border border-accent/30"
-              : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
+              ? "bg-[hsl(var(--sage)/0.14)] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] border border-[hsl(var(--sage)/0.3)]"
+              : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
           }`}
         >All Seasons</button>
         {decorationCategories.map((c) => (
           <button
             key={c.value}
             onClick={() => setCategoryFilter(c.value)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
               categoryFilter === c.value
-                ? "bg-accent/20 text-accent border border-accent/30"
-                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-[hsl(var(--sage)/0.14)] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] border border-[hsl(var(--sage)/0.3)]"
+                : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
             }`}
           >{c.label}</button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center space-y-4">
-            <div className="flex justify-center"><div className="p-4 rounded-2xl bg-primary/10"><LayoutGrid className="h-12 w-12 text-primary" /></div></div>
-            <div>
-              <h3 className="text-lg font-semibold">No decorations yet</h3>
-              <p className="text-muted-foreground max-w-md mx-auto mt-2">Be the first to share! Add photos of your door decs, bulletin boards, or hallway decorations.</p>
-            </div>
-            <Button onClick={() => setShowForm(true)}><Plus className="h-4 w-4 mr-2" />Add Your First Decoration</Button>
-          </CardContent>
-        </Card>
+        <EmptyPlate
+          code="L3 · EMPTY"
+          title="No decorations yet"
+          hint="Be the first to share — add photos of your door decs, bulletin boards, or hallway decorations."
+          icon={<LayoutGrid className="h-7 w-7" strokeWidth={1.5} />}
+          action={<Button onClick={() => setShowForm(true)}><Plus className="h-4 w-4 mr-2" />Add Your First Decoration</Button>}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((dec: any) => {
@@ -355,7 +355,7 @@ export default function DecorationsPage() {
             const favCount = dec._count?.favoritedBy || 0;
 
             return (
-              <Card key={dec.id} className="overflow-hidden group hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5">
+              <div key={dec.id} className="overflow-hidden rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card group hover:border-[hsl(var(--terracotta)/0.4)] transition-colors">
                 {dec.imageUrl ? (
                   <div className="aspect-[4/3] bg-muted relative">
                     <img src={dec.imageUrl} alt={dec.title} className="w-full h-full object-cover" />
@@ -366,10 +366,10 @@ export default function DecorationsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="aspect-[4/3] bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center relative">
-                    {dec.type === "DOOR_DECORATION" && <DoorOpen className="h-12 w-12 text-primary/30" />}
-                    {dec.type === "BULLETIN_BOARD" && <LayoutGrid className="h-12 w-12 text-primary/30" />}
-                    {dec.type === "HALLWAY_DECORATION" && <Ruler className="h-12 w-12 text-primary/30" />}
+                  <div className="aspect-[4/3] bg-[hsl(var(--sage)/0.08)] flex items-center justify-center relative">
+                    {dec.type === "DOOR_DECORATION" && <DoorOpen className="h-12 w-12 text-[hsl(var(--sage)/0.4)]" strokeWidth={1.5} />}
+                    {dec.type === "BULLETIN_BOARD" && <LayoutGrid className="h-12 w-12 text-[hsl(var(--sage)/0.4)]" strokeWidth={1.5} />}
+                    {dec.type === "HALLWAY_DECORATION" && <Ruler className="h-12 w-12 text-[hsl(var(--sage)/0.4)]" strokeWidth={1.5} />}
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-red-500">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -377,23 +377,23 @@ export default function DecorationsPage() {
                     </div>
                   </div>
                 )}
-                <CardContent className="p-4">
-                  <h3 className="font-semibold">{dec.title}</h3>
+                <div className="p-4">
+                  <h3 className="font-display text-lg leading-tight">{dec.title}</h3>
                   {dec.description && <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{dec.description}</p>}
 
                   <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    <Badge variant="outline" className="text-xs">{dec.type.replace(/_/g, " ")}</Badge>
-                    <Badge variant="secondary" className="text-xs">{dec.category.replace(/_/g, " ")}</Badge>
+                    <span className="wayfinding text-muted-foreground">{dec.type.replace(/_/g, " ")}</span>
+                    <span className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]">{dec.category.replace(/_/g, " ")}</span>
                     {dec.costEstimate != null && (
-                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground tabular-nums">
                         <DollarSign className="h-3 w-3" />{dec.costEstimate.toFixed(2)}
                       </span>
                     )}
                   </div>
 
                   {dec.materials?.length > 0 && (
-                    <div className="mt-3 pt-3 border-t">
-                      <p className="text-xs font-medium mb-1">Materials:</p>
+                    <div className="mt-3 pt-3 rule">
+                      <p className="wayfinding text-muted-foreground mb-1.5">Materials</p>
                       <ul className="text-xs text-muted-foreground space-y-0.5">
                         {dec.materials.slice(0, 3).map((m: any) => (
                           <li key={m.id}>{m.name}{m.quantity ? ` (${m.quantity})` : ""}{m.cost ? ` — $${m.cost.toFixed(2)}` : ""}</li>
@@ -404,7 +404,7 @@ export default function DecorationsPage() {
                   )}
 
                   {/* Action buttons */}
-                  <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+                  <div className="flex items-center gap-3 mt-3 pt-3 rule">
                     <button
                       onClick={() => handleFavorite(dec.id)}
                       className={`flex items-center gap-1 text-xs ${isFavorited ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
@@ -415,7 +415,7 @@ export default function DecorationsPage() {
 
                     <button
                       onClick={() => setShowMadeForm(showMadeForm === dec.id ? null : dec.id)}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-green-600"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[hsl(var(--sage))] dark:hover:text-[hsl(var(--sage-soft))]"
                     >
                       <CheckCircle className="h-4 w-4" />
                       <span>I made this{madeCount > 0 ? ` (${madeCount})` : ""}</span>
@@ -424,7 +424,7 @@ export default function DecorationsPage() {
 
                   {/* "I made this" form */}
                   {showMadeForm === dec.id && (
-                    <div className="mt-3 pt-3 border-t space-y-2">
+                    <div className="mt-3 pt-3 rule space-y-2">
                       <Input
                         value={madeData.imageUrl}
                         onChange={(e) => setMadeData({ ...madeData, imageUrl: e.target.value })}
@@ -450,8 +450,8 @@ export default function DecorationsPage() {
                   )}
 
                   <p className="text-xs text-muted-foreground mt-2">by {dec.user?.name || "Unknown"}</p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>

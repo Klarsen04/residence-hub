@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, StickyNote, Trash2, Pin, PinOff, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 interface Note {
   id: string;
@@ -20,14 +20,16 @@ interface Note {
 
 const noteColorNames = ["purple", "blue", "emerald", "amber", "pink", "cyan"];
 
-function getColorClasses(color: string): string {
+// Each note gets a warm tint from the wayfinding palette. The stored color
+// names are kept for compatibility; here they map to a top accent hairline.
+function getAccentClass(color: string): string {
   const map: Record<string, string> = {
-    purple: "from-primary/10 to-primary/5 border-primary/20",
-    blue: "from-accent/10 to-accent/5 border-accent/20",
-    emerald: "from-emerald-500/10 to-emerald-500/5 border-emerald-500/20",
-    amber: "from-amber-500/10 to-amber-500/5 border-amber-500/20",
-    pink: "from-accent/10 to-accent/5 border-accent/20",
-    cyan: "from-[hsl(var(--sage-soft))] to-[hsl(var(--sage-soft))] border-cyan-500/20",
+    purple: "bg-[hsl(var(--terracotta))]",
+    blue: "bg-[hsl(var(--sage))]",
+    emerald: "bg-[hsl(var(--sage))]",
+    amber: "bg-[hsl(var(--terracotta))]",
+    pink: "bg-[hsl(var(--terracotta-soft))]",
+    cyan: "bg-[hsl(var(--sage-soft))]",
   };
   return map[color] || map.purple;
 }
@@ -118,77 +120,77 @@ export default function NotesPage() {
       transition={{ duration: 0.4 }}
       className="space-y-6 max-w-7xl"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500">
-            <StickyNote className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Quick Notes</h1>
-            <p className="text-muted-foreground mt-0.5">Personal notepad for ideas and reminders</p>
-          </div>
-        </div>
-        <Button onClick={() => setShowNew(!showNew)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Note
-        </Button>
-      </div>
+      <PageHeader
+        code="L2 · NOTES"
+        title="Quick Notes"
+        subtitle="Your personal noticeboard — ideas, reminders, and things to pin up."
+        action={
+          <Button onClick={() => setShowNew(!showNew)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Note
+          </Button>
+        }
+      />
 
       <AnimatePresence>
         {showNew && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-            <Card className="border-primary/20">
-              <CardContent className="p-5 space-y-3">
-                <Input
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="Note title..."
-                  autoFocus
-                />
-                <textarea
-                  value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  placeholder="Write your note..."
-                  className="w-full min-h-[100px] rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all placeholder:text-muted-foreground"
-                />
-                <div className="flex gap-2">
-                  <Button onClick={addNote}>Save Note</Button>
-                  <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-                </div>
-              </CardContent>
-            </Card>
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mb-10">
+            <div className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-5 space-y-3">
+              <div className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">
+                Pin a note
+              </div>
+              <Input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Note title..."
+                autoFocus
+              />
+              <textarea
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                placeholder="Write your note..."
+                className="w-full min-h-[100px] rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] focus:border-[hsl(var(--terracotta)/0.4)] transition-all placeholder:text-muted-foreground"
+              />
+              <div className="flex gap-2">
+                <Button onClick={addNote}>Save Note</Button>
+                <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      <SectionMarker code="✦" label="The board" />
+
       {sortedNotes.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <StickyNote className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground">No notes yet. Create one!</p>
-          </CardContent>
-        </Card>
+        <EmptyPlate
+          code="L2 · EMPTY"
+          title="Nothing pinned yet"
+          hint="Jot down a reminder or idea and it stays on your board."
+          icon={<StickyNote className="h-7 w-7" strokeWidth={1.5} />}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sortedNotes.map((note) => (
             <motion.div key={note.id} layout>
-              <div className={`group rounded-2xl border bg-gradient-to-br ${getColorClasses(note.color)} p-5 transition-all duration-200 hover:-translate-y-0.5 relative`}>
+              <div className="group relative overflow-hidden rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-5 transition-colors hover:border-black/[0.2] dark:hover:border-white/[0.2]">
+                <span className={`absolute inset-x-0 top-0 h-1 ${getAccentClass(note.color)}`} />
                 {note.pinned && (
                   <div className="absolute top-3 right-3">
-                    <Pin className="h-3 w-3 text-primary fill-primary" />
+                    <Pin className="h-3 w-3 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] fill-current" />
                   </div>
                 )}
                 {editingId === note.id ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2 pt-1">
                     <Input
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="h-8 text-sm font-semibold"
+                      className="h-8 text-sm font-display"
                     />
                     <textarea
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full min-h-[80px] rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                      className="w-full min-h-[80px] rounded-lg border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] transition-all"
                     />
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => saveEdit(note.id)}>Save</Button>
@@ -198,18 +200,18 @@ export default function NotesPage() {
                 ) : (
                   <>
                     <h3
-                      className="font-semibold text-sm mb-2 cursor-pointer hover:text-primary transition-colors"
+                      className="font-display text-lg leading-tight mb-2 cursor-pointer hover:text-[hsl(var(--terracotta))] dark:hover:text-[hsl(var(--terracotta-soft))] transition-colors pt-1"
                       onClick={() => startEditing(note)}
                     >
                       {note.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-6">{note.content}</p>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.06]">
-                      <span className="text-[10px] text-muted-foreground">{note.createdAt}</span>
+                    <p className="text-sm text-black/70 dark:text-white/70 whitespace-pre-line line-clamp-6">{note.content}</p>
+                    <div className="flex items-center justify-between mt-4 pt-3 rule">
+                      <span className="wayfinding text-muted-foreground">{note.createdAt}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => togglePin(note.id)}
-                          className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                          className="p-1 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] transition-all"
                         >
                           {note.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                         </button>

@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Plus, User, Clock, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import { MessageCircle, Plus, User, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { PageHeader, SectionMarker, Plate, PlateRow, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -102,52 +102,30 @@ export default function CheckInsPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-5xl"
+      className="max-w-5xl"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary">
-            <MessageCircle className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">1:1 Check-Ins</h1>
-            <p className="text-muted-foreground mt-0.5">Track individual conversations with residents</p>
-          </div>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Log Check-In
-        </Button>
-      </div>
+      <PageHeader
+        code="02·C · CHECK-INS"
+        title="1:1 Check-Ins"
+        subtitle="Track individual conversations with residents — a running log, one person at a time."
+        action={
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Log Check-In
+          </Button>
+        }
+      />
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card">
-          <div className="flex items-center gap-2 mb-1">
-            <MessageCircle className="h-4 w-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Total Check-Ins</span>
-          </div>
-          <p className="text-2xl font-bold">{totalCheckIns}</p>
-        </div>
-        <div className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05]">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="h-4 w-4 text-amber-400" />
-            <span className="text-xs text-amber-400">Due for Check-In</span>
-          </div>
-          <p className="text-2xl font-bold text-amber-400">{allResidents.length}</p>
-        </div>
-        <div className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05]">
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <span className="text-xs text-emerald-400">Residents</span>
-          </div>
-          <p className="text-2xl font-bold text-emerald-400">{allResidents.length}</p>
-        </div>
-      </div>
+      <PlateRow className="grid-cols-3 mb-10">
+        <Plate code="01" value={totalCheckIns} label="Total check-ins" accent />
+        <Plate code="02" value={allResidents.length} label="Due for check-in" />
+        <Plate code="03" value={allResidents.length} label="Residents" />
+      </PlateRow>
 
       {showForm && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-primary/20">
-            <CardContent className="p-5">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+          <div className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card">
+            <div className="p-5">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -218,62 +196,72 @@ export default function CheckInsPage() {
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
       )}
 
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-muted-foreground">Your Residents — tap to check in</h3>
-          <div className="relative w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="h-8 text-xs pl-8" />
-          </div>
-        </div>
-        <div className="grid gap-2 md:grid-cols-2">
-          {filteredResidents.map((resident: any) => (
-            <div
-              key={resident.id || resident.room}
-              onClick={() => selectResident(resident)}
-              className="flex items-center gap-3 p-3 rounded-xl border border-black/[0.06] dark:border-white/[0.06] hover:border-primary/20 cursor-pointer transition-all hover:-translate-y-0.5"
-            >
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary flex items-center justify-center text-white font-bold text-xs">
-                {resident.room}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{resident.name}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {resident.year || "Resident"}{resident.major ? ` • ${resident.major}` : ""}
-                </p>
-              </div>
+      <div className="mb-12">
+        <SectionMarker
+          code="02·C"
+          label="Your directory"
+          right={
+            <div className="relative w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="h-8 text-xs pl-8" />
             </div>
-          ))}
-        </div>
+          }
+        />
+        {filteredResidents.length === 0 ? (
+          <EmptyPlate
+            code="02·C · EMPTY"
+            title="No residents to check in"
+            hint="Add residents to your floor roster to start logging conversations."
+            icon={<MessageCircle className="h-7 w-7" strokeWidth={1.5} />}
+          />
+        ) : (
+          <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
+            {filteredResidents.map((resident: any) => (
+              <div
+                key={resident.id || resident.room}
+                onClick={() => selectResident(resident)}
+                className="group flex items-center gap-3 bg-card p-4 cursor-pointer transition-colors hover:bg-[hsl(var(--sage)/0.06)]"
+              >
+                <div className="h-10 w-10 rounded-lg bg-black/[0.05] dark:bg-white/[0.06] flex items-center justify-center font-display text-base tabular-nums shrink-0">
+                  {resident.room}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{resident.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {resident.year || "Resident"}{resident.major ? ` • ${resident.major}` : ""}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {allCheckIns.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Recent Check-Ins</h3>
-          <div className="space-y-2">
+          <SectionMarker code="✦" label="Recent check-ins" />
+          <div>
             {allCheckIns.map((ci: any) => {
               const topics = ci.topics ? (typeof ci.topics === "string" ? JSON.parse(ci.topics) : ci.topics) : [];
               const mood = ci.mood as keyof typeof moodConfig;
               return (
-                <Card key={ci.id}>
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{ci.residentName}{ci.room ? ` (Rm ${ci.room})` : ""}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {topics.length > 0 ? topics.join(", ") : "General"} • {new Date(ci.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    {moodConfig[mood] && <Badge className={moodConfig[mood].color}>{moodConfig[mood].label}</Badge>}
-                  </CardContent>
-                </Card>
+                <div key={ci.id} className="group flex items-center gap-4 py-4 rule first:border-t-0">
+                  <div className="p-2 rounded-lg bg-[hsl(var(--sage)/0.1)]">
+                    <User className="h-4 w-4 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" strokeWidth={1.75} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{ci.residentName}{ci.room ? ` (Rm ${ci.room})` : ""}</p>
+                    <p className="wayfinding text-muted-foreground mt-0.5 normal-case">
+                      {topics.length > 0 ? topics.join(", ") : "General"} • {new Date(ci.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {moodConfig[mood] && <Badge className={moodConfig[mood].color}>{moodConfig[mood].label}</Badge>}
+                </div>
               );
             })}
           </div>

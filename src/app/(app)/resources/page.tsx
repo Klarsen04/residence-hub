@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ExternalLink, Phone, BookOpen, Heart, Shield, GraduationCap, Users, Utensils } from "lucide-react";
+import { Plus, Search, ExternalLink, BookOpen, Heart, Shield, GraduationCap, Users, Utensils } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -139,25 +138,28 @@ export default function ResourcesPage() {
       transition={{ duration: 0.4 }}
       className="space-y-6 max-w-7xl"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Resources</h1>
-          <p className="text-muted-foreground mt-1">NYIT resources and team-shared materials</p>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Share Resource
-        </Button>
-      </div>
+      <PageHeader
+        code="G · RESOURCES"
+        title="Resources"
+        subtitle="The front desk — NYIT services and materials the team has shared."
+        action={
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Share Resource
+          </Button>
+        }
+      />
 
       {showForm && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="border-primary/20">
-          <CardContent className="p-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+          <div className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-6">
+            <div className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] mb-5">
+              Add to the desk
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Title</label>
+                  <label className="wayfinding text-muted-foreground">Title</label>
                   <Input
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -167,7 +169,7 @@ export default function ResourcesPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">URL</label>
+                  <label className="wayfinding text-muted-foreground">URL</label>
                   <Input
                     value={form.url}
                     onChange={(e) => setForm({ ...form, url: e.target.value })}
@@ -177,7 +179,7 @@ export default function ResourcesPage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Description</label>
+                <label className="wayfinding text-muted-foreground">Description</label>
                 <Input
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -186,9 +188,9 @@ export default function ResourcesPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Category</label>
+                <label className="wayfinding text-muted-foreground">Category</label>
                 <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+                  className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[hsl(var(--terracotta)/0.3)] focus:border-[hsl(var(--terracotta)/0.4)] transition-all"
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                 >
@@ -202,32 +204,35 @@ export default function ResourcesPage() {
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
         </motion.div>
       )}
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search resources..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+      <SectionMarker
+        code="✦"
+        label="Directory"
+        right={
+          <div className="relative w-52">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search resources..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+        }
+      />
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap mb-8">
         {resourceTypes.map((t) => (
           <button
             key={t}
             onClick={() => setFilter(t)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-mono uppercase tracking-wide transition-all duration-200 ${
               filter === t
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "bg-black/[0.04] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.06] dark:border-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/[0.08] hover:text-foreground"
+                ? "bg-[hsl(var(--terracotta)/0.14)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] border border-[hsl(var(--terracotta)/0.3)]"
+                : "bg-black/[0.03] dark:bg-white/[0.04] text-muted-foreground border border-black/[0.08] dark:border-white/[0.08] hover:text-foreground"
             }`}
           >
             {t === "ALL" ? "All" : t.replace(/_/g, " ")}
@@ -235,57 +240,52 @@ export default function ResourcesPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((resource) => {
-          const Icon = typeIcons[resource.type] || BookOpen;
-          return (
-            <Card key={resource.id} className="hover:border-black/[0.15] dark:hover:border-white/[0.15] hover:-translate-y-0.5">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 shrink-0">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm">{resource.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {resource.description}
-                    </p>
-                    <div className="flex items-center gap-2 mt-2.5">
-                      <Badge variant="secondary">
-                        {resource.type.replace(/_/g, " ")}
-                      </Badge>
-                      {resource.isNYIT && (
-                        <Badge className="bg-accent/15 text-accent border-accent/20">NYIT</Badge>
-                      )}
-                      {!resource.isNYIT && resource.sharedBy && (
-                        <span className="text-[11px] text-muted-foreground">by {resource.sharedBy}</span>
-                      )}
-                    </div>
-                    {resource.url && (
-                      <a
-                        href={resource.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary mt-2.5 transition-colors"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        {resource.url.startsWith("tel:") ? "Call" : "Open"}
-                      </a>
+      {filtered.length === 0 ? (
+        <EmptyPlate
+          code="G · EMPTY"
+          title="No resources found"
+          hint="Try a different category, or share the first one with your team."
+          icon={<BookOpen className="h-7 w-7" strokeWidth={1.5} />}
+        />
+      ) : (
+        <div className="rounded-xl border border-black/[0.08] dark:border-white/[0.08] overflow-hidden divide-y divide-black/[0.07] dark:divide-white/[0.07]">
+          {filtered.map((resource) => {
+            const Icon = typeIcons[resource.type] || BookOpen;
+            return (
+              <div key={resource.id} className="group flex items-start gap-4 px-5 py-4 bg-card hover:bg-[hsl(var(--sage)/0.06)] transition-colors">
+                <div className="mt-0.5 shrink-0 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]">
+                  <Icon className="h-5 w-5" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <h3 className="font-display text-lg leading-tight">{resource.title}</h3>
+                    <span className="wayfinding text-muted-foreground">{resource.type.replace(/_/g, " ")}</span>
+                    {resource.isNYIT && (
+                      <span className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">NYIT</span>
+                    )}
+                    {!resource.isNYIT && resource.sharedBy && (
+                      <span className="text-[11px] text-muted-foreground">by {resource.sharedBy}</span>
                     )}
                   </div>
+                  {resource.description && (
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{resource.description}</p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {filtered.length === 0 && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No resources found matching your search.</p>
-          </CardContent>
-        </Card>
+                {resource.url && (
+                  <a
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 self-center inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-80 transition-opacity"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {resource.url.startsWith("tel:") ? "Call" : "Open"}
+                  </a>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </motion.div>
   );
