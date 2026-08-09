@@ -118,23 +118,20 @@ export default function AIPlannerPage() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      // Fill <main>'s content box exactly (h-full = 100% of the already-
-      // padding-subtracted height), so the page never overflows <main> and only
-      // the message thread scrolls. h-full is reliable here because <main> is a
-      // flex-1 child of a min-h-screen row, giving it a definite height.
-      className="max-w-6xl flex flex-col h-full min-h-0"
+      className="max-w-6xl"
     >
-      <div className="shrink-0">
-        <PageHeader
-          code="✦ · AI PLANNER"
-          title="Planning Assistant"
-          subtitle="Chat through event ideas, budgets, and timelines. Ask follow-ups — it remembers the conversation."
-        />
-      </div>
+      <PageHeader
+        code="✦ · AI PLANNER"
+        title="Planning Assistant"
+        subtitle="Chat through event ideas, budgets, and timelines. Ask follow-ups — it remembers the conversation."
+      />
 
-      <div className="grid md:grid-cols-[240px_1fr] grid-rows-1 gap-5 flex-1 min-h-0">
+      {/* Normal document flow: the page scrolls like every other page. The chat
+          card has a bounded height so its thread scrolls inside it, but no
+          overflow-hidden ancestor traps touchpad wheel scrolling. */}
+      <div className="grid md:grid-cols-[240px_1fr] gap-5">
         {/* Conversation history */}
-        <aside className="space-y-2 min-h-0 md:overflow-y-auto">
+        <aside className="space-y-2">
           <button onClick={newChat} className="w-full inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-medium">
             <Plus className="h-4 w-4" /> New chat
           </button>
@@ -153,7 +150,7 @@ export default function AIPlannerPage() {
         </aside>
 
         {/* Chat thread */}
-        <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-full min-h-0 overflow-hidden">
+        <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-[70vh]">
           <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-5">
             {messages.length === 0 && !sending ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-6">
