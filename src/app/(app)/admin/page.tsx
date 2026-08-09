@@ -6,8 +6,9 @@ import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Copy, Check } from "lucide-react";
+import { Plus, Copy, Check, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -60,22 +61,33 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Admin</h1>
-        <p className="text-muted-foreground">Manage authorization codes for new staff</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6 max-w-4xl mx-auto"
+    >
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
+          <Shield className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold">Admin</h1>
+          <p className="text-muted-foreground">Manage authorization codes for new staff</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] to-orange-500/[0.03]" />
+        <CardHeader className="relative">
           <CardTitle>Generate Authorization Code</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative">
           <div className="flex items-end gap-4">
-            <div>
-              <label className="text-sm font-medium">Role</label>
+            <div className="flex-1 max-w-xs">
+              <label className="text-sm font-medium text-muted-foreground">Role</label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
               >
@@ -89,7 +101,7 @@ export default function AdminPage() {
               {generating ? "Generating..." : "Generate Code"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground mt-3">
             Codes expire after 30 days and can only be used once.
           </p>
         </CardContent>
@@ -101,17 +113,20 @@ export default function AdminPage() {
         </CardHeader>
         <CardContent>
           {!codes || codes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No codes generated yet</p>
+            <div className="text-center py-8">
+              <Shield className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No codes generated yet</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {codes.map((code: any) => (
-                <div key={code.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={code.id} className="flex items-center justify-between p-4 rounded-xl border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors">
                   <div className="flex items-center gap-3">
-                    <code className="font-mono text-lg font-bold tracking-wider">{code.code}</code>
+                    <code className="font-mono text-base font-bold tracking-wider text-foreground">{code.code}</code>
                     <Badge variant={code.usedBy ? "secondary" : "default"}>
                       {code.usedBy ? "Used" : "Available"}
                     </Badge>
-                    <Badge variant="outline">{code.role.replace(/_/g, " ")}</Badge>
+                    <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/20">{code.role.replace(/_/g, " ")}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     {code.expiresAt && (
@@ -120,8 +135,8 @@ export default function AdminPage() {
                       </span>
                     )}
                     {!code.usedBy && (
-                      <Button variant="ghost" size="icon" onClick={() => copyCode(code.id, code.code)}>
-                        {copiedId === code.id ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      <Button variant="ghost" size="icon" onClick={() => copyCode(code.id, code.code)} className="rounded-xl">
+                        {copiedId === code.id ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     )}
                   </div>
@@ -131,6 +146,6 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

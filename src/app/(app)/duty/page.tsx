@@ -1,0 +1,233 @@
+"use client";
+
+import { useState } from "react";
+import useSWR from "swr";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Shield, ChevronLeft, ChevronRight, Moon, Sun, Clock, Plus } from "lucide-react";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+interface DutyShift {
+  id: string;
+  date: string;
+  ra: string;
+  type: "evening" | "overnight" | "weekend";
+  notes?: string;
+}
+
+const generateWeekDates = (startOfWeek: Date) => {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+};
+
+
+const typeConfig = {
+  evening: { icon: Moon, label: "Evening", color: "bg-primary/15 text-primary border-primary/20", time: "7 PM - 12 AM" },
+  overnight: { icon: Moon, label: "Overnight", color: "bg-accent/15 text-accent border-accent/20", time: "12 AM - 8 AM" },
+  weekend: { icon: Sun, label: "Weekend", color: "bg-amber-500/15 text-amber-400 border-amber-500/20", time: "All Day" },
+};
+
+export default function DutyPage() {
+  const { data: shifts, mutate } = useSWR("/api/duty", fetcher);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newShift, setNewShift] = useState({ date: "", type: "evening" });
+  const allShifts: DutyShift[] = (shifts || []).map((s: any) => ({ ...s, ra: s.user?.name || "You" }));
+
+  const [currentWeek, setCurrentWeek] = useState(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const start = new Date(now);
+    start.setDate(now.getDate() - day);
+    return start;
+  });
+
+  const weekDates = generateWeekDates(currentWeek);
+
+  const prevWeek = () => {
+    const d = new Date(currentWeek);
+    d.setDate(d.getDate() - 7);
+    setCurrentWeek(d);
+  };
+
+  const nextWeek = () => {
+    const d = new Date(currentWeek);
+    d.setDate(d.getDate() + 7);
+    setCurrentWeek(d);
+  };
+
+  const getShiftsForDate = (date: Date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    return allShifts.filter(s => s.date === dateStr);
+  };
+
+  const today = new Date().toISOString().split("T")[0];
+  const myNextDuty = allShifts.find(s => s.ra === "You" && s.date >= today);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6 max-w-5xl"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-primary">
+            <Shield className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Duty Schedule</h1>
+            <p className="text-muted-foreground mt-0.5">Track RA duty nights and shifts</p>
+          </div>
+        </div>
+        <Button onClick={() => setShowAddForm(!showAddForm)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Shift
+        </Button>
+      </div>
+
+      {showAddForm && (
+        <Card className="border-primary/20">
+          <CardContent className="p-4 flex items-end gap-3">
+            <div className="flex-1">
+              <label className="text-sm font-medium text-muted-foreground">Date</label>
+              <Input type="date" value={newShift.date} onChange={(e) => setNewShift({ ...newShift, date: e.target.value })} className="mt-1" />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium text-muted-foreground">Type</label>
+              <select
+                className="mt-1 flex h-10 w-full rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-4 py-2 text-sm outline-none"
+                value={newShift.type}
+                onChange={(e) => setNewShift({ ...newShift, type: e.target.value })}
+              >
+                <option value="evening">Evening</option>
+                <option value="overnight">Overnight</option>
+                <option value="weekend">Weekend</option>
+              </select>
+            </div>
+            <Button onClick={async () => {
+              if (!newShift.date) { toast.error("Select a date"); return; }
+              await fetch("/api/duty", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newShift) });
+              mutate();
+              setNewShift({ date: "", type: "evening" });
+              setShowAddForm(false);
+              toast.success("Shift added!");
+            }}>Save</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {myNextDuty && (
+        <Card className="border-primary/20 overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-primary to-primary" />
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Your Next Duty</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(myNextDuty.date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+                {" "} — {typeConfig[myNextDuty.type].time}
+              </p>
+            </div>
+            <Badge className={`ml-auto ${typeConfig[myNextDuty.type].color}`}>
+              {typeConfig[myNextDuty.type].label}
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-5">
+            <Button variant="ghost" size="icon" onClick={prevWeek} className="rounded-xl">
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <h2 className="text-lg font-semibold">
+              {weekDates[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} — {weekDates[6].toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={nextWeek} className="rounded-xl">
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {weekDates.map((date, i) => {
+              const dateStr = date.toISOString().split("T")[0];
+              const isToday = dateStr === today;
+              const shifts = getShiftsForDate(date);
+
+              return (
+                <div
+                  key={i}
+                  className={`p-3 rounded-2xl border transition-all min-h-[120px] ${
+                    isToday
+                      ? "border-primary/30 bg-primary/[0.05]"
+                      : "border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <div className="text-center mb-2">
+                    <p className="text-[10px] text-muted-foreground uppercase font-medium">{SHORT_DAYS[i]}</p>
+                    <p className={`text-lg font-bold ${isToday ? "text-primary" : ""}`}>{date.getDate()}</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {shifts.map((shift) => {
+                      const config = typeConfig[shift.type];
+                      const isMe = shift.ra === "You";
+                      return (
+                        <div
+                          key={shift.id}
+                          className={`p-1.5 rounded-lg text-center ${
+                            isMe ? "bg-primary/15 border border-primary/20" : "bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.06]"
+                          }`}
+                        >
+                          <p className={`text-[10px] font-medium ${isMe ? "text-primary" : "text-muted-foreground"}`}>
+                            {shift.ra}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground">{config.label}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {Object.entries(typeConfig).map(([key, config]) => {
+          const Icon = config.icon;
+          const count = allShifts.filter(s => s.ra === "You" && s.type === key).length;
+          return (
+            <div key={key} className="p-4 rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card/50">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${config.color.split(" ")[0]}`}>
+                  <Icon className="h-4 w-4 text-current" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{config.label} Shifts</p>
+                  <p className="text-xs text-muted-foreground">{config.time}</p>
+                </div>
+                <span className="ml-auto text-lg font-bold">{count}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}

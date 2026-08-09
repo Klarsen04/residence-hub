@@ -1,53 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getGemini } from "@/lib/gemini";
+import { generatePlan, AIPlannerError } from "@/lib/aiPlanner";
+import { getLimitStatus, recordUsage, limitMessage } from "@/lib/aiLimits";
 import { prisma } from "@/lib/prisma";
-
-const DAILY_FREE_LIMIT = 1500;
-const ADMIN_MONTHLY_LIMIT = 500;
-const MIN_PER_USER = 5;
-
-async function getUserMonthlyLimit(userId: string, role: string) {
-  if (role === "ADMIN") return ADMIN_MONTHLY_LIMIT;
-
-  const userCount = await prisma.user.count();
-  const effectiveUsers = Math.max(userCount, 20);
-
-  const perUserLimit = Math.max(
-    MIN_PER_USER,
-    Math.floor((DAILY_FREE_LIMIT * 30) / effectiveUsers)
-  );
-
-  return perUserLimit;
-}
-
-async function getUsageThisMonth(userId: string) {
-  const now = new Date();
-  const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-  const usage = await prisma.aIUsage.findUnique({
-    where: { userId_month: { userId, month } },
-  });
-
-  return { count: usage?.count || 0, month };
-}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { count, month } = await getUsageThisMonth(session.user.id);
-  const limit = await getUserMonthlyLimit(session.user.id, session.user.role);
-  const userCount = await prisma.user.count();
+  const status = await getLimitStatus(session.user.id, session.user.role);
 
+  // `used`/`limit`/`remaining` keep the existing UI contract; the per-user daily
+  // numbers drive the progress bar. Infinity (admins) serialises to null.
   return NextResponse.json({
-    used: count,
-    limit,
-    remaining: Math.max(0, limit - count),
-    month,
-    totalUsers: userCount,
-    isAdmin: session.user.role === "ADMIN",
+    used: status.userUsed,
+    limit: Number.isFinite(status.userLimit) ? status.userLimit : null,
+    remaining: Number.isFinite(status.userRemaining) ? status.userRemaining : null,
+    day: status.day,
+    isAdmin: status.isAdmin,
+    global: {
+      used: status.globalUsed,
+      limit: status.globalLimit || null,
+      remaining: Number.isFinite(status.globalRemaining) ? status.globalRemaining : null,
+    },
   });
 }
 
@@ -55,14 +31,9 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { count, month } = await getUsageThisMonth(session.user.id);
-  const limit = await getUserMonthlyLimit(session.user.id, session.user.role);
-
-  if (count >= limit) {
-    return NextResponse.json(
-      { error: `You've reached your monthly limit of ${limit} AI requests. Resets next month.` },
-      { status: 429 }
-    );
+  const status = await getLimitStatus(session.user.id, session.user.role);
+  if (status.blocked) {
+    return NextResponse.json({ error: limitMessage(status) }, { status: 429 });
   }
 
   const body = await req.json();
@@ -105,16 +76,11 @@ Provide your response in the following format:
 Be creative, practical, and budget-conscious. Suggest alternatives if the budget is tight.`;
 
   try {
-    const genAI = getGemini();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(prompt);
-    const response = result.response.text();
+    // Rotates OpenRouter → NVIDIA → Gemini, failing over on limit/error.
+    const { text: response } = await generatePlan(prompt);
 
-    await prisma.aIUsage.upsert({
-      where: { userId_month: { userId: session.user.id, month } },
-      update: { count: { increment: 1 } },
-      create: { userId: session.user.id, month, count: 1 },
-    });
+    // Count usage only on success (both per-user and global daily counters).
+    await recordUsage(session.user.id);
 
     await prisma.aIPlannerSession.create({
       data: {
@@ -127,12 +93,20 @@ Be creative, practical, and budget-conscious. Suggest alternatives if the budget
       },
     });
 
-    return NextResponse.json({ response, remaining: limit - count - 1 });
-  } catch (error: any) {
-    console.error("Gemini API error:", error);
+    const remaining = Number.isFinite(status.userRemaining)
+      ? Math.max(0, status.userRemaining - 1)
+      : null;
+    return NextResponse.json({ response, remaining });
+  } catch (error: unknown) {
+    console.error("AI planner error:", error);
+    const isConfig = error instanceof AIPlannerError && error.status === 503;
     return NextResponse.json(
-      { error: "AI generation failed. Please try again." },
-      { status: 500 }
+      {
+        error: isConfig
+          ? "AI planner is not configured yet. Please add an AI provider API key."
+          : "AI generation failed — all models were busy. Please try again in a moment.",
+      },
+      { status: isConfig ? 503 : 502 }
     );
   }
 }

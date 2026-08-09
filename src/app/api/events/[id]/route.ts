@@ -33,7 +33,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = await req.json();
-  const { title, description, date, startTime, endTime, location, category, status } = body;
+  const { title, description, date, startTime, endTime, location, category, status, attendance, reflection } = body;
 
   const existing = await prisma.event.findUnique({ where: { id } });
   if (!existing) {
@@ -61,6 +61,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       location,
       category,
       status,
+      ...(attendance !== undefined && { attendance: attendance ? parseInt(attendance) : null }),
+      ...(reflection !== undefined && { reflection }),
     },
   });
 
