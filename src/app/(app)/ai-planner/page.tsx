@@ -149,8 +149,11 @@ export default function AIPlannerPage() {
           </div>
         </aside>
 
-        {/* Chat thread */}
-        <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-[70vh]">
+        {/* Chat thread — sized so the whole page fits the viewport (no page
+            scroll), leaving the inner thread as the ONLY scroller. Uses calc
+            (not an overflow-hidden ancestor), so touchpad wheel scrolling isn't
+            trapped. Subtraction accounts for <main> padding + the page header. */}
+        <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-[calc(100dvh-16rem)] min-h-[22rem]">
           <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 space-y-5">
             {messages.length === 0 && !sending ? (
               <div className="h-full flex flex-col items-center justify-center text-center px-6">
