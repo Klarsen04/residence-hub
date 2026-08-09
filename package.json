@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && npx prisma db push --accept-data-loss && next build",
+    "build": "DATABASE_URL=\"file:./dev.db\" npx prisma generate && node scripts/sync-turso.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "npx prisma db push",
