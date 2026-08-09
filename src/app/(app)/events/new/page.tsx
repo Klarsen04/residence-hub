@@ -7,6 +7,12 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
+import { TagPicker } from "@/components/TagPicker";
+
+const WEEKDAYS = [
+  { i: 1, label: "Mon" }, { i: 2, label: "Tue" }, { i: 3, label: "Wed" },
+  { i: 4, label: "Thu" }, { i: 5, label: "Fri" }, { i: 6, label: "Sat" }, { i: 0, label: "Sun" },
+];
 
 const categories = [
   { value: "COMMUNITY_BUILDING", label: "Community Building" },
@@ -40,6 +46,8 @@ function NewEventForm() {
     location: "",
     category: searchParams.get("category") || "COMMUNITY_BUILDING",
   });
+  const [repeatDays, setRepeatDays] = useState<number[]>([]);
+  const [tagId, setTagId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +57,7 @@ function NewEventForm() {
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, tagId, recurrenceDays: repeatDays }),
       });
 
       if (!res.ok) {
@@ -154,24 +162,49 @@ function NewEventForm() {
                 className="mt-1.5"
               />
             </div>
+
+            <div>
+              <label className={labelClass}>Repeat on (optional — next 8 weeks)</label>
+              <div className="flex gap-1.5 flex-wrap mt-1.5">
+                {WEEKDAYS.map((d) => {
+                  const on = repeatDays.includes(d.i);
+                  return (
+                    <button
+                      key={d.i}
+                      type="button"
+                      onClick={() => setRepeatDays((r) => (on ? r.filter((x) => x !== d.i) : [...r, d.i]))}
+                      className={`h-9 w-11 rounded-lg text-sm transition-colors ${on ? "bg-primary text-primary-foreground" : "border border-black/[0.14] dark:border-white/[0.14] text-muted-foreground"}`}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 
         <section>
-          <SectionMarker code="C" label="Category" />
-          <div>
-            <label className={labelClass}>Category</label>
-            <select
-              className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            >
-              {categories.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
+          <SectionMarker code="C" label="Category & tag" />
+          <div className="space-y-5">
+            <div>
+              <label className={labelClass}>Category</label>
+              <select
+                className="mt-1.5 flex h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              >
+                {categories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Tag (colour label)</label>
+              <div className="mt-2">
+                <TagPicker value={tagId} onChange={setTagId} />
+              </div>
+            </div>
           </div>
         </section>
 

@@ -31,35 +31,48 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { title, description, date, startTime, endTime, location, category } = body;
+  const { title, description, date, startTime, endTime, location, category, tagId, recurrenceDays } = body;
 
   if (!title || !date || !startTime || !endTime || !category) {
     return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
   }
 
-  const dateObj = new Date(date);
   const [startH, startM] = startTime.split(":").map(Number);
   const [endH, endM] = endTime.split(":").map(Number);
+  const recurs = Array.isArray(recurrenceDays) && recurrenceDays.length > 0;
 
-  const startDateTime = new Date(dateObj);
-  startDateTime.setHours(startH, startM, 0, 0);
+  // Build the set of dates: the chosen date, plus each matching weekday over the
+  // next 8 weeks if recurrence days were selected.
+  const base = new Date(date);
+  const dates: Date[] = [];
+  if (recurs) {
+    for (let i = 0; i < 8 * 7; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      if (recurrenceDays.includes(d.getDay())) dates.push(d);
+    }
+    if (!dates.some((d) => d.toDateString() === base.toDateString())) dates.unshift(base);
+  } else {
+    dates.push(base);
+  }
 
-  const endDateTime = new Date(dateObj);
-  endDateTime.setHours(endH, endM, 0, 0);
+  const recurrenceJson = recurs ? JSON.stringify(recurrenceDays) : null;
 
-  const event = await prisma.event.create({
-    data: {
-      title,
-      description,
-      date: dateObj,
-      startTime: startDateTime,
-      endTime: endDateTime,
-      location,
-      category,
-      organizerId: session.user.id,
-      hallId: session.user.hallId,
-    },
-  });
+  const makeData = (dateObj: Date) => {
+    const startDateTime = new Date(dateObj); startDateTime.setHours(startH, startM, 0, 0);
+    const endDateTime = new Date(dateObj); endDateTime.setHours(endH, endM, 0, 0);
+    return {
+      title, description, date: dateObj, startTime: startDateTime, endTime: endDateTime,
+      location, category, tagId: tagId || null, recurrenceDays: recurrenceJson,
+      organizerId: session.user.id, hallId: session.user.hallId,
+    };
+  };
+
+  // Create the first as the returned event; bulk-create the rest.
+  const event = await prisma.event.create({ data: makeData(dates[0]) });
+  if (dates.length > 1) {
+    await prisma.event.createMany({ data: dates.slice(1).map(makeData) });
+  }
 
   return NextResponse.json(event, { status: 201 });
 }

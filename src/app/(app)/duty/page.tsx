@@ -3,66 +3,83 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { IlamyCalendar } from "@ilamy/calendar";
-import { Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
+import { TagPicker } from "@/components/TagPicker";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-// Shift types → time windows + a warm-palette colour for the calendar event.
 const SHIFT_TYPES: Record<string, { label: string; startHour: number; endHour: number; color: string }> = {
   evening: { label: "Evening", startHour: 19, endHour: 23, color: "#3f6b52" },
   overnight: { label: "Overnight", startHour: 0, endHour: 8, color: "#c05f3c" },
   weekend: { label: "Weekend", startHour: 9, endHour: 21, color: "#d99a3e" },
 };
 
-function toISO(d: any): string {
-  if (!d) return "";
-  if (typeof d === "string") return d;
-  if (typeof d?.toISOString === "function") return d.toISOString();
-  if (typeof d?.toDate === "function") return d.toDate().toISOString();
-  return String(d);
-}
+const WEEKDAYS = [
+  { i: 1, label: "Mon" }, { i: 2, label: "Tue" }, { i: 3, label: "Wed" },
+  { i: 4, label: "Thu" }, { i: 5, label: "Fri" }, { i: 6, label: "Sat" }, { i: 0, label: "Sun" },
+];
 
 export default function DutyPage() {
   const { data: shifts, mutate } = useSWR("/api/duty", fetcher);
-  const [newType, setNewType] = useState("evening");
+
+  // Which shift types are visible (filter toggles).
+  const [visible, setVisible] = useState<Record<string, boolean>>({ evening: true, overnight: true, weekend: true });
+  // Create panel state.
+  const [panelDay, setPanelDay] = useState<string | null>(null);
+  const [formType, setFormType] = useState("evening");
+  const [repeatDays, setRepeatDays] = useState<number[]>([]);
+  const [tagId, setTagId] = useState<string | null>(null);
 
   const allShifts = Array.isArray(shifts) ? shifts : [];
 
-  // Map duty shifts → ilamy calendar events. `date` is a "YYYY-MM-DD" day.
   const events = useMemo(
     () =>
-      allShifts.map((s: any) => {
-        const cfg = SHIFT_TYPES[s.type] || SHIFT_TYPES.evening;
-        const day = (s.date || "").slice(0, 10);
-        const start = new Date(`${day}T${String(cfg.startHour).padStart(2, "0")}:00:00`);
-        const end = new Date(`${day}T${String(cfg.endHour).padStart(2, "0")}:59:00`);
-        return {
-          id: s.id,
-          title: `${s.user?.name || "RA"} · ${cfg.label}`,
-          start: start.toISOString(),
-          end: end.toISOString(),
-          color: cfg.color,
-          backgroundColor: cfg.color,
-          data: { type: s.type, ra: s.user?.name },
-        };
-      }),
-    [allShifts]
+      allShifts
+        .filter((s: any) => visible[s.type] !== false)
+        .map((s: any) => {
+          const cfg = SHIFT_TYPES[s.type] || SHIFT_TYPES.evening;
+          const color = s.tag?.color || cfg.color;
+          const day = (s.date || "").slice(0, 10);
+          const start = new Date(`${day}T${String(cfg.startHour).padStart(2, "0")}:00:00`);
+          const end = new Date(`${day}T${String(cfg.endHour).padStart(2, "0")}:59:00`);
+          return {
+            id: s.id,
+            title: `${s.user?.name || "RA"} · ${s.tag?.name || cfg.label}`,
+            start: start.toISOString(),
+            end: end.toISOString(),
+            color,
+            backgroundColor: color,
+          };
+        }),
+    [allShifts, visible]
   );
 
-  // Click an empty day → create a shift of the currently-selected type.
-  const createShift = async (date: any) => {
-    const day = toISO(date).slice(0, 10);
+  const openPanel = (date: any) => {
+    const day =
+      typeof date === "string" ? date.slice(0, 10)
+      : date?.toISOString ? date.toISOString().slice(0, 10)
+      : date?.toDate ? date.toDate().toISOString().slice(0, 10)
+      : null;
     if (!day) return;
+    setPanelDay(day);
+    setRepeatDays([]);
+  };
+
+  const submit = async () => {
+    if (!panelDay) return;
     try {
       const res = await fetch("/api/duty", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: day, type: newType }),
+        body: JSON.stringify({ date: panelDay, type: formType, tagId, recurrenceDays: repeatDays, weeks: 8 }),
       });
+      const data = await res.json();
       if (!res.ok) throw new Error();
-      toast.success(`${SHIFT_TYPES[newType].label} shift added for ${day}`);
+      toast.success(data.created > 1 ? `Added ${data.created} shifts` : "Shift added");
+      setPanelDay(null);
+      setRepeatDays([]);
       mutate();
     } catch {
       toast.error("Failed to add shift");
@@ -81,47 +98,79 @@ export default function DutyPage() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-5 max-w-6xl"
-    >
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-[hsl(var(--sage-soft))]">
-            <Shield className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Duty Schedule</h1>
-            <p className="text-muted-foreground mt-0.5">Everyone&apos;s on-duty shifts — click a day to add yours</p>
-          </div>
-        </div>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="max-w-6xl">
+      <PageHeader
+        code="G · DUTY"
+        title="Duty Schedule"
+        subtitle="Everyone's on-duty shifts. Click a day to add yours — repeat across weekdays, tag it, and filter the board."
+      />
 
-        {/* Shift-type picker: the kind of shift a day-click creates */}
-        <div className="flex items-center gap-1.5 rounded-xl border border-black/[0.1] dark:border-white/[0.12] p-1">
-          {Object.entries(SHIFT_TYPES).map(([key, cfg]) => (
+      {/* Filter toggles — show/hide shift types on the board */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <span className="wayfinding text-muted-foreground mr-1">Show</span>
+        {Object.entries(SHIFT_TYPES).map(([key, cfg]) => {
+          const on = visible[key] !== false;
+          return (
             <button
               key={key}
-              onClick={() => setNewType(key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                newType === key ? "text-white" : "text-muted-foreground hover:text-foreground"
+              onClick={() => setVisible((v) => ({ ...v, [key]: !on }))}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all ${
+                on ? "border-transparent text-white" : "border-black/[0.14] dark:border-white/[0.14] text-muted-foreground opacity-60"
               }`}
-              style={newType === key ? { background: cfg.color } : undefined}
+              style={on ? { background: cfg.color } : undefined}
             >
+              <span className="h-2 w-2 rounded-full" style={{ background: on ? "rgba(255,255,255,0.9)" : cfg.color }} />
               {cfg.label}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
+      {/* Create panel — opens when a day is clicked */}
+      {panelDay && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-5 rounded-xl border border-black/[0.1] dark:border-white/[0.12] bg-card p-5 space-y-4">
+          <SectionMarker code="+" label={`Add shift · ${panelDay}`} />
+          <div>
+            <p className="wayfinding text-muted-foreground mb-2">Shift type</p>
+            <div className="flex gap-2 flex-wrap">
+              {Object.entries(SHIFT_TYPES).map(([key, cfg]) => (
+                <button key={key} onClick={() => setFormType(key)} className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${formType === key ? "text-white" : "text-muted-foreground border border-black/[0.14] dark:border-white/[0.14]"}`} style={formType === key ? { background: cfg.color } : undefined}>
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="wayfinding text-muted-foreground mb-2">Repeat on (optional — next 8 weeks)</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {WEEKDAYS.map((d) => {
+                const on = repeatDays.includes(d.i);
+                return (
+                  <button key={d.i} onClick={() => setRepeatDays((r) => on ? r.filter((x) => x !== d.i) : [...r, d.i])} className={`h-9 w-11 rounded-lg text-sm transition-colors ${on ? "bg-primary text-primary-foreground" : "border border-black/[0.14] dark:border-white/[0.14] text-muted-foreground"}`}>
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <p className="wayfinding text-muted-foreground mb-2">Tag</p>
+            <TagPicker value={tagId} onChange={setTagId} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={submit} className="h-10 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Add shift{repeatDays.length ? "s" : ""}</button>
+            <button onClick={() => setPanelDay(null)} className="h-10 px-5 rounded-lg text-sm text-muted-foreground">Cancel</button>
+          </div>
+        </motion.div>
+      )}
+
       <div className="ilamy-scope rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card overflow-hidden">
-        <div className="h-[72vh]">
+        <div className="h-[70vh]">
           <IlamyCalendar
             events={events as any}
             initialView={"month" as any}
             firstDayOfWeek="monday"
-            onCellClick={(cell: any) => createShift(cell?.date ?? cell)}
+            onCellClick={(cell: any) => openPanel(cell?.date ?? cell)}
             onEventClick={(ev: any) => {
               if (confirm(`Remove this duty shift?\n${ev.title}`)) deleteShift(String(ev.id));
             }}

@@ -87,6 +87,7 @@ model User {
   notifications    Notification[]
   residents        Resident[]
   roomChecks       RoomCheckRound[]
+  tags             Tag[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -124,12 +125,16 @@ model Event {
   status      String   @default("DRAFT")
   reflection  String?
   attendance  Int?
+  tagId       String?
+  // Weekdays this event repeats on, JSON array of 0-6 (Sun-Sat); null = one-off.
+  recurrenceDays String?
 
   organizerId String
   hallId      String?
 
   organizer       User              @relation("EventOrganizer", fields: [organizerId], references: [id])
   hall            ResidenceHall?    @relation(fields: [hallId], references: [id])
+  tag             Tag?              @relation(fields: [tagId], references: [id], onDelete: SetNull)
   coOrganizers    EventCoOrganizer[]
   photos          EventPhoto[]
   learningOutcomes LearningOutcome[]
@@ -602,10 +607,31 @@ model DutyShift {
   date   String
   type   String @default("evening")
   notes  String?
+  tagId  String?
 
   user User @relation(fields: [userId], references: [id])
+  tag  Tag? @relation(fields: [tagId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
+}
+
+// User-owned label with a colour. Replaces raw colour pickers on events + duty:
+// a tag's name defaults to its colour name but can be renamed. `kind` scopes a
+// tag to "event", "duty", or "any".
+model Tag {
+  id     String @id @default(cuid())
+  userId String
+  name   String
+  color  String // hex, e.g. "#3f6b52"
+  kind   String @default("any")
+
+  user   User        @relation(fields: [userId], references: [id])
+  events Event[]
+  shifts DutyShift[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // ─── Feedback ────────────────────────────────────────────────────────────────

@@ -71,12 +71,15 @@ CREATE TABLE "Event" (
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "reflection" TEXT,
     "attendance" INTEGER,
+    "tagId" TEXT,
+    "recurrenceDays" TEXT,
     "organizerId" TEXT NOT NULL,
     "hallId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "Event_organizerId_fkey" FOREIGN KEY ("organizerId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Event_hallId_fkey" FOREIGN KEY ("hallId") REFERENCES "ResidenceHall" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "Event_hallId_fkey" FOREIGN KEY ("hallId") REFERENCES "ResidenceHall" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Event_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -458,8 +461,21 @@ CREATE TABLE "DutyShift" (
     "date" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'evening',
     "notes" TEXT,
+    "tagId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "DutyShift_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "DutyShift_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "DutyShift_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Tag" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "color" TEXT NOT NULL,
+    "kind" TEXT NOT NULL DEFAULT 'any',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Tag_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -582,6 +598,9 @@ CREATE UNIQUE INDEX "AIUsage_userId_day_key" ON "AIUsage"("userId", "day");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PollVote_pollId_userId_key" ON "PollVote"("pollId", "userId");
+
+-- CreateIndex
+CREATE INDEX "Tag_userId_idx" ON "Tag"("userId");
 
 -- CreateIndex
 CREATE INDEX "Resident_userId_idx" ON "Resident"("userId");
