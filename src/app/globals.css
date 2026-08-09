@@ -212,6 +212,23 @@
   animation: drift 9s ease-in-out infinite;
 }
 
+/* AI assistant message markdown — compact, editorial. */
+.prose-plan h2, .prose-plan h3, .prose-plan h4, .prose-plan h5 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  margin: 0.75em 0 0.25em;
+  line-height: 1.2;
+}
+.prose-plan h2 { font-size: 1.15rem; }
+.prose-plan h3 { font-size: 1.05rem; }
+.prose-plan p { margin: 0.4em 0; }
+.prose-plan ul, .prose-plan ol { margin: 0.4em 0; padding-left: 1.25em; }
+.prose-plan ul { list-style: disc; }
+.prose-plan ol { list-style: decimal; }
+.prose-plan li { margin: 0.15em 0; }
+.prose-plan strong { font-weight: 600; }
+.prose-plan > *:first-child { margin-top: 0; }
+
 /* Select element styling */
 select option {
   @apply bg-card text-foreground;

@@ -1,220 +1,209 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sparkles, Loader2, Zap } from "lucide-react";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { Plus, Send, Trash2, Sparkles, MessageSquare } from "lucide-react";
+import { PageHeader } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-const audiences = [
-  "First-Year Residents",
-  "Upperclass Residents",
-  "All Residents",
-  "Returning Students",
-  "Transfer Students",
-  "Graduate Students",
-];
+interface Msg { role: "user" | "assistant"; content: string; id?: string }
+interface Convo { id: string; title: string; updatedAt: string }
 
-const goals = [
-  "Community Building",
-  "Wellness",
-  "Academic Success",
-  "Diversity & Inclusion",
-  "Career Development",
-  "Sustainability",
-  "Leadership",
-  "Social",
+// Minimal, safe Markdown → HTML (headings, bold, bullet/numbered lists, paragraphs).
+function renderMarkdown(md: string): string {
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const inline = (s: string) =>
+    esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>");
+  const lines = md.split("\n");
+  let html = "";
+  let list: "ul" | "ol" | null = null;
+  const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^#{1,6}\s/.test(line)) {
+      closeList();
+      const level = Math.min(line.match(/^#+/)![0].length, 4) + 1;
+      html += `<h${level}>${inline(line.replace(/^#+\s/, ""))}</h${level}>`;
+    } else if (/^\s*[-*]\s+/.test(line)) {
+      if (list !== "ul") { closeList(); html += "<ul>"; list = "ul"; }
+      html += `<li>${inline(line.replace(/^\s*[-*]\s+/, ""))}</li>`;
+    } else if (/^\s*\d+\.\s+/.test(line)) {
+      if (list !== "ol") { closeList(); html += "<ol>"; list = "ol"; }
+      html += `<li>${inline(line.replace(/^\s*\d+\.\s+/, ""))}</li>`;
+    } else if (line.trim() === "") {
+      closeList();
+    } else {
+      closeList();
+      html += `<p>${inline(line)}</p>`;
+    }
+  }
+  closeList();
+  return html;
+}
+
+const STARTERS = [
+  "Plan a $150 study break for 30 first-years during finals",
+  "Low-cost community-building event for a quiet floor",
+  "Wellness night ideas with a shopping list under $80",
+  "Culturally inclusive event for Welcome Week",
 ];
 
 export default function AIPlannerPage() {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState("");
-  const { data: usage, mutate: mutateUsage } = useSWR("/api/ai-planner", fetcher);
-  const [form, setForm] = useState({
-    budget: "",
-    audience: "First-Year Residents",
-    goal: "Community Building",
-    attendance: "",
-  });
+  const { data: usage } = useSWR("/api/ai-planner", fetcher);
+  const { data: conversations, mutate: mutateConvos } = useSWR<Convo[]>("/api/ai-planner/conversations", fetcher);
 
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setResult("");
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  const convos = Array.isArray(conversations) ? conversations : [];
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, sending]);
+
+  const openConversation = async (id: string) => {
+    setActiveId(id);
+    const data = await fetch(`/api/ai-planner/chat?id=${id}`).then((r) => r.json());
+    setMessages(data.messages || []);
+  };
+
+  const newChat = () => { setActiveId(null); setMessages([]); setInput(""); };
+
+  const deleteConvo = async (id: string) => {
+    await fetch(`/api/ai-planner/conversations?id=${id}`, { method: "DELETE" });
+    if (activeId === id) newChat();
+    mutateConvos();
+  };
+
+  const send = async (text: string) => {
+    const content = text.trim();
+    if (!content || sending) return;
+    setInput("");
+    setMessages((m) => [...m, { role: "user", content }]);
+    setSending(true);
     try {
-      const res = await fetch("/api/ai-planner", {
+      const res = await fetch("/api/ai-planner/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ conversationId: activeId, message: content }),
       });
-
-      if (!res.ok) throw new Error("Failed to generate");
-
       const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Failed to generate");
-        setLoading(false);
-        return;
-      }
-      setResult(data.response);
-      mutateUsage();
-    } catch {
-      toast.error("Failed to generate event plan.");
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setActiveId(data.conversationId);
+      setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+      mutateConvos();
+    } catch (e: any) {
+      toast.error(e.message || "The assistant is busy — try again.");
+      setMessages((m) => m.slice(0, -1)); // roll back the optimistic user msg
+      setInput(content);
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6 max-w-4xl mx-auto"
-    >
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-accent glow-sm">
-            <Sparkles className="h-6 w-6 text-white" />
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="max-w-6xl">
+      <PageHeader
+        code="✦ · AI PLANNER"
+        title="Planning Assistant"
+        subtitle="Chat through event ideas, budgets, and timelines. Ask follow-ups — it remembers the conversation."
+      />
+
+      <div className="grid md:grid-cols-[240px_1fr] gap-5">
+        {/* Conversation history */}
+        <aside className="space-y-2">
+          <button onClick={newChat} className="w-full inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-2 text-sm font-medium">
+            <Plus className="h-4 w-4" /> New chat
+          </button>
+          <div className="space-y-1">
+            {convos.map((c) => (
+              <div key={c.id} className={`group flex items-center gap-1 rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${activeId === c.id ? "bg-black/[0.05] dark:bg-white/[0.06]" : "hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"}`} onClick={() => openConversation(c.id)}>
+                <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="flex-1 truncate">{c.title}</span>
+                <button onClick={(e) => { e.stopPropagation(); deleteConvo(c.id); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {convos.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No saved chats yet.</p>}
           </div>
-          <span className="gradient-text">AI Event Planner</span>
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Let AI help you plan the perfect program for your residents
-        </p>
-      </div>
+        </aside>
 
-      {usage && (
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Zap className="h-4 w-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-muted-foreground">
-                  {usage.limit == null
-                    ? `${usage.used} plans today`
-                    : `${usage.used} / ${usage.limit} plans today`}
-                </span>
-                {usage.remaining != null && (
-                  <span className="text-primary font-medium">{usage.remaining} remaining</span>
-                )}
-              </div>
-              {usage.limit != null && (
-                <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
-                    style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%` }}
-                  />
+        {/* Chat thread */}
+        <div className="flex flex-col rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card h-[70vh]">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-5">
+            {messages.length === 0 && !sending ? (
+              <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                <Sparkles className="h-8 w-8 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] mb-3" />
+                <p className="font-display text-2xl">What are we planning?</p>
+                <p className="text-sm text-muted-foreground mt-1 mb-5">Describe an event, a budget, an audience — or start with one of these.</p>
+                <div className="grid sm:grid-cols-2 gap-2 w-full max-w-lg">
+                  {STARTERS.map((s) => (
+                    <button key={s} onClick={() => send(s)} className="text-left text-sm rounded-lg border border-black/[0.1] dark:border-white/[0.12] p-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.05] transition-colors">
+                      {s}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-            {usage.isAdmin && (
-              <span className="text-xs text-muted-foreground bg-amber-500/10 text-amber-400 px-2 py-1 rounded-full">
-                Admin
-              </span>
+              </div>
+            ) : (
+              messages.map((m, i) => (
+                <div key={m.id || i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {m.role === "user" ? (
+                    <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-4 py-2.5 text-sm">
+                      {m.content}
+                    </div>
+                  ) : (
+                    <div
+                      className="max-w-[85%] rounded-2xl rounded-bl-sm bg-black/[0.03] dark:bg-white/[0.04] px-4 py-3 text-sm prose-plan"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
+                    />
+                  )}
+                </div>
+              ))
             )}
-          </CardContent>
-        </Card>
-      )}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl rounded-bl-sm bg-black/[0.03] dark:bg-white/[0.04] px-4 py-3 text-sm text-muted-foreground">
+                  <span className="inline-flex gap-1">
+                    <span className="animate-pulse">Thinking</span>
+                    <span className="animate-bounce">·</span>
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
 
-      <Card className="overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-accent/[0.03]" />
-        <CardHeader className="relative">
-          <CardTitle>What are you planning?</CardTitle>
-        </CardHeader>
-        <CardContent className="relative">
-          <form onSubmit={handleGenerate} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Budget ($)</label>
-                <Input
-                  type="number"
-                  value={form.budget}
-                  onChange={(e) => setForm({ ...form, budget: e.target.value })}
-                  placeholder="100"
-                  required
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Expected Attendance</label>
-                <Input
-                  type="number"
-                  value={form.attendance}
-                  onChange={(e) => setForm({ ...form, attendance: e.target.value })}
-                  placeholder="40"
-                  required
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Target Audience</label>
-                <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
-                  value={form.audience}
-                  onChange={(e) => setForm({ ...form, audience: e.target.value })}
-                >
-                  {audiences.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Programming Goal</label>
-                <select
-                  className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
-                  value={form.goal}
-                  onChange={(e) => setForm({ ...form, goal: e.target.value })}
-                >
-                  {goals.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <Button type="submit" disabled={loading} className="w-full h-12 text-base">
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Generate Event Ideas
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {result && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card>
-            <CardContent className="p-6 prose prose-sm max-w-none prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-li:text-muted-foreground">
-              <div dangerouslySetInnerHTML={{ __html: formatMarkdown(result) }} />
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+          {/* Composer */}
+          <div className="border-t border-black/[0.08] dark:border-white/[0.08] p-3">
+            <form
+              onSubmit={(e) => { e.preventDefault(); send(input); }}
+              className="flex items-end gap-2"
+            >
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
+                placeholder="Ask for an event idea, a budget breakdown, a timeline…"
+                rows={1}
+                className="flex-1 resize-none max-h-32 rounded-xl border border-black/[0.1] dark:border-white/[0.12] bg-transparent px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button type="submit" disabled={sending || !input.trim()} className="h-10 w-10 shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40">
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+            {usage && usage.limit != null && (
+              <p className="text-[11px] text-muted-foreground mt-2 px-1">{usage.remaining} of {usage.limit} plans left today</p>
+            )}
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
-}
-
-function formatMarkdown(text: string): string {
-  return text
-    .replace(/## (.*)/g, '<h2 class="text-lg font-semibold mt-6 mb-2 gradient-text">$1</h2>')
-    .replace(/### (.*)/g, '<h3 class="text-base font-semibold mt-4 mb-1">$1</h3>')
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/- (.*)/g, '<li class="ml-4">$1</li>')
-    .replace(/\n/g, "<br />");
 }

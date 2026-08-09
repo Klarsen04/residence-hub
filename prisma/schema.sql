@@ -374,6 +374,26 @@ CREATE TABLE "AuthorizationCode" (
 );
 
 -- CreateTable
+CREATE TABLE "Conversation" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "title" TEXT NOT NULL DEFAULT 'New chat',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Conversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Message" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "conversationId" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Message_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE "AIPlannerSession" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
@@ -592,6 +612,12 @@ CREATE UNIQUE INDEX "PlanningBoardMember_boardId_userId_key" ON "PlanningBoardMe
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AuthorizationCode_code_key" ON "AuthorizationCode"("code");
+
+-- CreateIndex
+CREATE INDEX "Conversation_userId_idx" ON "Conversation"("userId");
+
+-- CreateIndex
+CREATE INDEX "Message_conversationId_idx" ON "Message"("conversationId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AIUsage_userId_day_key" ON "AIUsage"("userId", "day");

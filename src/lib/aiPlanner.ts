@@ -136,15 +136,20 @@ async function pruneToValid(p: ProviderConfig, ids: string[]): Promise<string[]>
   return pruned.length > 0 ? pruned : ids;
 }
 
+export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
 async function callGroup(
   p: ProviderConfig,
   models: string[],
-  prompt: string
+  messages: ChatMessage[]
 ): Promise<AIResult> {
   // OpenRouter accepts a `models` array (native failover); single-model
   // providers (NVIDIA) take a `model` string.
   const body: Record<string, unknown> = {
-    messages: [{ role: "user", content: prompt }],
+    messages,
     temperature: 0.8,
     max_tokens: 2048,
   };
@@ -189,40 +194,37 @@ function isFatal4xx(err: unknown): boolean {
 }
 
 /**
- * Generate a plan, trying each configured provider in order and each provider's
- * model chain in turn. Returns the first clean response. Throws AIPlannerError
- * with `status: 503` if no provider key is configured, or the last error if
- * every provider/model fails.
+ * Multi-turn chat generation. Pass the full message array (system + history +
+ * latest user turn). Tries each provider in order and each provider's model
+ * chain, returning the first clean reply. Throws AIPlannerError (503 if no
+ * provider configured) or the last error if everything fails.
  */
-export async function generatePlan(prompt: string): Promise<AIResult> {
+export async function generateChat(messages: ChatMessage[]): Promise<AIResult> {
   const configured = providers();
   if (configured.length === 0) {
-    throw new AIPlannerError("No AI provider is configured. Set OPENROUTER_API_KEY or NVIDIA_API_KEY.", 503);
+    throw new AIPlannerError("No AI provider is configured. Set OPENROUTER_API_KEY, GEMINI_API_KEY, or NVIDIA_API_KEY.", 503);
   }
 
   let lastError: unknown;
   for (const p of configured) {
     const models = await pruneToValid(p, p.models);
     const groups = chunk(models, p.maxModelsPerRequest);
-    let providerFatal = false;
-
     for (const group of groups) {
       try {
-        return await callGroup(p, group, prompt);
+        return await callGroup(p, group, messages);
       } catch (err) {
         lastError = err;
-        // A bad-key/bad-request 4xx means this whole provider is unusable —
-        // stop trying its remaining groups and move to the next provider.
-        if (isFatal4xx(err)) {
-          providerFatal = true;
-          break;
-        }
+        if (isFatal4xx(err)) break; // provider unusable — next provider
       }
     }
-    void providerFatal; // fall through to the next provider regardless
   }
 
   throw lastError instanceof Error
     ? lastError
     : new AIPlannerError("All AI providers and models failed.");
+}
+
+/** Single-prompt convenience wrapper (kept for the legacy form endpoint). */
+export function generatePlan(prompt: string): Promise<AIResult> {
+  return generateChat([{ role: "user", content: prompt }]);
 }
