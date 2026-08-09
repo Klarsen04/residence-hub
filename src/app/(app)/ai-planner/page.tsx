@@ -98,15 +98,23 @@ export default function AIPlannerPage() {
             </div>
             <div className="flex-1">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-muted-foreground">{usage.used} / {usage.limit} requests this month</span>
-                <span className="text-primary font-medium">{usage.remaining} remaining</span>
+                <span className="text-muted-foreground">
+                  {usage.limit == null
+                    ? `${usage.used} plans today`
+                    : `${usage.used} / ${usage.limit} plans today`}
+                </span>
+                {usage.remaining != null && (
+                  <span className="text-primary font-medium">{usage.remaining} remaining</span>
+                )}
               </div>
-              <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
-                  style={{ width: `${(usage.used / usage.limit) * 100}%` }}
-                />
-              </div>
+              {usage.limit != null && (
+                <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-500"
+                    style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
             {usage.isAdmin && (
               <span className="text-xs text-muted-foreground bg-amber-500/10 text-amber-400 px-2 py-1 rounded-full">

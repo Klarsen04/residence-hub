@@ -506,16 +506,26 @@ model AIPlannerSession {
 
 // ─── AI Usage Tracking ───────────────────────────────────────────────────────
 
+// Per-user AI planner usage, keyed by day ("YYYY-MM-DD"). Daily windows match
+// how provider free-tier quotas reset, and catch bursts a monthly cap misses.
 model AIUsage {
   id     String @id @default(cuid())
   userId String
-  month  String
+  day    String
 
   count Int @default(0)
 
   user User @relation(fields: [userId], references: [id])
 
-  @@unique([userId, month])
+  @@unique([userId, day])
+}
+
+// App-wide AI planner usage for a given day. Guards the shared provider free
+// quota: once the whole platform hits GLOBAL_DAILY_LIMIT, generation pauses for
+// everyone until the next day rather than erroring out mid-request.
+model GlobalAIUsage {
+  day   String @id
+  count Int    @default(0)
 }
 
 // ─── Polls ───────────────────────────────────────────────────────────────────
