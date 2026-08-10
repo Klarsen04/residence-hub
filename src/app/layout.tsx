@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
+import { RegisterSW } from "@/components/RegisterSW";
 
 // Body / UI text — quiet, legible workhorse.
 const inter = Inter({
@@ -31,6 +32,23 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Residence Hub",
   description: "A place. People live here. This is their community.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Residence Hub",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#33593f",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -50,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   thread) on interior pages. */}
               {children}
               <Toaster position="bottom-right" theme="light" />
+              <RegisterSW />
             </SessionProvider>
           </TooltipProvider>
         </ThemeProvider>

@@ -361,6 +361,41 @@ export function LandingExperience() {
         </div>
       </section>
 
+      {/* ============ GET THE APP ============ */}
+      <section className="relative px-6 md:px-12 py-24 border-t border-black/[0.1] dark:border-white/[0.1]">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <SignLabel code="✦" className="mb-4">Take it with you</SignLabel>
+            <h2 className="font-display text-4xl md:text-5xl leading-[1.05]">
+              Download the app.
+            </h2>
+            <p className="mt-4 text-muted-foreground max-w-md text-lg">
+              Install Residence Hub on your phone&apos;s home screen — full-screen and one tap away.
+              Works on iPhone, Android, and desktop. No app store required.
+            </p>
+            <Link
+              href="/download"
+              className="mt-7 inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-3 text-sm font-medium shadow-sm shadow-black/15 hover:-translate-y-0.5 transition-transform"
+            >
+              Get the app <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+          {/* A little "phone with the RH icon" motif, drawn in the wayfinding line style */}
+          <div className="flex justify-center md:justify-end">
+            <div className="relative w-44 h-80 rounded-[2rem] border-2 border-black/15 dark:border-white/20 bg-card shadow-xl flex flex-col items-center pt-8 gap-4">
+              <span className="h-1.5 w-14 rounded-full bg-black/15 dark:bg-white/20" />
+              <div className="mt-6 h-20 w-20 rounded-2xl bg-primary flex items-center justify-center shadow-md">
+                <span className="text-primary-foreground font-display font-semibold text-2xl">RH</span>
+              </div>
+              <span className="wayfinding text-muted-foreground mt-1">Residence Hub</span>
+              <span className="mt-auto mb-6 wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">
+                Add to Home Screen ↓
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ============ FOOTER / LEAVING THE BUILDING ============ */}
       <footer className="relative px-6 md:px-12 py-24 grid-lines-fine border-t border-black/[0.1] dark:border-white/[0.1]">
         <div className="max-w-6xl mx-auto">
