@@ -13,9 +13,17 @@ updates:
         update-types:
           - minor
           - patch
+    # Conventional-Commit titles (e.g. "chore(deps): bump next from 15.1 to 15.2")
+    # so the "Conventional PR title" check passes without manual edits.
+    commit-message:
+      prefix: "chore"
+      include: "scope"
 
   # Keep the GitHub Actions we use up to date too.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
+    commit-message:
+      prefix: "chore"
+      include: "scope"
