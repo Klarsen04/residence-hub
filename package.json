@@ -21,7 +21,7 @@
     "@ilamy/calendar": "^2.0.3",
     "@libsql/client": "^0.8.1",
     "@mlc-ai/web-llm": "^0.2.84",
-    "@prisma/adapter-libsql": "^5.22.0",
+    "@prisma/adapter-libsql": "^7.9.1",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-avatar": "^1.2.6",
     "@radix-ui/react-dialog": "^1.1.23",
