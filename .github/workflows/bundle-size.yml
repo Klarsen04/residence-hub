@@ -18,10 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: preactjs/compressed-size-action@v2
+      - uses: preactjs/compressed-size-action@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          build-script: "build"
+          # Force dev deps so `npx prisma generate` (in the build) uses the
+          # pinned local prisma instead of fetching the latest major.
+          install-script: "npm ci --include=dev"
+          build-script: "npm run build"
           pattern: ".next/static/**/*.{js,css}"
           strip-hash: "[.-]([a-f0-9]{8,})"
         env:
