@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.vercel/
+public/
+prisma/dev.db
+prisma/*.sql
+package-lock.json
+*.tsbuildinfo
+next-env.d.ts
