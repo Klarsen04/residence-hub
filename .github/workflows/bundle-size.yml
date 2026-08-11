@@ -21,6 +21,9 @@ jobs:
       - uses: preactjs/compressed-size-action@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # Force dev deps so `npx prisma generate` (in the build) uses the
+          # pinned local prisma instead of fetching the latest major.
+          install-script: "npm ci --include=dev"
           build-script: "npm run build"
           pattern: ".next/static/**/*.{js,css}"
           strip-hash: "[.-]([a-f0-9]{8,})"
