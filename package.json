@@ -71,7 +71,7 @@
     "autoprefixer": "^10.5.4",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.23",
-    "jsdom": "^25.0.1",
+    "jsdom": "^30.0.1",
     "npm-check-updates": "^17.1.18",
     "postcss": "^8.5.26",
     "prettier": "^3.9.6",
