@@ -1,0 +1,50 @@
+name: CI
+
+# Runs the same gates we check locally — typecheck + production build — on
+# every PR into main (and on direct pushes to main). Require the "build" job in
+# the branch ruleset to block merging broken code. No secrets needed:
+# sync-turso.mjs no-ops without TURSO_* env vars, so the build uses local SQLite.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "file:./dev.db"
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+        env:
+          # Dummy values so NextAuth/config don't complain during build; the app
+          # only reads real secrets at runtime, not at build time.
+          NEXTAUTH_SECRET: "ci-build-only-not-a-real-secret"
+          NEXTAUTH_URL: "http://localhost:3000"
