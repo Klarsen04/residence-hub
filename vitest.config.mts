@@ -1,11 +1,13 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 
-// Unit + component tests. Pure logic runs in node; component tests (*.test.tsx)
-// run in jsdom. The "@" alias mirrors tsconfig paths.
+// Unit + component tests. Pure logic runs in node; component tests opt into
+// jsdom via a top-of-file `// @vitest-environment jsdom` docblock. The React
+// plugin handles JSX/TSX (Vitest 4 uses oxc, which otherwise honors tsconfig's
+// jsx: "preserve" and can't parse JSX). The "@" alias mirrors tsconfig paths.
 export default defineConfig({
-  // Use the automatic JSX runtime so tests don't need `import React`.
-  esbuild: { jsx: "automatic" },
+  plugins: [react()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -13,7 +15,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]],
     setupFiles: ["src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
