@@ -113,7 +113,7 @@ export default function EventTemplatesPage() {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const useTemplate = (template: typeof templates[0]) => {
+  const applyTemplate = (template: typeof templates[0]) => {
     const params = new URLSearchParams({
       title: template.title,
       category: template.category,
@@ -189,7 +189,7 @@ export default function EventTemplatesPage() {
                       </div>
                       <Button
                         size="sm"
-                        onClick={(e) => { e.stopPropagation(); useTemplate(template); }}
+                        onClick={(e) => { e.stopPropagation(); applyTemplate(template); }}
                         className="mt-2"
                       >
                         <Copy className="h-3 w-3 mr-1.5" />

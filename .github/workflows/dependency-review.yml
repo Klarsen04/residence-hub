@@ -1,0 +1,22 @@
+name: Dependency Review
+
+# Flags vulnerable or badly-licensed dependencies ADDED in a PR. NOTE: relies on
+# the Dependency Graph — free on PUBLIC repos; on PRIVATE repos it needs GitHub
+# Advanced Security. If private without GHAS, delete this workflow.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
