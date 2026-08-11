@@ -1,0 +1,28 @@
+name: Labeler
+
+# Auto-labels PRs by area (from changed files, see .github/labeler.yml) and by
+# size (lines changed). Uses pull_request_target so it can write labels on fork
+# PRs — which means it activates on PRs opened AFTER this lands on main.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  area:
+    name: Area labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+
+  size:
+    name: Size label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: pascalgn/size-label-action@v0.5.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
