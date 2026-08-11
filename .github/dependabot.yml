@@ -18,6 +18,11 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    ignore:
+      # vitest 3+ removed environmentMatchGlobs (used in vitest.config.mts).
+      # Hold majors until the config is migrated; minor/patch still flow.
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
 
   # Keep the GitHub Actions we use up to date too.
   - package-ecosystem: github-actions
@@ -27,3 +32,8 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    ignore:
+      # compressed-size-action v3 changed its inputs/behavior. Hold the major
+      # until the bundle-size workflow is updated for it.
+      - dependency-name: "preactjs/compressed-size-action"
+        update-types: ["version-update:semver-major"]
