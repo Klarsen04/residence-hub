@@ -18,6 +18,7 @@ import {
   Bell,
   Plus,
   UserCircle,
+  Bot,
 } from "lucide-react";
 
 const commands = [
@@ -27,6 +28,7 @@ const commands = [
   { name: "Decorations", href: "/decorations", icon: Palette, category: "Navigation" },
   { name: "Resources", href: "/resources", icon: BookOpen, category: "Navigation" },
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles, category: "Navigation" },
+  { name: "Offline AI", href: "/chat", icon: Bot, category: "Navigation" },
   { name: "Collaboration", href: "/collaboration", icon: Users, category: "Navigation" },
   { name: "Analytics", href: "/analytics", icon: BarChart3, category: "Navigation" },
   { name: "Notifications", href: "/notifications", icon: Bell, category: "Navigation" },

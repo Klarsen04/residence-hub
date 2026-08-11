@@ -29,6 +29,7 @@ import {
   Home,
   ClipboardCheck,
   MessageCircle,
+  Bot,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
@@ -40,6 +41,7 @@ const navigation = [
   { name: "Floor Roster", href: "/residents", icon: Home, group: "main" },
   { name: "Check-Ins", href: "/check-ins", icon: MessageCircle, group: "main" },
   { name: "AI Planner", href: "/ai-planner", icon: Sparkles, group: "main" },
+  { name: "Offline AI", href: "/chat", icon: Bot, group: "main" },
   { name: "Collaboration", href: "/collaboration", icon: Users, group: "main" },
   { name: "Inspiration", href: "/inspiration", icon: Lightbulb, group: "content" },
   { name: "Decorations", href: "/decorations", icon: Palette, group: "content" },
