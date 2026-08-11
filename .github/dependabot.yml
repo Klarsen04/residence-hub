@@ -23,6 +23,10 @@ updates:
       # Hold majors until the config is migrated; minor/patch still flow.
       - dependency-name: "vitest"
         update-types: ["version-update:semver-major"]
+      # @libsql/client 0.9+ breaks the @prisma/adapter-libsql@5 peer range
+      # (accepts up to ^0.8.0). Hold it until the Prisma adapter is upgraded.
+      - dependency-name: "@libsql/client"
+        versions: [">=0.9.0"]
 
   # Keep the GitHub Actions we use up to date too.
   - package-ecosystem: github-actions
