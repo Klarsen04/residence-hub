@@ -14,6 +14,7 @@ export const config = {
     "/decorations/:path*",
     "/resources/:path*",
     "/ai-planner/:path*",
+    "/chat/:path*",
     "/collaboration/:path*",
     "/analytics/:path*",
     "/settings/:path*",

@@ -1,9 +1,11 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 
-// Unit tests for pure logic in src/lib. Node environment (no DOM). The "@"
-// alias mirrors tsconfig paths so tests can import from "@/lib/...".
+// Unit + component tests. Pure logic runs in node; component tests (*.test.tsx)
+// run in jsdom. The "@" alias mirrors tsconfig paths.
 export default defineConfig({
+  // Use the automatic JSX runtime so tests don't need `import React`.
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -11,6 +13,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.{test,spec}.ts"],
+    environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]],
+    setupFiles: ["src/test/setup.ts"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
 });
