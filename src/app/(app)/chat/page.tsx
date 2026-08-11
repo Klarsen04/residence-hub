@@ -199,7 +199,7 @@ export default function ChatPage() {
             </div>
             <div>
               <p className="font-display text-xl leading-tight">Choose a model to run locally</p>
-              <p className="text-sm text-muted-foreground">Downloads once, then it's cached for next time.</p>
+              <p className="text-sm text-muted-foreground">Downloads once, then it&apos;s cached for next time.</p>
             </div>
           </div>
 
@@ -209,8 +209,8 @@ export default function ChatPage() {
             : "border-emerald-500/30 bg-emerald-500/5"}`}>
             {isCpu ? (
               <>
-                <strong>CPU mode.</strong> Your browser (e.g. Firefox) doesn't support the GPU acceleration
-                the larger models need, so we'll run a small model on the CPU. It works everywhere but is
+                <strong>CPU mode.</strong> Your browser (e.g. Firefox) doesn&apos;t support the GPU acceleration
+                the larger models need, so we&apos;ll run a small model on the CPU. It works everywhere but is
                 slower — pick the smallest model for the best experience.
               </>
             ) : (
