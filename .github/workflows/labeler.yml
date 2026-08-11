@@ -17,7 +17,7 @@ jobs:
     name: Area labels
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/labeler@v5
+      - uses: actions/labeler@v7
 
   size:
     name: Size label
