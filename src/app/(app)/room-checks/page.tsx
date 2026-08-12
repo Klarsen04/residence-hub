@@ -33,7 +33,14 @@ export default function RoomChecksPage() {
   const { data: residents } = useSWR("/api/residents", fetcher);
   const [activeCheck, setActiveCheck] = useState<CheckRound | null>(null);
   const [checkType, setCheckType] = useState<typeof checkTypes[number]>("Health & Safety");
-  const allHistory = history || [];
+  const [raFilter, setRaFilter] = useState("");
+  const allHistory = Array.isArray(history) ? history : [];
+
+  // RAs that have logged rounds, for the filter dropdown.
+  const raOptions = Array.from(
+    allHistory.reduce((m: Map<string, string>, c: any) => m.set(c.ownerId, c.ownerName), new Map<string, string>())
+  ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+  const visibleHistory = raFilter ? allHistory.filter((c: any) => c.ownerId === raFilter) : allHistory;
 
   const myResidents = (Array.isArray(residents) ? residents : []).filter((r: any) => r.canEdit);
 
@@ -127,9 +134,25 @@ export default function RoomChecksPage() {
 
           {allHistory.length > 0 && (
             <div>
-              <SectionMarker code="✦" label="Recent checks" />
+              <SectionMarker
+                code="✦"
+                label="Recent checks"
+                right={
+                  raOptions.length > 1 ? (
+                    <select
+                      value={raFilter}
+                      onChange={(e) => setRaFilter(e.target.value)}
+                      className="h-9 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm"
+                      title="Filter by RA"
+                    >
+                      <option value="">All RAs</option>
+                      {raOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                    </select>
+                  ) : undefined
+                }
+              />
               <div>
-                {allHistory.map((check: any) => {
+                {visibleHistory.map((check: any) => {
                   const passCount = check.rooms.filter((r: any) => r.status === "pass").length;
                   const concernCount = check.rooms.filter((r: any) => r.status === "concern").length;
                   return (
@@ -141,7 +164,7 @@ export default function RoomChecksPage() {
                         <div>
                           <p className="font-medium text-sm">{check.type}</p>
                           <p className="wayfinding text-muted-foreground mt-0.5 normal-case">
-                            {new Date(check.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                            {check.ownerName} · {new Date(check.date).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                           </p>
                         </div>
                       </div>

@@ -31,13 +31,19 @@ export default function DutyPage() {
   const [formType, setFormType] = useState("evening");
   const [repeatDays, setRepeatDays] = useState<number[]>([]);
   const [tagId, setTagId] = useState<string | null>(null);
+  const [raFilter, setRaFilter] = useState("");
 
   const allShifts = Array.isArray(shifts) ? shifts : [];
+
+  // RAs that have shifts on the board, for the RA filter dropdown.
+  const raOptions = Array.from(
+    allShifts.reduce((m: Map<string, string>, s: any) => (s.userId ? m.set(s.userId, s.user?.name || "RA") : m), new Map<string, string>())
+  ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
 
   const events = useMemo(
     () =>
       allShifts
-        .filter((s: any) => visible[s.type] !== false)
+        .filter((s: any) => visible[s.type] !== false && (!raFilter || s.userId === raFilter))
         .map((s: any) => {
           const cfg = SHIFT_TYPES[s.type] || SHIFT_TYPES.evening;
           const color = s.tag?.color || cfg.color;
@@ -53,7 +59,7 @@ export default function DutyPage() {
             backgroundColor: color,
           };
         }),
-    [allShifts, visible]
+    [allShifts, visible, raFilter]
   );
 
   const openPanel = (date: any) => {
@@ -124,6 +130,17 @@ export default function DutyPage() {
             </button>
           );
         })}
+        {raOptions.length > 1 && (
+          <select
+            value={raFilter}
+            onChange={(e) => setRaFilter(e.target.value)}
+            className="ml-auto h-9 rounded-full border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm"
+            title="Filter by RA"
+          >
+            <option value="">All RAs</option>
+            {raOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Create panel — opens when a day is clicked */}

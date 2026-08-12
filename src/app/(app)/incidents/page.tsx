@@ -23,6 +23,10 @@ interface Incident {
   actionTaken: string;
   followUpNeeded: boolean;
   status: "open" | "resolved" | "escalated";
+  isPublic: boolean;
+  ownerId: string;
+  ownerName: string;
+  canEdit: boolean;
   createdAt?: string;
 }
 
@@ -74,6 +78,7 @@ export default function IncidentsPage() {
     description: "",
     actionTaken: "",
     followUpNeeded: false,
+    isPublic: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,7 +96,7 @@ export default function IncidentsPage() {
       if (!res.ok) throw new Error("Failed to create incident");
       await mutate();
       setShowForm(false);
-      setForm({ date: new Date().toISOString().split("T")[0], time: "", type: "Noise Complaint", severity: "low", location: "", description: "", actionTaken: "", followUpNeeded: false });
+      setForm({ date: new Date().toISOString().split("T")[0], time: "", type: "Noise Complaint", severity: "low", location: "", description: "", actionTaken: "", followUpNeeded: false, isPublic: false });
       toast.success("Incident report saved");
     } catch {
       toast.error("Failed to save incident report");
@@ -114,6 +119,21 @@ export default function IncidentsPage() {
       toast.success(`Incident marked as ${newStatus}`);
     } catch {
       toast.error("Failed to update incident status");
+    }
+  };
+
+  const togglePublic = async (incident: Incident) => {
+    try {
+      const res = await fetch("/api/incidents", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: incident.id, isPublic: !incident.isPublic }),
+      });
+      if (!res.ok) throw new Error("Failed to change visibility");
+      await mutate();
+      toast.success(incident.isPublic ? "Incident set to private" : "Incident shared with all RAs");
+    } catch {
+      toast.error("Failed to change visibility");
     }
   };
 
@@ -274,6 +294,16 @@ export default function IncidentsPage() {
                     <span className="text-sm text-muted-foreground">Follow-up needed</span>
                   </label>
 
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.isPublic}
+                      onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
+                      className="rounded"
+                    />
+                    <span className="text-sm text-muted-foreground">Share with all RAs (make public) — off by default</span>
+                  </label>
+
                   <div className="flex gap-2 pt-2">
                     <Button type="submit">Save Report</Button>
                     <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -362,10 +392,12 @@ export default function IncidentsPage() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {new Date(incident.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} at {incident.time} • {incident.location}
+                        {!incident.canEdit && ` • by ${incident.ownerName}`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {incident.isPublic && <Badge className="bg-primary/15 text-primary border-primary/20">Shared</Badge>}
                     <Badge className={severityConfig[incident.severity].color}>{severityConfig[incident.severity].label}</Badge>
                     <Badge className={statusConfig[incident.status].color}>{statusConfig[incident.status].label}</Badge>
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -390,25 +422,34 @@ export default function IncidentsPage() {
                           <p className="text-sm">{incident.actionTaken}</p>
                         </div>
                       )}
-                      {incident.status === "open" && (
-                        <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                            onClick={() => handleStatusChange(incident, "resolved")}
-                          >
-                            Mark Resolved
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-400 border-red-500/30 hover:bg-red-500/10"
-                            onClick={() => handleStatusChange(incident, "escalated")}
-                          >
-                            Escalate
+                      {incident.canEdit ? (
+                        <div className="flex gap-2 pt-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                          {incident.status === "open" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                                onClick={() => handleStatusChange(incident, "resolved")}
+                              >
+                                Mark Resolved
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                onClick={() => handleStatusChange(incident, "escalated")}
+                              >
+                                Escalate
+                              </Button>
+                            </>
+                          )}
+                          <Button size="sm" variant="outline" onClick={() => togglePublic(incident)}>
+                            {incident.isPublic ? "Make private" : "Make public"}
                           </Button>
                         </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic pt-1">Shared by {incident.ownerName} — read-only</p>
                       )}
                     </motion.div>
                   )}
