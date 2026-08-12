@@ -27,7 +27,16 @@ interface Resident {
   canEdit: boolean;
 }
 
+interface TeamMember {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  role: string;
+}
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+const raLabel = (u: TeamMember) => u.name || u.email || "Unnamed RA";
 
 // This dorm's structure: floors 1 & 2 have East/West wings; floor 3 is a single wing.
 const FLOORS = ["1", "2", "3"];
@@ -35,24 +44,35 @@ const wingsFor = (floor: string) => (floor === "3" ? ["Main"] : ["East", "West"]
 
 export default function ResidentsPage() {
   const { data: residents, error, isLoading, mutate } = useSWR<Resident[]>("/api/residents", fetcher);
+  const { data: team } = useSWR<TeamMember[]>("/api/team", fetcher);
   const [search, setSearch] = useState("");
+  const [raFilter, setRaFilter] = useState("");
   const [selectedResident, setSelectedResident] = useState<string | null>(null);
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [newResident, setNewResident] = useState({
-    name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "",
+    name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "", raId: "",
   });
 
   const list = Array.isArray(residents) ? residents : [];
 
+  // RAs (and admins) available to assign residents to.
+  const ras = (Array.isArray(team) ? team : []).filter((u) => u.role === "RESIDENT_ASSISTANT" || u.role === "ADMIN");
+
+  // RAs that actually have residents, for the roster filter dropdown.
+  const raOptions = Array.from(
+    list.reduce((m, r) => m.set(r.ownerId, r.ownerName), new Map<string, string>())
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
   const filtered = list.filter((r) => {
     const s = search.toLowerCase();
-    return (
+    const matchesSearch =
       r.name.toLowerCase().includes(s) ||
-      r.room.includes(s) ||
-      r.major?.toLowerCase().includes(s) ||
-      r.ownerName.toLowerCase().includes(s)
-    );
+      r.room.toLowerCase().includes(s) ||
+      (r.major?.toLowerCase().includes(s) ?? false) ||
+      r.ownerName.toLowerCase().includes(s);
+    const matchesRA = !raFilter || r.ownerId === raFilter;
+    return matchesSearch && matchesRA;
   });
 
   // Group by RA (owner), so the roster reads as "each RA's floor".
@@ -120,7 +140,7 @@ export default function ResidentsPage() {
       });
       if (!res.ok) throw new Error();
       await mutate();
-      setNewResident({ name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "" });
+      setNewResident({ name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "", raId: "" });
       setShowAddForm(false);
       toast.success("Resident added");
     } catch {
@@ -177,14 +197,31 @@ export default function ResidentsPage() {
             <Input placeholder="Email" value={newResident.email} onChange={(e) => setNewResident({ ...newResident, email: e.target.value })} />
             <Input placeholder="Year (e.g. First-Year)" value={newResident.year} onChange={(e) => setNewResident({ ...newResident, year: e.target.value })} />
             <Input placeholder="Major" value={newResident.major} onChange={(e) => setNewResident({ ...newResident, major: e.target.value })} />
+            <select
+              className={selectClass}
+              value={newResident.raId}
+              onChange={(e) => setNewResident({ ...newResident, raId: e.target.value })}
+              title="Which RA is this resident under?"
+            >
+              <option value="">RA: Assign to me (default)</option>
+              {ras.map((u) => <option key={u.id} value={u.id}>RA: {raLabel(u)}</option>)}
+            </select>
           </div>
           <Button onClick={addResident}>Save Resident</Button>
         </div>
       )}
 
-      <div className="relative max-w-sm mb-10">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name, room, major, or RA..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+      <div className="flex flex-wrap gap-3 mb-10">
+        <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, room, major, or RA..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        {raOptions.length > 1 && (
+          <select className={selectClass} value={raFilter} onChange={(e) => setRaFilter(e.target.value)} title="Filter roster by RA">
+            <option value="">All RAs</option>
+            {raOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        )}
       </div>
 
       {list.length === 0 ? (
