@@ -414,6 +414,11 @@ model Resource {
   externalUrl String?
   tags        String?
   isPublic    Boolean @default(true)
+  // Admin must approve a resource before it's visible platform-wide.
+  // Column defaults true so pre-existing rows stay visible after the migration;
+  // the create route sets it explicitly (admin → true, others → false/pending).
+  approved     Boolean @default(true)
+  approvedById String?
 
   user     User      @relation(fields: [userId], references: [id])
   comments Comment[]

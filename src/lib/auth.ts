@@ -46,24 +46,19 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (!account) return true;
-      if (account.provider === "credentials") return true;
-
-      const providerAccountId = account.providerAccountId;
+      if (!account || account.provider === "credentials") return true;
+      // OAuth: key the user by EMAIL (stable across providers) and link the
+      // provider account to that canonical row. Keying by providerAccountId
+      // (as before) forked identity — a resident who registered with a code
+      // then signed in with Google got a second, id-mismatched user, and every
+      // create failed on a foreign key. If linking fails, fail the sign-in
+      // rather than leaving a broken session.
+      if (!user.email) return false;
       try {
-        await prisma.user.upsert({
-          where: { id: providerAccountId },
-          update: {
-            name: user.name,
-            email: user.email,
-            image: user.image,
-          },
-          create: {
-            id: providerAccountId,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-          },
+        const dbUser = await prisma.user.upsert({
+          where: { email: user.email },
+          update: { name: user.name, image: user.image },
+          create: { email: user.email, name: user.name, image: user.image },
         });
 
         await prisma.account.upsert({
@@ -82,7 +77,7 @@ export const authOptions: NextAuthOptions = {
             id_token: account.id_token,
           },
           create: {
-            userId: providerAccountId,
+            userId: dbUser.id,
             type: account.type,
             provider: account.provider,
             providerAccountId: account.providerAccountId,
@@ -95,7 +90,8 @@ export const authOptions: NextAuthOptions = {
           },
         });
       } catch (e) {
-        console.error("Failed to upsert user:", e);
+        console.error("Failed to link OAuth account:", e);
+        return false;
       }
       return true;
     },
@@ -103,17 +99,21 @@ export const authOptions: NextAuthOptions = {
       if (account) {
         token.accessToken = account.access_token;
         token.provider = account.provider;
-        token.id = account.provider === "credentials" ? user?.id : account.providerAccountId;
       }
-      if (token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { role: true, hallId: true },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.hallId = dbUser.hallId;
-        }
+      // Always resolve identity + role/hall from the canonical User row by
+      // email. This guarantees token.id is a real User.id (never an OAuth
+      // providerAccountId) and self-heals any older token that stored the
+      // wrong id. Falls back to token.id for credentials sessions.
+      const email = (user?.email ?? token.email) as string | undefined;
+      const dbUser = email
+        ? await prisma.user.findUnique({ where: { email }, select: { id: true, role: true, hallId: true } })
+        : token.id
+        ? await prisma.user.findUnique({ where: { id: token.id as string }, select: { id: true, role: true, hallId: true } })
+        : null;
+      if (dbUser) {
+        token.id = dbUser.id;
+        token.role = dbUser.role;
+        token.hallId = dbUser.hallId;
       }
       return token;
     },

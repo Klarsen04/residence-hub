@@ -58,13 +58,21 @@ export async function POST(req: NextRequest) {
 
   const recurrenceJson = recurs ? JSON.stringify(recurrenceDays) : null;
 
+  // Guard against a dangling hallId (e.g. an RA whose auth-code hall doesn't
+  // exist in this DB) — a missing hall would fail the foreign key on create.
+  let hallId = session.user.hallId || null;
+  if (hallId) {
+    const hall = await prisma.residenceHall.findUnique({ where: { id: hallId }, select: { id: true } });
+    if (!hall) hallId = null;
+  }
+
   const makeData = (dateObj: Date) => {
     const startDateTime = new Date(dateObj); startDateTime.setHours(startH, startM, 0, 0);
     const endDateTime = new Date(dateObj); endDateTime.setHours(endH, endM, 0, 0);
     return {
       title, description, date: dateObj, startTime: startDateTime, endTime: endDateTime,
       location, category, tagId: tagId || null, recurrenceDays: recurrenceJson,
-      organizerId: session.user.id, hallId: session.user.hallId,
+      organizerId: session.user.id, hallId,
     };
   };
 

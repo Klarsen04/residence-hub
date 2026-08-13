@@ -4,7 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, StickyNote, Trash2, Pin, PinOff, Loader2 } from "lucide-react";
+import { Plus, StickyNote, Trash2, Pin, PinOff, Loader2, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -67,8 +67,15 @@ export default function NotesPage() {
   };
 
   const deleteNote = async (id: string) => {
-    await fetch(`/api/notes?id=${id}`, { method: "DELETE" });
-    mutate();
+    if (!confirm("Delete this note? This can't be undone.")) return;
+    try {
+      const res = await fetch(`/api/notes?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Note deleted");
+    } catch {
+      toast.error("Failed to delete note");
+    }
   };
 
   const togglePin = async (id: string) => {
@@ -216,6 +223,13 @@ export default function NotesPage() {
                     <div className="flex items-center justify-between mt-4 pt-3 rule">
                       <span className="wayfinding text-muted-foreground">{note.createdAt}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => startEditing(note)}
+                          className="p-1 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] transition-all"
+                          title="Edit note"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
                         <button
                           onClick={() => togglePin(note.id)}
                           className="p-1 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] transition-all"

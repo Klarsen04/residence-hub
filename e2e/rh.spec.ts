@@ -65,7 +65,7 @@ test("decorations: add with material + auto total", async ({ page }) => {
   await page.getByPlaceholder(/Fall Leaf Door Decs/).fill(`${TAG} Craft`);
   await page.getByPlaceholder("Material").fill("Cardstock");
   await page.getByPlaceholder("$").fill("5");
-  await expect(page.getByText("$5.00")).toBeVisible(); // auto total
+  await expect(page.locator("form").getByText("$5.00")).toBeVisible(); // auto total (scoped to form)
   await page.locator('form button[type="submit"]').click();
   await expect(page.getByText(`${TAG} Craft`)).toBeVisible();
 });
