@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canManageBoard } from "@/lib/boardAccess";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
@@ -10,7 +11,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { title, type, content } = await req.json();
   const { id: boardId } = await params;
 
-  // Boards are public/collaborative — any signed-in user can add cards.
+  // Only the board's creator, collaborators, or an admin may add cards.
+  if (!(await canManageBoard(boardId, session.user.id))) {
+    return NextResponse.json({ error: "You don't have access to edit this board" }, { status: 403 });
+  }
   const board = await prisma.planningBoard.findUnique({ where: { id: boardId } });
   if (!board) return NextResponse.json({ error: "Board not found" }, { status: 404 });
 
@@ -36,6 +40,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { id: boardId } = await params;
+  if (!(await canManageBoard(boardId, session.user.id))) {
+    return NextResponse.json({ error: "You don't have access to edit this board" }, { status: 403 });
+  }
+
   const { itemId, title, type, content, order } = await req.json();
 
   const item = await prisma.planningBoardItem.update({
@@ -51,9 +60,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   return NextResponse.json(item);
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id: boardId } = await params;
+  if (!(await canManageBoard(boardId, session.user.id))) {
+    return NextResponse.json({ error: "You don't have access to edit this board" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const itemId = searchParams.get("itemId");

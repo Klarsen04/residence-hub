@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Kanban, CheckCircle2, Circle, Clock, ArrowLeft, Trash2 } from "lucide-react";
+import { Plus, Kanban, CheckCircle2, Circle, Clock, ArrowLeft, Trash2, Pencil, X, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -32,6 +32,7 @@ const item = {
 
 export default function CollaborationPage() {
   const { data: boards, mutate } = useSWR("/api/boards", fetcher);
+  const { data: team } = useSWR("/api/team", fetcher);
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [showNewBoard, setShowNewBoard] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
@@ -40,6 +41,15 @@ export default function CollaborationPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  // Editing a task's title/content.
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTaskFields, setEditTaskFields] = useState({ title: "", content: "" });
+  // Editing the board's title/description.
+  const [editingBoard, setEditingBoard] = useState(false);
+  const [boardFields, setBoardFields] = useState({ title: "", description: "" });
+  // Collaborator management.
+  const [showCollab, setShowCollab] = useState(false);
+  const teamMembers = Array.isArray(team) ? team : [];
 
   const allBoards = boards || [];
   const activeBoard = allBoards.find((b: any) => b.id === selectedBoardId);
@@ -116,6 +126,88 @@ export default function CollaborationPage() {
       mutate();
     } catch {
       toast.error("Failed to delete");
+    }
+  };
+
+  const startEditTask = (task: any) => {
+    setEditingTaskId(task.id);
+    setEditTaskFields({ title: task.title || "", content: task.content || "" });
+  };
+
+  const saveTask = async (boardId: string, itemId: string) => {
+    try {
+      const res = await fetch(`/api/boards/${boardId}/items`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId, title: editTaskFields.title, content: editTaskFields.content }),
+      });
+      if (!res.ok) throw new Error();
+      setEditingTaskId(null);
+      await mutate();
+      toast.success("Task updated");
+    } catch {
+      toast.error("Failed to update task");
+    }
+  };
+
+  const startEditBoard = (board: any) => {
+    setEditingBoard(true);
+    setBoardFields({ title: board.title || "", description: board.description || "" });
+  };
+
+  const saveBoard = async (boardId: string) => {
+    try {
+      const res = await fetch("/api/boards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: boardId, ...boardFields }),
+      });
+      if (!res.ok) throw new Error();
+      setEditingBoard(false);
+      await mutate();
+      toast.success("Board updated");
+    } catch {
+      toast.error("Failed to update board");
+    }
+  };
+
+  const deleteBoard = async (boardId: string) => {
+    if (!confirm("Delete this board and all its tasks? This can't be undone.")) return;
+    try {
+      const res = await fetch(`/api/boards?id=${boardId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setSelectedBoardId(null);
+      await mutate();
+      toast.success("Board deleted");
+    } catch {
+      toast.error("Failed to delete board");
+    }
+  };
+
+  const addMember = async (boardId: string, userId: string) => {
+    if (!userId) return;
+    try {
+      const res = await fetch(`/api/boards/${boardId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Collaborator added");
+    } catch {
+      toast.error("Failed to add collaborator");
+    }
+  };
+
+  const removeMember = async (boardId: string, userId: string) => {
+    try {
+      const res = await fetch(`/api/boards/${boardId}/members?userId=${userId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Collaborator removed");
+    } catch {
+      toast.error("Failed to remove collaborator");
     }
   };
 
@@ -245,18 +337,63 @@ export default function CollaborationPage() {
       ) : (
         <motion.div variants={item}>
           <div className="flex items-center gap-4 mb-6">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedBoardId(null)}>
+            <Button variant="ghost" size="sm" onClick={() => { setSelectedBoardId(null); setEditingBoard(false); setShowCollab(false); }}>
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Button>
             <div className="h-8 w-px bg-black/[0.12] dark:bg-white/[0.12]" />
-            <div>
-              <h2 className="font-display text-2xl leading-tight">{activeBoard.title}</h2>
-              {activeBoard.description && (
-                <p className="text-xs text-muted-foreground mt-0.5">{activeBoard.description}</p>
-              )}
-            </div>
+            {editingBoard ? (
+              <div className="flex-1 flex items-center gap-2">
+                <Input value={boardFields.title} onChange={(e) => setBoardFields({ ...boardFields, title: e.target.value })} className="h-9 max-w-[220px]" placeholder="Board title" />
+                <Input value={boardFields.description} onChange={(e) => setBoardFields({ ...boardFields, description: e.target.value })} className="h-9 flex-1" placeholder="Description (optional)" />
+                <Button size="sm" onClick={() => saveBoard(activeBoard.id)}>Save</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditingBoard(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <>
+                <div className="min-w-0">
+                  <h2 className="font-display text-2xl leading-tight">{activeBoard.title}</h2>
+                  {activeBoard.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{activeBoard.description}</p>
+                  )}
+                </div>
+                {activeBoard.canManage && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setShowCollab(!showCollab)}>
+                      <UserPlus className="h-4 w-4 mr-1" />Collaborators{activeBoard.members?.length ? ` (${activeBoard.members.length})` : ""}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => startEditBoard(activeBoard)} title="Edit board"><Pencil className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="outline" className="text-red-500" onClick={() => deleteBoard(activeBoard.id)} title="Delete board"><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
+
+          {showCollab && activeBoard.canManage && (
+            <div className="mb-6 rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-4 space-y-3">
+              <p className="wayfinding text-muted-foreground">Collaborators — can edit tasks and the board</p>
+              <div className="flex flex-wrap gap-2">
+                {(activeBoard.members || []).map((m: any) => (
+                  <span key={m.id} className="inline-flex items-center gap-1 rounded-full bg-black/[0.05] dark:bg-white/[0.06] px-3 py-1 text-xs">
+                    {m.user?.name || "RA"}
+                    <button onClick={() => removeMember(activeBoard.id, m.userId)} className="text-muted-foreground/60 hover:text-red-500" title="Remove"><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
+                {(activeBoard.members || []).length === 0 && <span className="text-xs text-muted-foreground">No collaborators yet.</span>}
+              </div>
+              <select
+                onChange={(e) => { if (e.target.value) { addMember(activeBoard.id, e.target.value); e.target.value = ""; } }}
+                className="h-9 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm"
+                defaultValue=""
+              >
+                <option value="">Add a collaborator…</option>
+                {teamMembers
+                  .filter((u: any) => u.id !== activeBoard.userId && !(activeBoard.members || []).some((m: any) => m.userId === u.id))
+                  .map((u: any) => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+              </select>
+            </div>
+          )}
 
           <div className="grid gap-6 md:grid-cols-3">
             {(["TODO", "IN_PROGRESS", "DONE"] as const).map((status) => {
@@ -283,38 +420,49 @@ export default function CollaborationPage() {
                     {tasks.map((task: any) => (
                       <div
                         key={task.id}
-                        draggable
+                        draggable={activeBoard.canManage && editingTaskId !== task.id}
                         onDragStart={() => setDraggingId(task.id)}
                         onDragEnd={() => { setDraggingId(null); setDragOverCol(null); }}
-                        className={`p-3 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-200 group/task cursor-grab active:cursor-grabbing ${draggingId === task.id ? "opacity-40" : ""}`}
+                        className={`p-3 rounded-xl border border-black/[0.08] dark:border-white/[0.08] bg-card hover:border-black/[0.15] dark:hover:border-white/[0.15] transition-all duration-200 group/task ${activeBoard.canManage ? "cursor-grab active:cursor-grabbing" : ""} ${draggingId === task.id ? "opacity-40" : ""}`}
                       >
-                        <div className="flex items-start gap-2">
-                          <button
-                            onClick={() => updateItemType(activeBoard.id, task.id, nextStatus)}
-                            className="mt-0.5 shrink-0"
-                          >
-                            <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"} hover:text-primary transition-colors`} />
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${status === "DONE" ? "line-through text-muted-foreground" : ""}`}>
-                              {task.title}
-                            </p>
-                            {task.content && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5">{task.content}</p>
+                        {editingTaskId === task.id ? (
+                          <div className="space-y-2">
+                            <Input value={editTaskFields.title} onChange={(e) => setEditTaskFields({ ...editTaskFields, title: e.target.value })} className="h-8 text-sm" placeholder="Title" autoFocus />
+                            <Input value={editTaskFields.content} onChange={(e) => setEditTaskFields({ ...editTaskFields, content: e.target.value })} className="h-8 text-xs" placeholder="Details (optional)" />
+                            <div className="flex gap-2">
+                              <Button size="sm" className="h-7 text-xs" onClick={() => saveTask(activeBoard.id, task.id)}>Save</Button>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingTaskId(null)}>Cancel</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-2">
+                            <button
+                              onClick={() => activeBoard.canManage && updateItemType(activeBoard.id, task.id, nextStatus)}
+                              className="mt-0.5 shrink-0"
+                            >
+                              <StatusIcon className={`h-4 w-4 ${status === "DONE" ? "text-emerald-400" : status === "IN_PROGRESS" ? "text-amber-400" : "text-muted-foreground"} hover:text-primary transition-colors`} />
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium ${status === "DONE" ? "line-through text-muted-foreground" : ""}`}>
+                                {task.title}
+                              </p>
+                              {task.content && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5">{task.content}</p>
+                              )}
+                            </div>
+                            {activeBoard.canManage && (
+                              <div className="flex gap-0.5 opacity-0 group-hover/task:opacity-100 transition-all">
+                                <button onClick={() => startEditTask(task)} className="p-1 rounded-lg text-muted-foreground/50 hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)]" title="Edit"><Pencil className="h-3 w-3" /></button>
+                                <button onClick={() => deleteItem(activeBoard.id, task.id)} className="p-1 rounded-lg text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/10" title="Delete"><Trash2 className="h-3 w-3" /></button>
+                              </div>
                             )}
                           </div>
-                          <button
-                            onClick={() => deleteItem(activeBoard.id, task.id)}
-                            className="p-1 rounded-lg text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover/task:opacity-100 transition-all"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>
 
-                  {status === "TODO" && (
+                  {status === "TODO" && activeBoard.canManage && (
                     <div>
                       {showNewTask ? (
                         <div className="flex gap-2">
