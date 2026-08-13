@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardCheck, Check, AlertCircle, Clock, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -11,9 +13,14 @@ import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+interface RoomResident {
+  name: string;
+  email?: string | null;
+}
+
 interface RoomCheck {
   room: string;
-  resident: string;
+  residents: RoomResident[];
   status: "pending" | "pass" | "concern" | "absent";
   notes?: string;
 }
@@ -28,12 +35,14 @@ interface CheckRound {
 const checkTypes = ["Health & Safety", "Wellness Check", "Break Closing"] as const;
 
 export default function RoomChecksPage() {
+  const { data: session } = useSession();
   const { data: history, mutate } = useSWR("/api/room-checks", fetcher);
   // Pull the RA's own residents from the floor roster to build the check.
   const { data: residents } = useSWR("/api/residents", fetcher);
   const [activeCheck, setActiveCheck] = useState<CheckRound | null>(null);
   const [checkType, setCheckType] = useState<typeof checkTypes[number]>("Health & Safety");
   const [raFilter, setRaFilter] = useState("");
+  const [saving, setSaving] = useState(false);
   const allHistory = Array.isArray(history) ? history : [];
 
   // RAs that have logged rounds, for the filter dropdown.
@@ -42,54 +51,64 @@ export default function RoomChecksPage() {
   ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
   const visibleHistory = raFilter ? allHistory.filter((c: any) => c.ownerId === raFilter) : allHistory;
 
-  const myResidents = (Array.isArray(residents) ? residents : []).filter((r: any) => r.canEdit);
+  // Only YOUR assigned residents (your floor) — not everyone on the platform.
+  const myResidents = (Array.isArray(residents) ? residents : []).filter(
+    (r: any) => session?.user?.id && r.ownerId === session.user.id
+  );
 
   const startCheck = () => {
     if (myResidents.length === 0) {
-      toast.error("Add residents to your floor roster first");
+      toast.error("No residents assigned to you yet — add them to your floor roster first");
       return;
     }
-    // One room per resident, sorted by room, pulled live from the roster.
-    const rooms: RoomCheck[] = [...myResidents]
-      .sort((a: any, b: any) => a.room.localeCompare(b.room, undefined, { numeric: true }))
-      .map((r: any) => ({ room: r.room, resident: r.name, status: "pending" as const }));
-    setActiveCheck({
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      type: checkType,
-      rooms,
-    });
+    // Group residents by room so roommates (double/triple occupancy) are one
+    // check that covers everyone in the room.
+    const byRoom = new Map<string, RoomResident[]>();
+    for (const r of myResidents as any[]) {
+      const list = byRoom.get(r.room) || [];
+      list.push({ name: r.name, email: r.email });
+      byRoom.set(r.room, list);
+    }
+    const rooms: RoomCheck[] = [...byRoom.entries()]
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+      .map(([room, residents]) => ({ room, residents, status: "pending" as const, notes: "" }));
+
+    setActiveCheck({ id: Date.now().toString(), date: new Date().toISOString(), type: checkType, rooms });
   };
 
-  const updateRoom = (room: string, status: RoomCheck["status"], notes?: string) => {
+  const updateRoom = (room: string, patch: Partial<RoomCheck>) => {
     if (!activeCheck) return;
     setActiveCheck({
       ...activeCheck,
-      rooms: activeCheck.rooms.map(r =>
-        r.room === room ? { ...r, status, ...(notes !== undefined && { notes }) } : r
-      ),
+      rooms: activeCheck.rooms.map((r) => (r.room === room ? { ...r, ...patch } : r)),
     });
   };
 
   const finishCheck = async () => {
-    if (!activeCheck) return;
+    if (!activeCheck || saving) return;
+    setSaving(true);
     try {
-      await fetch("/api/room-checks", {
+      const res = await fetch("/api/room-checks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: activeCheck.type, rooms: activeCheck.rooms }),
       });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
       setActiveCheck(null);
-      mutate();
-      toast.success("Room check complete!");
+      await mutate();
+      const emailed = data?.emailed || 0;
+      toast.success(emailed > 0 ? `Room check saved — ${emailed} resident${emailed === 1 ? "" : "s"} notified` : "Room check saved");
     } catch {
       toast.error("Failed to save room check");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const completedCount = activeCheck?.rooms.filter(r => r.status !== "pending").length || 0;
+  const completedCount = activeCheck?.rooms.filter((r) => r.status !== "pending").length || 0;
   const totalCount = activeCheck?.rooms.length || 0;
-  const concerns = activeCheck?.rooms.filter(r => r.status === "concern") || [];
+  const concerns = activeCheck?.rooms.filter((r) => r.status === "concern") || [];
 
   return (
     <motion.div
@@ -101,7 +120,7 @@ export default function RoomChecksPage() {
       <PageHeader
         code="G · ROOM CHECKS"
         title="Room Checks"
-        subtitle="Health & safety inspections and wellness checks — a rounds checklist for your walk-through."
+        subtitle="Health & safety inspections and wellness checks — a rounds checklist for your floor, room by room."
       />
 
       {!activeCheck ? (
@@ -112,7 +131,7 @@ export default function RoomChecksPage() {
               <h3 className="font-display text-xl">Start a room check</h3>
             </div>
             <div className="flex gap-2 flex-wrap mb-5">
-              {checkTypes.map(type => (
+              {checkTypes.map((type) => (
                 <button
                   key={type}
                   onClick={() => setCheckType(type)}
@@ -187,8 +206,8 @@ export default function RoomChecksPage() {
                 <p className="font-display text-lg">{activeCheck.type} in progress</p>
                 <p className="wayfinding text-muted-foreground mt-0.5 normal-case">{completedCount}/{totalCount} rooms checked</p>
               </div>
-              <Button size="sm" onClick={finishCheck} disabled={completedCount === 0}>
-                Finish Check
+              <Button size="sm" onClick={finishCheck} disabled={completedCount === 0 || saving}>
+                {saving ? "Saving…" : "Finish Check"}
               </Button>
             </div>
             <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.06] overflow-hidden">
@@ -203,12 +222,12 @@ export default function RoomChecksPage() {
             <div className="mb-6 rounded-xl border border-[hsl(var(--terracotta)/0.3)] bg-[hsl(var(--terracotta)/0.05)] p-3">
               <p className="text-xs font-medium text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] flex items-center gap-1.5">
                 <AlertCircle className="h-3.5 w-3.5" />
-                {concerns.length} concern{concerns.length > 1 ? "s" : ""} flagged
+                {concerns.length} concern{concerns.length > 1 ? "s" : ""} flagged — residents will be emailed on finish
               </p>
             </div>
           )}
 
-          <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
+          <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08]">
             {activeCheck.rooms.map((room) => (
               <div
                 key={room.room}
@@ -219,29 +238,36 @@ export default function RoomChecksPage() {
                   "bg-card"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="font-display text-base tabular-nums w-8">{room.room}</span>
-                    <span className="text-sm text-muted-foreground">{room.resident}</span>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="font-display text-base tabular-nums w-10 shrink-0">{room.room}</span>
+                    <div className="min-w-0">
+                      <span className="text-sm text-muted-foreground block truncate">
+                        {room.residents.map((r) => r.name).join(", ")}
+                      </span>
+                      {room.residents.length > 1 && (
+                        <span className="text-[10px] text-muted-foreground/70">{room.residents.length} residents</span>
+                      )}
+                    </div>
                   </div>
                   {room.status === "pending" ? (
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <button
-                        onClick={() => updateRoom(room.room, "pass")}
+                        onClick={() => updateRoom(room.room, { status: "pass" })}
                         className="p-1.5 rounded-lg hover:bg-[hsl(var(--sage)/0.12)] text-muted-foreground hover:text-[hsl(var(--sage))] dark:hover:text-[hsl(var(--sage-soft))] transition-colors"
                         title="Pass"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => updateRoom(room.room, "concern")}
+                        onClick={() => updateRoom(room.room, { status: "concern" })}
                         className="p-1.5 rounded-lg hover:bg-[hsl(var(--terracotta)/0.12)] text-muted-foreground hover:text-[hsl(var(--terracotta))] dark:hover:text-[hsl(var(--terracotta-soft))] transition-colors"
-                        title="Concern"
+                        title="Concern (residents notified)"
                       >
                         <AlertCircle className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => updateRoom(room.room, "absent")}
+                        onClick={() => updateRoom(room.room, { status: "absent" })}
                         className="p-1.5 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/[0.06] text-muted-foreground transition-colors"
                         title="Not present"
                       >
@@ -249,15 +275,28 @@ export default function RoomChecksPage() {
                       </button>
                     </div>
                   ) : (
-                    <Badge className={
-                      room.status === "pass" ? "bg-[hsl(var(--sage)/0.15)] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" :
-                      room.status === "concern" ? "bg-[hsl(var(--terracotta)/0.15)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" :
-                      "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground"
-                    }>
-                      {room.status === "pass" ? "Pass" : room.status === "concern" ? "Concern" : "Absent"}
-                    </Badge>
+                    <button
+                      onClick={() => updateRoom(room.room, { status: "pending", notes: "" })}
+                      title="Undo — set back to pending"
+                    >
+                      <Badge className={
+                        room.status === "pass" ? "bg-[hsl(var(--sage)/0.15)] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" :
+                        room.status === "concern" ? "bg-[hsl(var(--terracotta)/0.15)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" :
+                        "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground"
+                      }>
+                        {room.status === "pass" ? "Pass" : room.status === "concern" ? "Concern" : "Absent"}
+                      </Badge>
+                    </button>
                   )}
                 </div>
+                {room.status === "concern" && (
+                  <Input
+                    value={room.notes || ""}
+                    onChange={(e) => updateRoom(room.room, { notes: e.target.value })}
+                    placeholder="What's the concern? (included in the resident's email)"
+                    className="mt-2 h-8 text-xs"
+                  />
+                )}
               </div>
             ))}
           </div>

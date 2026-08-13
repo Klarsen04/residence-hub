@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ExternalLink, BookOpen, Heart, Shield, GraduationCap, Users, Utensils } from "lucide-react";
+import { Plus, Search, ExternalLink, BookOpen, Heart, Shield, GraduationCap, Users, Utensils, Pencil, Trash2, Check, Clock, Download } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -70,9 +71,14 @@ const NYIT_RESOURCES = [
 ];
 
 export default function ResourcesPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
   const [showForm, setShowForm] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", description: "", url: "", type: "SHARED" });
   const { data: sharedResources, mutate } = useSWR("/api/resources", fetcher);
 
   const [form, setForm] = useState({
@@ -97,7 +103,7 @@ export default function ResourcesPage() {
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
-      toast.success("Resource shared with the team!");
+      toast.success(isAdmin ? "Resource shared with the team!" : "Submitted — an admin will approve it shortly.");
       setShowForm(false);
       setForm({ title: "", description: "", url: "", type: "SHARED" });
       mutate();
@@ -106,17 +112,94 @@ export default function ResourcesPage() {
     }
   };
 
+  const startEdit = (r: any) => {
+    setEditingId(r.id);
+    setEditForm({ title: r.title, description: r.description || "", url: r.url || "", type: r.type });
+  };
+
+  const saveEdit = async (id: string) => {
+    try {
+      const res = await fetch("/api/resources", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, title: editForm.title, description: editForm.description, externalUrl: editForm.url, type: editForm.type }),
+      });
+      if (!res.ok) throw new Error();
+      setEditingId(null);
+      await mutate();
+      toast.success("Resource updated");
+    } catch {
+      toast.error("Failed to update resource");
+    }
+  };
+
+  const deleteResource = async (id: string) => {
+    if (!confirm("Delete this resource? This can't be undone.")) return;
+    try {
+      const res = await fetch(`/api/resources?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Resource deleted");
+    } catch {
+      toast.error("Failed to delete resource");
+    }
+  };
+
+  const approveResource = async (id: string) => {
+    try {
+      const res = await fetch("/api/resources", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, approved: true }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Resource approved — now visible to everyone");
+    } catch {
+      toast.error("Failed to approve resource");
+    }
+  };
+
+  // Admin-only: move the built-in campus resources into the DB so they become
+  // editable. Idempotent — skips any whose title already exists.
+  const importCampusResources = async () => {
+    setImporting(true);
+    const existing = new Set((sharedResources || []).map((r: any) => r.title));
+    const toImport = NYIT_RESOURCES.filter((r) => !existing.has(r.title));
+    try {
+      for (const r of toImport) {
+        await fetch("/api/resources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: r.title, description: r.description, externalUrl: r.url, type: r.type, isPublic: true }),
+        });
+      }
+      await mutate();
+      toast.success(`Imported ${toImport.length} campus resource${toImport.length === 1 ? "" : "s"} — now editable`);
+    } catch {
+      toast.error("Failed to import campus resources");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const dbResources = (sharedResources || []).map((r: any) => ({
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    url: r.externalUrl || r.fileUrl,
+    type: r.type,
+    isNYIT: false,
+    approved: r.approved,
+    canEdit: r.canEdit,
+    canApprove: r.canApprove,
+    sharedBy: r.user?.name,
+  }));
+  // Only show a hardcoded campus link if it hasn't been imported into the DB.
+  const dbTitles = new Set(dbResources.map((r: any) => r.title));
   const allResources = [
-    ...NYIT_RESOURCES.map((r) => ({ ...r, isNYIT: true, id: r.url })),
-    ...((sharedResources || []).map((r: any) => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      url: r.externalUrl || r.fileUrl,
-      type: r.type,
-      isNYIT: false,
-      sharedBy: r.user?.name,
-    }))),
+    ...NYIT_RESOURCES.filter((r) => !dbTitles.has(r.title)).map((r) => ({ ...r, isNYIT: true, id: r.url, approved: true, canEdit: false, canApprove: false })),
+    ...dbResources,
   ];
 
   const filtered = allResources.filter((r) => {
@@ -143,10 +226,18 @@ export default function ResourcesPage() {
         title="Resources"
         subtitle="The front desk — NYIT services and materials the team has shared."
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Share Resource
-          </Button>
+          <div className="flex gap-2">
+            {isAdmin && (
+              <Button variant="outline" onClick={importCampusResources} disabled={importing} title="Copy the built-in campus links into the database so they can be edited">
+                <Download className="h-4 w-4 mr-2" />
+                {importing ? "Importing…" : "Import campus resources"}
+              </Button>
+            )}
+            <Button onClick={() => setShowForm(!showForm)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Share Resource
+            </Button>
+          </div>
         }
       />
 
@@ -249,8 +340,24 @@ export default function ResourcesPage() {
         />
       ) : (
         <div className="rounded-xl border border-black/[0.08] dark:border-white/[0.08] overflow-hidden divide-y divide-black/[0.07] dark:divide-white/[0.07]">
-          {filtered.map((resource) => {
+          {filtered.map((resource: any) => {
             const Icon = typeIcons[resource.type] || BookOpen;
+            if (editingId === resource.id) {
+              return (
+                <div key={resource.id} className="bg-card px-5 py-4 space-y-2">
+                  <Input value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="Title" />
+                  <Input value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder="Description" />
+                  <Input value={editForm.url} onChange={(e) => setEditForm({ ...editForm, url: e.target.value })} placeholder="URL" />
+                  <select className="h-10 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-3 text-sm" value={editForm.type} onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}>
+                    {resourceTypes.filter((t) => t !== "ALL").map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
+                  </select>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => saveEdit(resource.id)}>Save</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={resource.id} className="group flex items-start gap-4 px-5 py-4 bg-card hover:bg-[hsl(var(--sage)/0.06)] transition-colors">
                 <div className="mt-0.5 shrink-0 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]">
@@ -263,6 +370,9 @@ export default function ResourcesPage() {
                     {resource.isNYIT && (
                       <span className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">NYIT</span>
                     )}
+                    {!resource.isNYIT && !resource.approved && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-amber-500"><Clock className="h-3 w-3" /> Pending approval</span>
+                    )}
                     {!resource.isNYIT && resource.sharedBy && (
                       <span className="text-[11px] text-muted-foreground">by {resource.sharedBy}</span>
                     )}
@@ -271,17 +381,34 @@ export default function ResourcesPage() {
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{resource.description}</p>
                   )}
                 </div>
-                {resource.url && (
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 self-center inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-80 transition-opacity"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    {resource.url.startsWith("tel:") ? "Call" : "Open"}
-                  </a>
-                )}
+                <div className="shrink-0 self-center flex items-center gap-2">
+                  {resource.canApprove && !resource.approved && (
+                    <button onClick={() => approveResource(resource.id)} className="inline-flex items-center gap-1 text-xs text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] hover:opacity-80" title="Approve — make visible to everyone">
+                      <Check className="h-3.5 w-3.5" /> Approve
+                    </button>
+                  )}
+                  {resource.canEdit && (
+                    <button onClick={() => startEdit(resource)} className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] opacity-0 group-hover:opacity-100 transition-all" title="Edit">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {resource.canEdit && (
+                    <button onClick={() => deleteResource(resource.id)} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all" title="Delete">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {resource.url && (
+                    <a
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wide text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-80 transition-opacity"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      {resource.url.startsWith("tel:") ? "Call" : "Open"}
+                    </a>
+                  )}
+                </div>
               </div>
             );
           })}
