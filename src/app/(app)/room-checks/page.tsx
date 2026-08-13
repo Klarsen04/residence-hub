@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardCheck, Check, AlertCircle, Clock, Pencil, Trash2, Undo2, Plus, X } from "lucide-react";
+import { ClipboardCheck, Check, AlertCircle, Pencil, Undo2, Plus, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -15,7 +15,7 @@ import { formatDateTime } from "@/lib/utils";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const checkTypes = ["Health & Safety", "Wellness Check", "Break Closing"] as const;
-type Status = "pass" | "concern" | "absent";
+type Status = "pass" | "fail";
 
 interface RoomCheckBoard {
   id: string;
@@ -40,8 +40,10 @@ interface RoomCheckResult {
   updatedAt: string;
 }
 
-const statusColors: Record<Status, string> = {
+const statusColors: Record<string, string> = {
   pass: "bg-[hsl(var(--sage)/0.15)] text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]",
+  fail: "bg-[hsl(var(--terracotta)/0.15)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]",
+  // legacy values still render if any old rows exist
   concern: "bg-[hsl(var(--terracotta)/0.15)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]",
   absent: "bg-black/[0.06] dark:bg-white/[0.06] text-muted-foreground",
 };
@@ -294,17 +296,15 @@ export default function RoomChecksPage() {
                     {marking.residentName}{marking.room ? ` — Rm ${marking.room}` : ""}
                   </p>
                   <div className="flex gap-2">
-                    {(["pass", "concern", "absent"] as const).map((s) => (
+                    {(["pass", "fail"] as const).map((s) => (
                       <button key={s} onClick={() => setMarking({ ...marking, status: s })}
                         className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${marking.status === s ? statusColors[s] : "border-black/[0.06] dark:border-white/[0.06] text-muted-foreground"}`}>
-                        {s.charAt(0).toUpperCase() + s.slice(1)}
+                        {s === "pass" ? "Pass" : "Fail"}
                       </button>
                     ))}
                   </div>
-                  {marking.status === "concern" && (
-                    <Input value={marking.notes} onChange={(e) => setMarking({ ...marking, notes: e.target.value })}
-                      placeholder="What's the concern? (included in the resident's email if we have it)" className="h-9 text-sm" />
-                  )}
+                  <Input value={marking.notes} onChange={(e) => setMarking({ ...marking, notes: e.target.value })}
+                    placeholder={marking.status === "fail" ? "Note — e.g. redo inspection needed (emailed to the resident)" : "Note (optional)"} className="h-9 text-sm" />
                   <div className="flex gap-2">
                     <Button size="sm" onClick={saveMarking} disabled={saving}>{saving ? "Saving…" : marking.kind === "edit" ? "Save changes" : "Save"}</Button>
                     <Button size="sm" variant="outline" onClick={closeMarking}>Cancel</Button>
@@ -326,8 +326,7 @@ export default function RoomChecksPage() {
                       </div>
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => openMarkNew(r, "pass")} className="p-1.5 rounded-lg hover:bg-[hsl(var(--sage)/0.12)] text-muted-foreground hover:text-[hsl(var(--sage))] dark:hover:text-[hsl(var(--sage-soft))]" title="Pass"><Check className="h-4 w-4" /></button>
-                        <button onClick={() => openMarkNew(r, "concern")} className="p-1.5 rounded-lg hover:bg-[hsl(var(--terracotta)/0.12)] text-muted-foreground hover:text-[hsl(var(--terracotta))] dark:hover:text-[hsl(var(--terracotta-soft))]" title="Concern"><AlertCircle className="h-4 w-4" /></button>
-                        <button onClick={() => openMarkNew(r, "absent")} className="p-1.5 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/[0.06] text-muted-foreground" title="Not present"><Clock className="h-4 w-4" /></button>
+                        <button onClick={() => openMarkNew(r, "fail")} className="p-1.5 rounded-lg hover:bg-[hsl(var(--terracotta)/0.12)] text-muted-foreground hover:text-[hsl(var(--terracotta))] dark:hover:text-[hsl(var(--terracotta-soft))]" title="Fail"><AlertCircle className="h-4 w-4" /></button>
                       </div>
                     </div>
                   ))}
@@ -352,7 +351,6 @@ export default function RoomChecksPage() {
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)]" title="Edit"><Pencil className="h-3.5 w-3.5" /></button>
                           <button onClick={() => undoResult(r)} className="p-1.5 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10" title="Undo / return to pending"><Undo2 className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => undoResult(r)} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 hidden" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                         </div>
                       </div>
                     ))}

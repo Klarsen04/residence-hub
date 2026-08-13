@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { residentId, residentName, room, status, notes } = await req.json();
   if (!residentName) return NextResponse.json({ error: "Resident name required" }, { status: 400 });
-  if (!["pass", "concern", "absent"].includes(status)) {
+  if (!["pass", "fail"].includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
@@ -56,19 +56,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         },
       });
 
-  // Email the resident on a "concern" result (only if we have their email and
-  // we didn't already email them for this row on a previous save).
+  // Email the resident on a "fail" result (only if we have their email and we
+  // didn't already email them for this row on a previous save).
   let emailed = false;
-  if (status === "concern" && residentId && !existing) {
+  if (status === "fail" && residentId && !existing) {
     const resident = await prisma.resident.findUnique({ where: { id: residentId }, select: { email: true, name: true } });
     if (resident?.email) {
       const result = await sendEmail({
         to: resident.email,
-        subject: `Room Check — action needed for Room ${room || ""}`,
+        subject: `Room Check — re-inspection needed for Room ${room || ""}`,
         html: `<p>Hi ${resident.name || "there"},</p>
-<p>During a recent <strong>${board.type}</strong> room check (${board.title}), your room${room ? ` (<strong>Room ${room}</strong>)` : ""} was flagged with a concern.</p>
-${notes ? `<p><strong>Notes:</strong> ${notes}</p>` : ""}
-<p>Please follow up with your RA. Thank you.</p>`,
+<p>During a recent <strong>${board.type}</strong> room check (${board.title}), your room${room ? ` (<strong>Room ${room}</strong>)` : ""} did not pass and needs a re-inspection.</p>
+${notes ? `<p><strong>Note:</strong> ${notes}</p>` : ""}
+<p>Please address this and follow up with your RA. Thank you.</p>`,
       });
       emailed = result.sent;
     }
