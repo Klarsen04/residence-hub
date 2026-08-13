@@ -75,15 +75,17 @@ async function loadWllama(model: LocalModel, onProgress: ProgressFn): Promise<Lo
   // Explicit esm path: the package's "main" points at a non-existent root file.
   const { Wllama } = await import("@wllama/wllama/esm/index.js");
   const wllama = new Wllama({ default: WLLAMA_WASM_URL });
-  await wllama.loadModelFromHF(
-    { repo: model.hf!.repo, file: model.hf!.file },
-    {
-      n_ctx: 2048,
-      n_gpu_layers: 0, // force pure CPU — guarantees it runs on Firefox etc.
-      progressCallback: ({ loaded, total }: { loaded: number; total: number }) =>
-        onProgress(total ? Math.round((loaded / total) * 100) : 0, "Downloading model…"),
-    }
-  );
+  // Load from the direct resolve URL instead of loadModelFromHF(): the HF-API
+  // metadata lookup that loadModelFromHF() does 404s on repos migrated to HF's
+  // Xet storage (which most bartowski GGUFs now use). The plain resolve URL
+  // still 302-redirects to the CDN and downloads fine in-browser.
+  const url = `https://huggingface.co/${model.hf!.repo}/resolve/main/${model.hf!.file}`;
+  await wllama.loadModelFromUrl(url, {
+    n_ctx: 2048,
+    n_gpu_layers: 0, // force pure CPU — guarantees it runs on Firefox etc.
+    progressCallback: ({ loaded, total }: { loaded: number; total: number }) =>
+      onProgress(total ? Math.round((loaded / total) * 100) : 0, "Downloading model…"),
+  });
   return {
     kind: "wllama",
     async chat(messages, onDelta) {
