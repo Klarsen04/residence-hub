@@ -83,6 +83,7 @@ model User {
   dutyShifts       DutyShift[]
   feedbacks        Feedback[]
   checkIns         CheckIn[]
+  checkInBoards    CheckInBoard[]
   notifications    Notification[]
   residents        Resident[]
   roomChecks       RoomCheckRound[]
@@ -696,9 +697,26 @@ model CheckIn {
   topics       String?
   notes        String?
   followUp     Boolean @default(false)
+  boardId      String? // optional check-in board/campaign this belongs to
 
-  user     User      @relation(fields: [userId], references: [id])
-  resident Resident? @relation(fields: [residentId], references: [id], onDelete: SetNull)
+  user     User          @relation(fields: [userId], references: [id])
+  resident Resident?     @relation(fields: [residentId], references: [id], onDelete: SetNull)
+  board    CheckInBoard? @relation(fields: [boardId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+// A check-in campaign/context. "shared" boards are created by an admin and
+// shown to every RA (each RA checks their own residents, once per resident).
+// "personal" boards are private to their owner (once per resident per day).
+model CheckInBoard {
+  id      String @id @default(cuid())
+  title   String
+  scope   String @default("personal") // "shared" | "personal"
+  ownerId String
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  checkIns CheckIn[]
 
   createdAt DateTime @default(now())
 }
