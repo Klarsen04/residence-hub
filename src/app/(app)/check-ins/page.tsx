@@ -76,10 +76,6 @@ export default function CheckInsPage() {
     checkedResidentIds.add(ci.residentId);
     if (new Date(ci.createdAt).getTime() >= startOfToday.getTime()) checkedTodayIds.add(ci.residentId);
   }
-  const dueCount = allResidents.filter((r: any) =>
-    scope === "shared" ? !checkedResidentIds.has(r.id) : !checkedTodayIds.has(r.id)
-  ).length;
-
   // Filter options derived from the roster: by RA (owner) and by floor/wing.
   const wingKey = (r: any) => `${r.floor || ""}|${r.wing || ""}`;
   const wingLabel = (floor: string, wing: string) =>
@@ -261,10 +257,9 @@ export default function CheckInsPage() {
         )}
       </div>
 
-      <PlateRow className="grid-cols-3 mb-10">
-        <Plate code="01" value={totalCheckIns} label={scope === "shared" ? "Done this board" : "Check-ins here"} accent />
-        <Plate code="02" value={dueCount} label={scope === "shared" ? "Remaining" : "Due today"} />
-        <Plate code="03" value={allResidents.length} label="Residents" />
+      <PlateRow className="grid-cols-2 mb-10">
+        <Plate code="01" value={totalCheckIns} label="Check-ins here" accent />
+        <Plate code="02" value={allResidents.length} label="Residents" />
       </PlateRow>
 
       {showForm && (

@@ -87,6 +87,8 @@ model User {
   notifications    Notification[]
   residents        Resident[]
   roomChecks       RoomCheckRound[]
+  roomCheckBoards  RoomCheckBoard[]
+  roomCheckResults RoomCheckResult[]
   tags             Tag[]
   conversations    Conversation[]
 
@@ -773,4 +775,35 @@ model RoomCheckRound {
   user User @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+// A room-check campaign. Created by an admin ("assigned to RAs"); RAs cannot
+// create their own. Each RA records one result per resident within a board.
+model RoomCheckBoard {
+  id      String @id @default(cuid())
+  title   String
+  type    String @default("Health & Safety")
+  ownerId String
+
+  owner   User              @relation(fields: [ownerId], references: [id])
+  results RoomCheckResult[]
+
+  createdAt DateTime @default(now())
+}
+
+model RoomCheckResult {
+  id           String  @id @default(cuid())
+  boardId      String
+  userId       String
+  residentId   String?
+  residentName String
+  room         String?
+  status       String  @default("pass") // pass | concern | absent
+  notes        String?
+
+  board RoomCheckBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
