@@ -18,6 +18,24 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+// When run manually (node scripts/sync-turso.mjs) there's no framework to load
+// .env, so pull TURSO_* from .env.local / .env ourselves. Existing (non-empty)
+// process.env values always win; empty values never clobber.
+function loadEnvFile(name) {
+  const path = join(dirname(fileURLToPath(import.meta.url)), "..", name);
+  let text;
+  try { text = readFileSync(path, "utf8"); } catch { return; }
+  for (const line of text.split("\n")) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/i);
+    if (!m) continue;
+    const key = m[1];
+    let val = m[2].trim().replace(/^["']|["']$/g, "");
+    if (val && !process.env[key]) process.env[key] = val;
+  }
+}
+loadEnvFile(".env.local");
+loadEnvFile(".env");
+
 const url = process.env.TURSO_DATABASE_URL;
 const authToken = process.env.TURSO_AUTH_TOKEN;
 
