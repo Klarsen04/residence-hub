@@ -42,6 +42,8 @@ export default function CheckInsPage() {
   const { data: residents } = useSWR("/api/residents", fetcher);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [raFilter, setRaFilter] = useState("");
+  const [wingFilter, setWingFilter] = useState("");
   const [form, setForm] = useState({
     residentId: "",
     residentName: "",
@@ -53,9 +55,20 @@ export default function CheckInsPage() {
   });
 
   const allCheckIns: CheckIn[] = Array.isArray(checkIns) ? checkIns : [];
-  // Only your own residents are check-in-able (check-ins are per-RA).
+  // Only residents you can manage are check-in-able (admins see everyone; RAs see their own).
   const allResidents = (Array.isArray(residents) ? residents : []).filter((r: any) => r.canEdit);
   const totalCheckIns = allCheckIns.length;
+
+  // Filter options derived from the roster: by RA (owner) and by floor/wing.
+  const wingKey = (r: any) => `${r.floor || ""}|${r.wing || ""}`;
+  const wingLabel = (floor: string, wing: string) =>
+    `${floor ? `Fl ${floor}` : "Unassigned"}${wing && wing !== "Main" ? ` · ${wing}` : wing === "Main" ? " · Main" : ""}`;
+  const raOptions = Array.from(
+    allResidents.reduce((m: Map<string, string>, r: any) => m.set(r.ownerId, r.ownerName), new Map<string, string>())
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+  const wingOptions = Array.from(new Set(allResidents.map(wingKey)))
+    .filter((v) => v !== "|")
+    .sort();
 
   const toggleTopic = (topic: string) => {
     setForm({
@@ -89,13 +102,23 @@ export default function CheckInsPage() {
   };
 
   const selectResident = (resident: any) => {
-    setForm({ ...form, residentId: resident.id, residentName: resident.name, room: resident.room });
+    setForm({ ...form, residentId: resident.id, residentName: resident.name, room: resident.room || "" });
     setShowForm(true);
   };
 
-  const filteredResidents = allResidents.filter((s: any) =>
-    s.name.toLowerCase().includes(search.toLowerCase()) || s.room.includes(search)
-  );
+  // Pick a resident from the form dropdown — auto-fills name + room from the roster.
+  const chooseResident = (id: string) => {
+    const r = allResidents.find((x: any) => x.id === id);
+    setForm({ ...form, residentId: id, residentName: r?.name || "", room: r?.room || "" });
+  };
+
+  const filteredResidents = allResidents.filter((s: any) => {
+    const q = search.toLowerCase();
+    const matchesSearch = s.name.toLowerCase().includes(q) || (s.room || "").includes(search);
+    const matchesRA = !raFilter || s.ownerId === raFilter;
+    const matchesWing = !wingFilter || wingKey(s) === wingFilter;
+    return matchesSearch && matchesRA && matchesWing;
+  });
 
   return (
     <motion.div
@@ -130,11 +153,21 @@ export default function CheckInsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Resident</label>
-                    <Input value={form.residentName} onChange={(e) => setForm({ ...form, residentName: e.target.value })} placeholder="Name" className="mt-1.5" required />
+                    <select
+                      value={form.residentId}
+                      onChange={(e) => chooseResident(e.target.value)}
+                      required
+                      className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-white/[0.03] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                    >
+                      <option value="">Select a resident…</option>
+                      {allResidents.map((r: any) => (
+                        <option key={r.id} value={r.id}>{r.name}{r.room ? ` — Rm ${r.room}` : ""}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Room</label>
-                    <Input value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} placeholder="Room #" className="mt-1.5" />
+                    <Input value={form.room} readOnly placeholder="Auto-filled from roster" className="mt-1.5 bg-black/[0.03] dark:bg-white/[0.03]" />
                   </div>
                 </div>
 
@@ -206,9 +239,36 @@ export default function CheckInsPage() {
           code="02·C"
           label="Your directory"
           right={
-            <div className="relative w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="h-8 text-xs pl-8" />
+            <div className="flex items-center gap-2">
+              {raOptions.length > 1 && (
+                <select
+                  value={raFilter}
+                  onChange={(e) => setRaFilter(e.target.value)}
+                  title="Filter by RA"
+                  className="h-8 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-2 text-xs"
+                >
+                  <option value="">All RAs</option>
+                  {raOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                </select>
+              )}
+              {wingOptions.length > 1 && (
+                <select
+                  value={wingFilter}
+                  onChange={(e) => setWingFilter(e.target.value)}
+                  title="Filter by floor / wing"
+                  className="h-8 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-2 text-xs"
+                >
+                  <option value="">All wings</option>
+                  {wingOptions.map((w) => {
+                    const [floor, wing] = w.split("|");
+                    return <option key={w} value={w}>{wingLabel(floor, wing)}</option>;
+                  })}
+                </select>
+              )}
+              <div className="relative w-40">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search..." className="h-8 text-xs pl-8" />
+              </div>
             </div>
           }
         />

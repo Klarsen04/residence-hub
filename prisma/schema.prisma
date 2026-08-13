@@ -604,6 +604,7 @@ model Incident {
   actionTaken  String?
   followUpNeeded Boolean @default(false)
   status       String  @default("open")
+  isPublic     Boolean @default(false) // private by default; owner may share with all RAs
 
   user User @relation(fields: [userId], references: [id])
 

@@ -47,16 +47,17 @@ export default function CollaborationPage() {
   const createBoard = async () => {
     if (!newBoardTitle.trim()) return;
     try {
-      await fetch("/api/boards", {
+      const res = await fetch("/api/boards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newBoardTitle, description: newBoardDesc }),
       });
+      if (!res.ok) throw new Error();
       toast.success("Board created!");
       setShowNewBoard(false);
       setNewBoardTitle("");
       setNewBoardDesc("");
-      mutate();
+      await mutate();
     } catch {
       toast.error("Failed to create board");
     }
@@ -65,14 +66,15 @@ export default function CollaborationPage() {
   const addTask = async (boardId: string, type: string) => {
     if (!newTaskTitle.trim()) return;
     try {
-      await fetch(`/api/boards/${boardId}/items`, {
+      const res = await fetch(`/api/boards/${boardId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: newTaskTitle, type }),
       });
+      if (!res.ok) throw new Error();
       setNewTaskTitle("");
       setShowNewTask(false);
-      mutate();
+      await mutate();
     } catch {
       toast.error("Failed to add task");
     }

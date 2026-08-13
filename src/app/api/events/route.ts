@@ -68,11 +68,15 @@ export async function POST(req: NextRequest) {
     };
   };
 
-  // Create the first as the returned event; bulk-create the rest.
-  const event = await prisma.event.create({ data: makeData(dates[0]) });
-  if (dates.length > 1) {
-    await prisma.event.createMany({ data: dates.slice(1).map(makeData) });
+  try {
+    // Create the first as the returned event; bulk-create the rest.
+    const event = await prisma.event.create({ data: makeData(dates[0]) });
+    if (dates.length > 1) {
+      await prisma.event.createMany({ data: dates.slice(1).map(makeData) });
+    }
+    return NextResponse.json(event, { status: 201 });
+  } catch (err) {
+    console.error("Failed to create event:", err);
+    return NextResponse.json({ message: "Could not create event" }, { status: 500 });
   }
-
-  return NextResponse.json(event, { status: 201 });
 }

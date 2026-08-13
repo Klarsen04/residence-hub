@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, StickyNote, Trash2, Pin, PinOff, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 interface Note {
@@ -48,15 +49,21 @@ export default function NotesPage() {
   const addNote = async () => {
     if (!newTitle.trim() && !newContent.trim()) return;
     const color = noteColorNames[(notes?.length ?? 0) % noteColorNames.length];
-    await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTitle || "Untitled", content: newContent, color }),
-    });
-    mutate();
-    setNewTitle("");
-    setNewContent("");
-    setShowNew(false);
+    try {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle || "Untitled", content: newContent, color }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+      setNewTitle("");
+      setNewContent("");
+      setShowNew(false);
+      toast.success("Note saved");
+    } catch {
+      toast.error("Failed to save note");
+    }
   };
 
   const deleteNote = async (id: string) => {

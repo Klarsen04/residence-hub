@@ -31,13 +31,19 @@ export default function DutyPage() {
   const [formType, setFormType] = useState("evening");
   const [repeatDays, setRepeatDays] = useState<number[]>([]);
   const [tagId, setTagId] = useState<string | null>(null);
+  const [raFilter, setRaFilter] = useState("");
 
   const allShifts = Array.isArray(shifts) ? shifts : [];
+
+  // RAs that have shifts on the board, for the RA filter dropdown.
+  const raOptions = Array.from(
+    allShifts.reduce((m: Map<string, string>, s: any) => (s.userId ? m.set(s.userId, s.user?.name || "RA") : m), new Map<string, string>())
+  ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
 
   const events = useMemo(
     () =>
       allShifts
-        .filter((s: any) => visible[s.type] !== false)
+        .filter((s: any) => visible[s.type] !== false && (!raFilter || s.userId === raFilter))
         .map((s: any) => {
           const cfg = SHIFT_TYPES[s.type] || SHIFT_TYPES.evening;
           const color = s.tag?.color || cfg.color;
@@ -53,12 +59,13 @@ export default function DutyPage() {
             backgroundColor: color,
           };
         }),
-    [allShifts, visible]
+    [allShifts, visible, raFilter]
   );
 
   const openPanel = (date: any) => {
     const day =
       typeof date === "string" ? date.slice(0, 10)
+      : date?.format ? date.format("YYYY-MM-DD") // dayjs — avoids UTC off-by-one
       : date?.toISOString ? date.toISOString().slice(0, 10)
       : date?.toDate ? date.toDate().toISOString().slice(0, 10)
       : null;
@@ -124,6 +131,17 @@ export default function DutyPage() {
             </button>
           );
         })}
+        {raOptions.length > 1 && (
+          <select
+            value={raFilter}
+            onChange={(e) => setRaFilter(e.target.value)}
+            className="ml-auto h-9 rounded-full border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm"
+            title="Filter by RA"
+          >
+            <option value="">All RAs</option>
+            {raOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Create panel — opens when a day is clicked */}
@@ -170,7 +188,14 @@ export default function DutyPage() {
             events={events as any}
             initialView={"month" as any}
             firstDayOfWeek="monday"
-            onCellClick={(cell: any) => openPanel(cell?.date ?? cell)}
+            // Suppress Ilamy's built-in "Create Event" form + drag-to-create.
+            // Shifts are created only through our own panel (below), which sets
+            // the shift type + tag and persists to /api/duty — otherwise an
+            // ad-hoc calendar event lives only in the widget's local state and
+            // vanishes the moment the filtered `events` prop recomputes.
+            renderEventForm={() => null}
+            disableDragAndDrop
+            onCellClick={(cell: any) => openPanel(cell?.start ?? cell?.date ?? cell)}
             onEventClick={(ev: any) => {
               if (confirm(`Remove this duty shift?\n${ev.title}`)) deleteShift(String(ev.id));
             }}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, DoorOpen, LayoutGrid, Ruler, Trash2, Heart, CheckCircle, Users, DollarSign } from "lucide-react";
+import { Plus, Search, DoorOpen, LayoutGrid, Ruler, Trash2, Heart, CheckCircle, Users, DollarSign, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -87,13 +87,16 @@ export default function DecorationsPage() {
     type: "DOOR_DECORATION",
     category: suggested !== "ALL" ? suggested : "WELCOME_WEEK",
     imageUrl: "",
+    sourceUrl: "",
     instructions: "",
-    costEstimate: "",
-    materials: [{ name: "", quantity: "", cost: "" }],
+    materials: [{ name: "", quantity: "", cost: "", url: "" }],
   });
 
+  // Est. total cost is auto-derived from the sum of material costs.
+  const materialsTotal = form.materials.reduce((sum, m) => sum + (parseFloat(m.cost) || 0), 0);
+
   const addMaterial = () => {
-    setForm({ ...form, materials: [...form.materials, { name: "", quantity: "", cost: "" }] });
+    setForm({ ...form, materials: [...form.materials, { name: "", quantity: "", cost: "", url: "" }] });
   };
 
   const updateMaterial = (index: number, field: string, value: string) => {
@@ -112,7 +115,7 @@ export default function DecorationsPage() {
     try {
       const materials = form.materials
         .filter((m) => m.name.trim())
-        .map((m) => ({ name: m.name, quantity: m.quantity, cost: m.cost ? parseFloat(m.cost) : null }));
+        .map((m) => ({ name: m.name, quantity: m.quantity, cost: m.cost ? parseFloat(m.cost) : null, url: m.url || null }));
 
       const res = await fetch("/api/decorations", {
         method: "POST",
@@ -123,8 +126,10 @@ export default function DecorationsPage() {
           type: form.type,
           category: form.category,
           imageUrl: form.imageUrl || null,
+          fileUrl: form.sourceUrl || null,
           instructions: form.instructions || null,
-          costEstimate: form.costEstimate ? parseFloat(form.costEstimate) : null,
+          // Auto-calculated from the material costs above.
+          costEstimate: materialsTotal > 0 ? materialsTotal : null,
           materials,
         }),
       });
@@ -133,7 +138,7 @@ export default function DecorationsPage() {
       setShowForm(false);
       setForm({
         title: "", description: "", type: "DOOR_DECORATION", category: suggested !== "ALL" ? suggested : "WELCOME_WEEK",
-        imageUrl: "", instructions: "", costEstimate: "", materials: [{ name: "", quantity: "", cost: "" }],
+        imageUrl: "", sourceUrl: "", instructions: "", materials: [{ name: "", quantity: "", cost: "", url: "" }],
       });
       mutate();
     } catch {
@@ -290,8 +295,9 @@ export default function DecorationsPage() {
                   {form.materials.map((mat, i) => (
                     <div key={i} className="flex gap-2 items-center">
                       <Input value={mat.name} onChange={(e) => updateMaterial(i, "name", e.target.value)} placeholder="Material" className="flex-1" />
-                      <Input value={mat.quantity} onChange={(e) => updateMaterial(i, "quantity", e.target.value)} placeholder="Qty" className="w-20" />
+                      <Input value={mat.quantity} onChange={(e) => updateMaterial(i, "quantity", e.target.value)} placeholder="Qty" className="w-16" />
                       <Input value={mat.cost} onChange={(e) => updateMaterial(i, "cost", e.target.value)} placeholder="$" className="w-20" type="number" step="0.01" />
+                      <Input value={mat.url} onChange={(e) => updateMaterial(i, "url", e.target.value)} placeholder="Where to buy (link)" className="flex-1" type="url" />
                       {form.materials.length > 1 && (
                         <Button type="button" variant="ghost" size="icon" onClick={() => removeMaterial(i)}><Trash2 className="h-4 w-4" /></Button>
                       )}
@@ -299,9 +305,18 @@ export default function DecorationsPage() {
                   ))}
                 </div>
               </div>
-              <div className="w-32">
-                <label className="wayfinding text-muted-foreground">Est. Total Cost</label>
-                <Input type="number" step="0.01" value={form.costEstimate} onChange={(e) => setForm({ ...form, costEstimate: e.target.value })} placeholder="$0.00" className="mt-1.5" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="wayfinding text-muted-foreground">Source / Tutorial link</label>
+                  <Input value={form.sourceUrl} onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })} placeholder="https://... (where this idea is from)" className="mt-1.5" type="url" />
+                </div>
+                <div>
+                  <label className="wayfinding text-muted-foreground">Est. Total Cost (auto)</label>
+                  <div className="mt-1.5 flex h-10 items-center rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 text-sm tabular-nums">
+                    ${materialsTotal.toFixed(2)}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">Summed from material costs.</p>
+                </div>
               </div>
               <div className="flex gap-2 pt-2">
                 <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Add Decoration"}</Button>
@@ -442,7 +457,16 @@ export default function DecorationsPage() {
                       <p className="wayfinding text-muted-foreground mb-1.5">Materials</p>
                       <ul className="text-xs text-muted-foreground space-y-0.5">
                         {dec.materials.slice(0, 3).map((m: any) => (
-                          <li key={m.id}>{m.name}{m.quantity ? ` (${m.quantity})` : ""}{m.cost ? ` — $${m.cost.toFixed(2)}` : ""}</li>
+                          <li key={m.id}>
+                            {m.url ? (
+                              <a href={m.url} target="_blank" rel="noopener noreferrer" className="hover:text-[hsl(var(--terracotta))] dark:hover:text-[hsl(var(--terracotta-soft))] underline underline-offset-2">
+                                {m.name}
+                              </a>
+                            ) : (
+                              m.name
+                            )}
+                            {m.quantity ? ` (${m.quantity})` : ""}{m.cost ? ` — $${m.cost.toFixed(2)}` : ""}
+                          </li>
                         ))}
                         {dec.materials.length > 3 && <li>+{dec.materials.length - 3} more</li>}
                       </ul>
@@ -495,7 +519,14 @@ export default function DecorationsPage() {
                     </div>
                   )}
 
-                  <p className="text-xs text-muted-foreground mt-2">by {dec.user?.name || "Unknown"}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-muted-foreground">by {dec.user?.name || "Unknown"}</p>
+                    {dec.fileUrl && (
+                      <a href={dec.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:underline">
+                        <ExternalLink className="h-3 w-3" /> Source
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             );
