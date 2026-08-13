@@ -39,6 +39,7 @@ export default function CollaborationPage() {
   const [newBoardTitle, setNewBoardTitle] = useState("");
   const [newBoardDesc, setNewBoardDesc] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskContent, setNewTaskContent] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   // Editing a task's title/content.
@@ -79,10 +80,11 @@ export default function CollaborationPage() {
       const res = await fetch(`/api/boards/${boardId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTaskTitle, type }),
+        body: JSON.stringify({ title: newTaskTitle, content: newTaskContent || null, type }),
       });
       if (!res.ok) throw new Error();
       setNewTaskTitle("");
+      setNewTaskContent("");
       setShowNewTask(false);
       await mutate();
     } catch {
@@ -465,7 +467,7 @@ export default function CollaborationPage() {
                   {status === "TODO" && activeBoard.canManage && (
                     <div>
                       {showNewTask ? (
-                        <div className="flex gap-2">
+                        <div className="space-y-2 rounded-xl border border-black/[0.08] dark:border-white/[0.08] p-2">
                           <Input
                             value={newTaskTitle}
                             onChange={(e) => setNewTaskTitle(e.target.value)}
@@ -474,9 +476,16 @@ export default function CollaborationPage() {
                             onKeyDown={(e) => e.key === "Enter" && addTask(activeBoard.id, "TODO")}
                             autoFocus
                           />
-                          <Button size="sm" onClick={() => addTask(activeBoard.id, "TODO")} className="h-8">
-                            Add
-                          </Button>
+                          <Input
+                            value={newTaskContent}
+                            onChange={(e) => setNewTaskContent(e.target.value)}
+                            placeholder="Details (optional)..."
+                            className="h-8 text-xs"
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => addTask(activeBoard.id, "TODO")} className="h-8">Add</Button>
+                            <Button size="sm" variant="outline" onClick={() => { setShowNewTask(false); setNewTaskTitle(""); setNewTaskContent(""); }} className="h-8">Cancel</Button>
+                          </div>
                         </div>
                       ) : (
                         <button
