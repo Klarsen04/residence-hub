@@ -12,12 +12,18 @@ interface MailInput {
   html: string;
 }
 
+function sanitizeForLog(value: unknown): string {
+  return String(value).replace(/[\r\n]+/g, " ").replace(/[\u0000-\u001F\u007F]/g, "");
+}
+
 export async function sendEmail({ to, subject, html }: MailInput): Promise<{ sent: boolean; reason?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM || "Residence Hub <onboarding@resend.dev>";
 
   if (!apiKey) {
-    console.warn(`[email] RESEND_API_KEY not set — skipping email to ${to} ("${subject}")`);
+    const safeTo = sanitizeForLog(to);
+    const safeSubject = sanitizeForLog(subject);
+    console.warn(`[email] RESEND_API_KEY not set — skipping email to ${safeTo} ("${safeSubject}")`);
     return { sent: false, reason: "no-provider" };
   }
   if (!to) return { sent: false, reason: "no-recipient" };
