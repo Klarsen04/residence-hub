@@ -583,6 +583,32 @@ CREATE TABLE "RoomCheckRound" (
     CONSTRAINT "RoomCheckRound_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "RoomCheckBoard" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "type" TEXT NOT NULL DEFAULT 'Health & Safety',
+    "ownerId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "RoomCheckBoard_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "RoomCheckResult" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "boardId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "residentId" TEXT,
+    "residentName" TEXT NOT NULL,
+    "room" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'pass',
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "RoomCheckResult_boardId_fkey" FOREIGN KEY ("boardId") REFERENCES "RoomCheckBoard" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "RoomCheckResult_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
 
