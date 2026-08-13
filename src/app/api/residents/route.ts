@@ -41,8 +41,11 @@ export async function POST(req: NextRequest) {
   const { name, room, floor, wing, phone, email, year, major, notes, moveInDate, raId } =
     await req.json();
 
-  if (!name || !room) {
-    return NextResponse.json({ error: "Name and room required" }, { status: 400 });
+  if (!name || !room || !floor || !wing || !email || !year) {
+    return NextResponse.json(
+      { error: "Name, room, floor, wing, email, and year are required" },
+      { status: 400 }
+    );
   }
 
   // Assign the resident to the chosen RA (a user id); default to the creator.
@@ -84,6 +87,16 @@ export async function PUT(req: NextRequest) {
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.userId !== session.user.id && !(await isAdmin(session.user.id))) {
     return NextResponse.json({ error: "You can only edit your own residents" }, { status: 403 });
+  }
+
+  // Required fields can't be blanked out when they're part of the update.
+  // Partial updates (e.g. toggling `flagged` or appending a note) omit these
+  // keys entirely, so they stay untouched.
+  const requiredWhenPresent: Record<string, unknown> = { name, room, floor, wing, email, year };
+  for (const [key, value] of Object.entries(requiredWhenPresent)) {
+    if (value !== undefined && !String(value).trim()) {
+      return NextResponse.json({ error: `${key} cannot be empty` }, { status: 400 });
+    }
   }
 
   // Optional reassignment to a different RA (user id).

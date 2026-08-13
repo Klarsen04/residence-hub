@@ -65,6 +65,7 @@ export default function DutyPage() {
   const openPanel = (date: any) => {
     const day =
       typeof date === "string" ? date.slice(0, 10)
+      : date?.format ? date.format("YYYY-MM-DD") // dayjs — avoids UTC off-by-one
       : date?.toISOString ? date.toISOString().slice(0, 10)
       : date?.toDate ? date.toDate().toISOString().slice(0, 10)
       : null;
@@ -187,7 +188,14 @@ export default function DutyPage() {
             events={events as any}
             initialView={"month" as any}
             firstDayOfWeek="monday"
-            onCellClick={(cell: any) => openPanel(cell?.date ?? cell)}
+            // Suppress Ilamy's built-in "Create Event" form + drag-to-create.
+            // Shifts are created only through our own panel (below), which sets
+            // the shift type + tag and persists to /api/duty — otherwise an
+            // ad-hoc calendar event lives only in the widget's local state and
+            // vanishes the moment the filtered `events` prop recomputes.
+            renderEventForm={() => null}
+            disableDragAndDrop
+            onCellClick={(cell: any) => openPanel(cell?.start ?? cell?.date ?? cell)}
             onEventClick={(ev: any) => {
               if (confirm(`Remove this duty shift?\n${ev.title}`)) deleteShift(String(ev.id));
             }}

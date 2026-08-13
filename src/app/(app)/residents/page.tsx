@@ -4,7 +4,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Home, Phone, Mail, Star, Plus, X, Trash2 } from "lucide-react";
+import { Search, Home, Phone, Mail, Star, Plus, X, Trash2, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -42,6 +42,63 @@ const raLabel = (u: TeamMember) => u.name || u.email || "Unnamed RA";
 const FLOORS = ["1", "2", "3"];
 const wingsFor = (floor: string) => (floor === "3" ? ["Main"] : ["East", "West"]);
 
+const EMPTY_FORM = {
+  name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "", raId: "",
+};
+type ResidentForm = typeof EMPTY_FORM;
+
+// Required: name, room, floor, wing, email, year. Optional: phone, major, notes.
+function validateResidentForm(f: ResidentForm): string | null {
+  if (!f.name.trim()) return "Name is required";
+  if (!f.room.trim()) return "Room is required";
+  if (!f.floor) return "Floor is required";
+  if (!f.wing) return "Wing is required";
+  if (!f.email.trim()) return "Email is required";
+  if (!f.year.trim()) return "Year is required";
+  return null;
+}
+
+// Shared field-set used by both the "add" form and the inline "edit" panel.
+function ResidentFields({ form, setForm, ras, selectClass }: {
+  form: ResidentForm;
+  setForm: (f: ResidentForm) => void;
+  ras: TeamMember[];
+  selectClass: string;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      <Input placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <Input placeholder="Room *" value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })} />
+      <select
+        className={selectClass}
+        value={form.floor}
+        onChange={(e) => {
+          const floor = e.target.value;
+          setForm({ ...form, floor, wing: wingsFor(floor)[0] });
+        }}
+      >
+        {FLOORS.map((f) => <option key={f} value={f}>Floor {f}</option>)}
+      </select>
+      <select className={selectClass} value={form.wing} onChange={(e) => setForm({ ...form, wing: e.target.value })}>
+        {wingsFor(form.floor).map((w) => <option key={w} value={w}>{w === "Main" ? "Main (single wing)" : `${w} Wing`}</option>)}
+      </select>
+      <Input placeholder="Phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      <Input type="email" placeholder="Email *" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+      <Input placeholder="Year (e.g. First-Year) *" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} />
+      <Input placeholder="Major (optional)" value={form.major} onChange={(e) => setForm({ ...form, major: e.target.value })} />
+      <select
+        className={selectClass}
+        value={form.raId}
+        onChange={(e) => setForm({ ...form, raId: e.target.value })}
+        title="Which RA is this resident under?"
+      >
+        <option value="">RA: Assign to me (default)</option>
+        {ras.map((u) => <option key={u.id} value={u.id}>RA: {raLabel(u)}</option>)}
+      </select>
+    </div>
+  );
+}
+
 export default function ResidentsPage() {
   const { data: residents, error, isLoading, mutate } = useSWR<Resident[]>("/api/residents", fetcher);
   const { data: team } = useSWR<TeamMember[]>("/api/team", fetcher);
@@ -50,9 +107,10 @@ export default function ResidentsPage() {
   const [selectedResident, setSelectedResident] = useState<string | null>(null);
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newResident, setNewResident] = useState({
-    name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "", raId: "",
-  });
+  const [newResident, setNewResident] = useState<ResidentForm>(EMPTY_FORM);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<ResidentForm>(EMPTY_FORM);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const list = Array.isArray(residents) ? residents : [];
 
@@ -128,8 +186,9 @@ export default function ResidentsPage() {
   };
 
   const addResident = async () => {
-    if (!newResident.name.trim() || !newResident.room.trim()) {
-      toast.error("Name and room are required");
+    const invalid = validateResidentForm(newResident);
+    if (invalid) {
+      toast.error(invalid);
       return;
     }
     try {
@@ -140,11 +199,55 @@ export default function ResidentsPage() {
       });
       if (!res.ok) throw new Error();
       await mutate();
-      setNewResident({ name: "", room: "", floor: "1", wing: "East", phone: "", email: "", year: "", major: "", notes: "", moveInDate: "", raId: "" });
+      setNewResident(EMPTY_FORM);
       setShowAddForm(false);
       toast.success("Resident added");
     } catch {
       toast.error("Failed to add resident");
+    }
+  };
+
+  // Open the inline edit panel for a resident, pre-filled with its current values.
+  const startEdit = (r: Resident) => {
+    const floor = r.floor || "1";
+    setEditForm({
+      name: r.name,
+      room: r.room,
+      floor,
+      wing: r.wing || wingsFor(floor)[0],
+      phone: r.phone || "",
+      email: r.email || "",
+      year: r.year || "",
+      major: r.major || "",
+      notes: r.notes || "",
+      moveInDate: r.moveInDate || "",
+      raId: r.ownerId, // default the RA select to the current owner
+    });
+    setEditingId(r.id);
+    setSelectedResident(r.id);
+  };
+
+  const saveEdit = async (r: Resident) => {
+    const invalid = validateResidentForm(editForm);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const res = await fetch("/api/residents", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: r.id, ...editForm }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+      setEditingId(null);
+      toast.success("Resident updated");
+    } catch {
+      toast.error("Failed to update resident");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -177,36 +280,8 @@ export default function ResidentsPage() {
             <span className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]">NEW ENTRY</span>
             <h3 className="font-display text-xl">Added to your floor</h3>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Input placeholder="Name *" value={newResident.name} onChange={(e) => setNewResident({ ...newResident, name: e.target.value })} />
-            <Input placeholder="Room *" value={newResident.room} onChange={(e) => setNewResident({ ...newResident, room: e.target.value })} />
-            <select
-              className={selectClass}
-              value={newResident.floor}
-              onChange={(e) => {
-                const floor = e.target.value;
-                setNewResident({ ...newResident, floor, wing: wingsFor(floor)[0] });
-              }}
-            >
-              {FLOORS.map((f) => <option key={f} value={f}>Floor {f}</option>)}
-            </select>
-            <select className={selectClass} value={newResident.wing} onChange={(e) => setNewResident({ ...newResident, wing: e.target.value })}>
-              {wingsFor(newResident.floor).map((w) => <option key={w} value={w}>{w === "Main" ? "Main (single wing)" : `${w} Wing`}</option>)}
-            </select>
-            <Input placeholder="Phone" value={newResident.phone} onChange={(e) => setNewResident({ ...newResident, phone: e.target.value })} />
-            <Input placeholder="Email" value={newResident.email} onChange={(e) => setNewResident({ ...newResident, email: e.target.value })} />
-            <Input placeholder="Year (e.g. First-Year)" value={newResident.year} onChange={(e) => setNewResident({ ...newResident, year: e.target.value })} />
-            <Input placeholder="Major" value={newResident.major} onChange={(e) => setNewResident({ ...newResident, major: e.target.value })} />
-            <select
-              className={selectClass}
-              value={newResident.raId}
-              onChange={(e) => setNewResident({ ...newResident, raId: e.target.value })}
-              title="Which RA is this resident under?"
-            >
-              <option value="">RA: Assign to me (default)</option>
-              {ras.map((u) => <option key={u.id} value={u.id}>RA: {raLabel(u)}</option>)}
-            </select>
-          </div>
+          <ResidentFields form={newResident} setForm={setNewResident} ras={ras} selectClass={selectClass} />
+          <p className="text-[11px] text-muted-foreground">Fields marked * are required.</p>
           <Button onClick={addResident}>Save Resident</Button>
         </div>
       )}
@@ -274,12 +349,23 @@ export default function ResidentsPage() {
                             </div>
                           )}
                           {resident.canEdit ? (
-                            <div className="flex gap-2 flex-wrap">
-                              <Input value={noteInputs[resident.id] || ""} onChange={(e) => setNoteInputs({ ...noteInputs, [resident.id]: e.target.value })} placeholder="Add a note..." className="h-7 text-xs flex-1 min-w-[120px]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); addNote(resident); } }} />
-                              <Button size="sm" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); addNote(resident); }}>Add</Button>
-                              <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); saveField(resident, { flagged: !resident.flagged }); }}>{resident.flagged ? "Unflag" : "Flag"}</Button>
-                              <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" onClick={(e) => { e.stopPropagation(); removeResident(resident); }}><Trash2 className="h-3 w-3" /></Button>
-                            </div>
+                            editingId === resident.id ? (
+                              <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+                                <ResidentFields form={editForm} setForm={setEditForm} ras={ras} selectClass={selectClass} />
+                                <div className="flex gap-2">
+                                  <Button size="sm" className="h-8 text-xs px-3" disabled={savingEdit} onClick={() => saveEdit(resident)}>{savingEdit ? "Saving…" : "Save changes"}</Button>
+                                  <Button size="sm" variant="outline" className="h-8 text-xs px-3" onClick={() => setEditingId(null)}>Cancel</Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2 flex-wrap">
+                                <Input value={noteInputs[resident.id] || ""} onChange={(e) => setNoteInputs({ ...noteInputs, [resident.id]: e.target.value })} placeholder="Add a note..." className="h-7 text-xs flex-1 min-w-[120px]" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); addNote(resident); } }} />
+                                <Button size="sm" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); addNote(resident); }}>Add</Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" onClick={(e) => { e.stopPropagation(); startEdit(resident); }}><Pencil className="h-3 w-3" /> Edit</Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); saveField(resident, { flagged: !resident.flagged }); }}>{resident.flagged ? "Unflag" : "Flag"}</Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" onClick={(e) => { e.stopPropagation(); removeResident(resident); }}><Trash2 className="h-3 w-3" /></Button>
+                              </div>
+                            )
                           ) : (
                             <p className="text-[11px] text-muted-foreground italic">Managed by {resident.ownerName}</p>
                           )}

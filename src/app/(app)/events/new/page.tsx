@@ -61,8 +61,18 @@ function NewEventForm() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create event");
+        // The error body may be empty or non-JSON (e.g. an unhandled 500),
+        // so read it as text and only try to parse when there's content.
+        const text = await res.text();
+        let message = `Failed to create event (${res.status})`;
+        if (text) {
+          try {
+            message = JSON.parse(text).message || message;
+          } catch {
+            message = text;
+          }
+        }
+        throw new Error(message);
       }
 
       const event = await res.json();

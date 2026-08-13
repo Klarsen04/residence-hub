@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
               name: m.name,
               quantity: m.quantity || null,
               cost: m.cost || null,
+              url: m.url || null,
             })),
           }
         : undefined,
