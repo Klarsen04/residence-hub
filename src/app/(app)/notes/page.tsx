@@ -8,6 +8,7 @@ import { Plus, StickyNote, Trash2, Pin, PinOff, Loader2, Pencil } from "lucide-r
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
+import { formatDateTime } from "@/lib/utils";
 
 interface Note {
   id: string;
@@ -221,7 +222,7 @@ export default function NotesPage() {
                     </h3>
                     <p className="text-sm text-black/70 dark:text-white/70 whitespace-pre-line line-clamp-6">{note.content}</p>
                     <div className="flex items-center justify-between mt-4 pt-3 rule">
-                      <span className="wayfinding text-muted-foreground">{note.createdAt}</span>
+                      <span className="wayfinding text-muted-foreground">{formatDateTime(note.createdAt)}</span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => startEditing(note)}

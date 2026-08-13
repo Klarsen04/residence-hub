@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, DoorOpen, LayoutGrid, Ruler, Trash2, Heart, CheckCircle, Users, DollarSign, ExternalLink } from "lucide-react";
+import { Plus, Search, DoorOpen, LayoutGrid, Ruler, Trash2, Heart, CheckCircle, Users, DollarSign, ExternalLink, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
@@ -49,6 +49,7 @@ export default function DecorationsPage() {
   const [showMadeForm, setShowMadeForm] = useState<string | null>(null);
   const [madeData, setMadeData] = useState({ imageUrl: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const { data: decorations, mutate } = useSWR("/api/decorations", fetcher);
 
   // User-defined custom category filters, persisted locally. Each is { value, label }.
@@ -117,8 +118,8 @@ export default function DecorationsPage() {
         .filter((m) => m.name.trim())
         .map((m) => ({ name: m.name, quantity: m.quantity, cost: m.cost ? parseFloat(m.cost) : null, url: m.url || null }));
 
-      const res = await fetch("/api/decorations", {
-        method: "POST",
+      const res = await fetch(editingId ? `/api/decorations/${editingId}` : "/api/decorations", {
+        method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.title,
@@ -134,18 +135,37 @@ export default function DecorationsPage() {
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
-      toast.success("Decoration added!");
+      toast.success(editingId ? "Decoration updated!" : "Decoration added!");
       setShowForm(false);
+      setEditingId(null);
       setForm({
         title: "", description: "", type: "DOOR_DECORATION", category: suggested !== "ALL" ? suggested : "WELCOME_WEEK",
         imageUrl: "", sourceUrl: "", instructions: "", materials: [{ name: "", quantity: "", cost: "", url: "" }],
       });
       mutate();
     } catch {
-      toast.error("Failed to add decoration");
+      toast.error(editingId ? "Failed to update decoration" : "Failed to add decoration");
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (dec: any) => {
+    setEditingId(dec.id);
+    setForm({
+      title: dec.title || "",
+      description: dec.description || "",
+      type: dec.type || "DOOR_DECORATION",
+      category: dec.category || "WELCOME_WEEK",
+      imageUrl: dec.imageUrl || "",
+      sourceUrl: dec.fileUrl || "",
+      instructions: dec.instructions || "",
+      materials: dec.materials?.length
+        ? dec.materials.map((m: any) => ({ name: m.name || "", quantity: m.quantity || "", cost: m.cost != null ? String(m.cost) : "", url: m.url || "" }))
+        : [{ name: "", quantity: "", cost: "", url: "" }],
+    });
+    setShowForm(true);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleFavorite = async (id: string) => {
@@ -208,7 +228,13 @@ export default function DecorationsPage() {
         title="Decoration Hub"
         subtitle="A craft catalog — door decs, bulletin boards, and hallway ideas with materials and costs."
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button onClick={() => {
+            if (!showForm) {
+              setEditingId(null);
+              setForm({ title: "", description: "", type: "DOOR_DECORATION", category: suggested !== "ALL" ? suggested : "WELCOME_WEEK", imageUrl: "", sourceUrl: "", instructions: "", materials: [{ name: "", quantity: "", cost: "", url: "" }] });
+            }
+            setShowForm(!showForm);
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             Add Decoration
           </Button>
@@ -220,7 +246,7 @@ export default function DecorationsPage() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <div className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-6">
             <div className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] mb-5">
-              New craft
+              {editingId ? "Edit craft" : "New craft"}
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -319,8 +345,8 @@ export default function DecorationsPage() {
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Add Decoration"}</Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                <Button type="submit" disabled={saving}>{saving ? "Saving..." : editingId ? "Save changes" : "Add Decoration"}</Button>
+                <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</Button>
               </div>
             </form>
           </div>
@@ -420,22 +446,32 @@ export default function DecorationsPage() {
                 {dec.imageUrl ? (
                   <div className="aspect-[4/3] bg-muted relative">
                     <img src={dec.imageUrl} alt={dec.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-red-500">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {dec.canEdit && (
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => startEdit(dec)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-foreground" title="Edit">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-red-500" title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="aspect-[4/3] bg-[hsl(var(--sage)/0.08)] flex items-center justify-center relative">
                     {dec.type === "DOOR_DECORATION" && <DoorOpen className="h-12 w-12 text-[hsl(var(--sage)/0.4)]" strokeWidth={1.5} />}
                     {dec.type === "BULLETIN_BOARD" && <LayoutGrid className="h-12 w-12 text-[hsl(var(--sage)/0.4)]" strokeWidth={1.5} />}
                     {dec.type === "HALLWAY_DECORATION" && <Ruler className="h-12 w-12 text-[hsl(var(--sage)/0.4)]" strokeWidth={1.5} />}
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-red-500">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {dec.canEdit && (
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => startEdit(dec)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-foreground" title="Edit">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(dec.id)} className="p-1.5 rounded-full bg-black/90 dark:bg-white/90 hover:bg-white text-red-500" title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="p-4">

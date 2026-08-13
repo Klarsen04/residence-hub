@@ -5,6 +5,9 @@ import useSWR from "swr";
 import { IlamyCalendar } from "@ilamy/calendar";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 import { TagPicker } from "@/components/TagPicker";
 
@@ -21,19 +24,37 @@ const WEEKDAYS = [
   { i: 4, label: "Thu" }, { i: 5, label: "Fri" }, { i: 6, label: "Sat" }, { i: 0, label: "Sun" },
 ];
 
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const toDay = (date: any): string =>
+  typeof date === "string" ? date.slice(0, 10)
+  : date?.format ? date.format("YYYY-MM-DD")
+  : date?.toISOString ? date.toISOString().slice(0, 10)
+  : date?.toDate ? date.toDate().toISOString().slice(0, 10)
+  : todayStr();
+
+const raLabel = (u: any) => u.name || u.email || "Unnamed RA";
+
 export default function DutyPage() {
   const { data: shifts, mutate } = useSWR("/api/duty", fetcher);
+  const { data: team } = useSWR("/api/team", fetcher);
 
   // Which shift types are visible (filter toggles).
   const [visible, setVisible] = useState<Record<string, boolean>>({ evening: true, overnight: true, weekend: true });
-  // Create panel state.
-  const [panelDay, setPanelDay] = useState<string | null>(null);
-  const [formType, setFormType] = useState("evening");
-  const [repeatDays, setRepeatDays] = useState<number[]>([]);
-  const [tagId, setTagId] = useState<string | null>(null);
   const [raFilter, setRaFilter] = useState("");
 
+  // Create/edit panel state (one panel serves both).
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formDate, setFormDate] = useState(todayStr());
+  const [formType, setFormType] = useState("evening");
+  const [formTitle, setFormTitle] = useState("");
+  const [formRaId, setFormRaId] = useState("");
+  const [repeatDays, setRepeatDays] = useState<number[]>([]);
+  const [tagId, setTagId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const allShifts = Array.isArray(shifts) ? shifts : [];
+  const ras = (Array.isArray(team) ? team : []).filter((u: any) => u.role === "RESIDENT_ASSISTANT" || u.role === "ADMIN");
 
   // RAs that have shifts on the board, for the RA filter dropdown.
   const raOptions = Array.from(
@@ -50,9 +71,10 @@ export default function DutyPage() {
           const day = (s.date || "").slice(0, 10);
           const start = new Date(`${day}T${String(cfg.startHour).padStart(2, "0")}:00:00`);
           const end = new Date(`${day}T${String(cfg.endHour).padStart(2, "0")}:59:00`);
+          const label = s.title || s.tag?.name || cfg.label;
           return {
             id: s.id,
-            title: `${s.user?.name || "RA"} · ${s.tag?.name || cfg.label}`,
+            title: `${label} · ${s.user?.name || "RA"}`,
             start: start.toISOString(),
             end: end.toISOString(),
             color,
@@ -62,43 +84,68 @@ export default function DutyPage() {
     [allShifts, visible, raFilter]
   );
 
-  const openPanel = (date: any) => {
-    const day =
-      typeof date === "string" ? date.slice(0, 10)
-      : date?.format ? date.format("YYYY-MM-DD") // dayjs — avoids UTC off-by-one
-      : date?.toISOString ? date.toISOString().slice(0, 10)
-      : date?.toDate ? date.toDate().toISOString().slice(0, 10)
-      : null;
-    if (!day) return;
-    setPanelDay(day);
+  const openCreate = (date: string) => {
+    setEditingId(null);
+    setFormDate(date);
+    setFormType("evening");
+    setFormTitle("");
+    setFormRaId("");
     setRepeatDays([]);
+    setTagId(null);
+    setPanelOpen(true);
+  };
+
+  const openEdit = (shift: any) => {
+    setEditingId(shift.id);
+    setFormDate((shift.date || "").slice(0, 10));
+    setFormType(shift.type || "evening");
+    setFormTitle(shift.title || "");
+    setFormRaId(shift.userId || "");
+    setRepeatDays([]);
+    setTagId(shift.tagId || null);
+    setPanelOpen(true);
+  };
+
+  const closePanel = () => {
+    setPanelOpen(false);
+    setEditingId(null);
   };
 
   const submit = async () => {
-    if (!panelDay) return;
+    if (!formDate || saving) return;
+    setSaving(true);
     try {
-      const res = await fetch("/api/duty", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: panelDay, type: formType, tagId, recurrenceDays: repeatDays, weeks: 8 }),
-      });
-      const data = await res.json();
+      const res = editingId
+        ? await fetch("/api/duty", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: editingId, date: formDate, type: formType, title: formTitle, tagId, raId: formRaId || undefined }),
+          })
+        : await fetch("/api/duty", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date: formDate, type: formType, title: formTitle, tagId, recurrenceDays: repeatDays, weeks: 8, raId: formRaId || undefined }),
+          });
       if (!res.ok) throw new Error();
-      toast.success(data.created > 1 ? `Added ${data.created} shifts` : "Shift added");
-      setPanelDay(null);
-      setRepeatDays([]);
-      mutate();
+      const data = await res.json().catch(() => ({}));
+      closePanel();
+      await mutate();
+      toast.success(editingId ? "Shift updated" : data.created > 1 ? `Added ${data.created} shifts` : "Shift added");
     } catch {
-      toast.error("Failed to add shift");
+      toast.error(editingId ? "Failed to update shift" : "Failed to add shift");
+    } finally {
+      setSaving(false);
     }
   };
 
   const deleteShift = async (id: string) => {
+    if (!confirm("Remove this duty shift?")) return;
     try {
       const res = await fetch(`/api/duty?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
+      closePanel();
+      await mutate();
       toast.success("Shift removed");
-      mutate();
     } catch {
       toast.error("Failed to remove shift");
     }
@@ -109,7 +156,13 @@ export default function DutyPage() {
       <PageHeader
         code="G · DUTY"
         title="Duty Schedule"
-        subtitle="Everyone's on-duty shifts. Click a day to add yours — repeat across weekdays, tag it, and filter the board."
+        subtitle="Everyone's on-duty shifts. Add a shift, tag it, assign an RA, and filter the board."
+        action={
+          <Button onClick={() => openCreate(todayStr())}>
+            <Plus className="h-4 w-4 mr-2" />
+            New shift
+          </Button>
+        }
       />
 
       {/* Filter toggles — show/hide shift types on the board */}
@@ -144,10 +197,20 @@ export default function DutyPage() {
         )}
       </div>
 
-      {/* Create panel — opens when a day is clicked */}
-      {panelDay && (
+      {/* Create / edit panel */}
+      {panelOpen && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-5 rounded-xl border border-black/[0.1] dark:border-white/[0.12] bg-card p-5 space-y-4">
-          <SectionMarker code="+" label={`Add shift · ${panelDay}`} />
+          <SectionMarker code={editingId ? "✎" : "+"} label={editingId ? "Edit shift" : "Add shift"} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <p className="wayfinding text-muted-foreground mb-2">Title</p>
+              <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="e.g. Front desk, Rounds…" />
+            </div>
+            <div>
+              <p className="wayfinding text-muted-foreground mb-2">Date</p>
+              <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+            </div>
+          </div>
           <div>
             <p className="wayfinding text-muted-foreground mb-2">Shift type</p>
             <div className="flex gap-2 flex-wrap">
@@ -159,25 +222,41 @@ export default function DutyPage() {
             </div>
           </div>
           <div>
-            <p className="wayfinding text-muted-foreground mb-2">Repeat on (optional — next 8 weeks)</p>
-            <div className="flex gap-1.5 flex-wrap">
-              {WEEKDAYS.map((d) => {
-                const on = repeatDays.includes(d.i);
-                return (
-                  <button key={d.i} onClick={() => setRepeatDays((r) => on ? r.filter((x) => x !== d.i) : [...r, d.i])} className={`h-9 w-11 rounded-lg text-sm transition-colors ${on ? "bg-primary text-primary-foreground" : "border border-black/[0.14] dark:border-white/[0.14] text-muted-foreground"}`}>
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
+            <p className="wayfinding text-muted-foreground mb-2">Assigned RA</p>
+            <select value={formRaId} onChange={(e) => setFormRaId(e.target.value)} className="h-10 w-full rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm">
+              <option value="">Me (default)</option>
+              {ras.map((u: any) => <option key={u.id} value={u.id}>{raLabel(u)}</option>)}
+            </select>
           </div>
+          {!editingId && (
+            <div>
+              <p className="wayfinding text-muted-foreground mb-2">Repeat on (optional — next 8 weeks)</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {WEEKDAYS.map((d) => {
+                  const on = repeatDays.includes(d.i);
+                  return (
+                    <button key={d.i} onClick={() => setRepeatDays((r) => on ? r.filter((x) => x !== d.i) : [...r, d.i])} className={`h-9 w-11 rounded-lg text-sm transition-colors ${on ? "bg-primary text-primary-foreground" : "border border-black/[0.14] dark:border-white/[0.14] text-muted-foreground"}`}>
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div>
             <p className="wayfinding text-muted-foreground mb-2">Tag</p>
             <TagPicker value={tagId} onChange={setTagId} />
           </div>
-          <div className="flex gap-2 pt-1">
-            <button onClick={submit} className="h-10 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Add shift{repeatDays.length ? "s" : ""}</button>
-            <button onClick={() => setPanelDay(null)} className="h-10 px-5 rounded-lg text-sm text-muted-foreground">Cancel</button>
+          <div className="flex items-center gap-2 pt-1">
+            <button onClick={submit} disabled={saving} className="h-10 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60">
+              {saving ? "Saving…" : editingId ? "Save changes" : `Add shift${repeatDays.length ? "s" : ""}`}
+            </button>
+            <button onClick={closePanel} className="h-10 px-5 rounded-lg text-sm text-muted-foreground">Cancel</button>
+            {editingId && (
+              <button onClick={() => deleteShift(editingId)} className="ml-auto inline-flex items-center gap-1.5 h-10 px-3 rounded-lg text-sm text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:bg-[hsl(var(--terracotta)/0.1)]" title="Delete shift">
+                <Trash2 className="h-4 w-4" /> Delete
+              </button>
+            )}
           </div>
         </motion.div>
       )}
@@ -188,16 +267,14 @@ export default function DutyPage() {
             events={events as any}
             initialView={"month" as any}
             firstDayOfWeek="monday"
-            // Suppress Ilamy's built-in "Create Event" form + drag-to-create.
-            // Shifts are created only through our own panel (below), which sets
-            // the shift type + tag and persists to /api/duty — otherwise an
-            // ad-hoc calendar event lives only in the widget's local state and
-            // vanishes the moment the filtered `events` prop recomputes.
+            // Suppress Ilamy's built-in event form + drag-to-create; shifts are
+            // created/edited only through our own panel (which persists to /api/duty).
             renderEventForm={() => null}
             disableDragAndDrop
-            onCellClick={(cell: any) => openPanel(cell?.start ?? cell?.date ?? cell)}
+            onCellClick={(cell: any) => openCreate(toDay(cell?.start ?? cell?.date ?? cell))}
             onEventClick={(ev: any) => {
-              if (confirm(`Remove this duty shift?\n${ev.title}`)) deleteShift(String(ev.id));
+              const shift = allShifts.find((s: any) => s.id === String(ev.id));
+              if (shift) openEdit(shift);
             }}
           />
         </div>

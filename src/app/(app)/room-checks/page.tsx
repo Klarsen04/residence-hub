@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,30 +34,43 @@ interface CheckRound {
 const checkTypes = ["Health & Safety", "Wellness Check", "Break Closing"] as const;
 
 export default function RoomChecksPage() {
-  const { data: session } = useSession();
   const { data: history, mutate } = useSWR("/api/room-checks", fetcher);
-  // Pull the RA's own residents from the floor roster to build the check.
+  // Pull residents from the same source as the floor roster.
   const { data: residents } = useSWR("/api/residents", fetcher);
   const [activeCheck, setActiveCheck] = useState<CheckRound | null>(null);
   const [checkType, setCheckType] = useState<typeof checkTypes[number]>("Health & Safety");
   const [raFilter, setRaFilter] = useState("");
   const [saving, setSaving] = useState(false);
+  // Filters for choosing whose rooms to check (RA / floor / wing).
+  const [poolRa, setPoolRa] = useState("");
+  const [poolFloor, setPoolFloor] = useState("");
+  const [poolWing, setPoolWing] = useState("");
   const allHistory = Array.isArray(history) ? history : [];
 
-  // RAs that have logged rounds, for the filter dropdown.
+  // RAs that have logged rounds, for the history filter dropdown.
   const raOptions = Array.from(
     allHistory.reduce((m: Map<string, string>, c: any) => m.set(c.ownerId, c.ownerName), new Map<string, string>())
   ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
   const visibleHistory = raFilter ? allHistory.filter((c: any) => c.ownerId === raFilter) : allHistory;
 
-  // Only YOUR assigned residents (your floor) — not everyone on the platform.
-  const myResidents = (Array.isArray(residents) ? residents : []).filter(
-    (r: any) => session?.user?.id && r.ownerId === session.user.id
+  // Residents you can manage (admins: everyone; RAs: their own) — same source as
+  // the floor roster. This is the pool the check is built from.
+  const manageable = (Array.isArray(residents) ? residents : []).filter((r: any) => r.canEdit);
+  const poolRaOptions = Array.from(
+    manageable.reduce((m: Map<string, string>, r: any) => m.set(r.ownerId, r.ownerName), new Map<string, string>())
+  ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+  const floorOptions = Array.from(new Set(manageable.map((r: any) => r.floor).filter(Boolean))).sort();
+  const wingOptions = Array.from(new Set(manageable.map((r: any) => r.wing).filter(Boolean))).sort();
+  const myResidents = manageable.filter(
+    (r: any) =>
+      (!poolRa || r.ownerId === poolRa) &&
+      (!poolFloor || r.floor === poolFloor) &&
+      (!poolWing || r.wing === poolWing)
   );
 
   const startCheck = () => {
     if (myResidents.length === 0) {
-      toast.error("No residents assigned to you yet — add them to your floor roster first");
+      toast.error(manageable.length === 0 ? "No residents in your roster yet — add them first" : "No residents match these filters");
       return;
     }
     // Group residents by room so roommates (double/triple occupancy) are one
@@ -145,6 +157,27 @@ export default function RoomChecksPage() {
                 </button>
               ))}
             </div>
+            <div className="flex gap-2 flex-wrap mb-5">
+              {poolRaOptions.length > 1 && (
+                <select value={poolRa} onChange={(e) => setPoolRa(e.target.value)} className="h-9 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm" title="Filter by RA">
+                  <option value="">All RAs</option>
+                  {poolRaOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                </select>
+              )}
+              {floorOptions.length > 0 && (
+                <select value={poolFloor} onChange={(e) => setPoolFloor(e.target.value)} className="h-9 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm" title="Filter by floor">
+                  <option value="">All floors</option>
+                  {floorOptions.map((f) => <option key={f} value={f}>Floor {f}</option>)}
+                </select>
+              )}
+              {wingOptions.length > 0 && (
+                <select value={poolWing} onChange={(e) => setPoolWing(e.target.value)} className="h-9 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm" title="Filter by wing">
+                  <option value="">All wings</option>
+                  {wingOptions.map((w) => <option key={w} value={w}>{w === "Main" ? "Main" : `${w} Wing`}</option>)}
+                </select>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">{myResidents.length} resident{myResidents.length === 1 ? "" : "s"} in this check</p>
             <Button onClick={startCheck}>
               <ClipboardCheck className="h-4 w-4 mr-2" />
               Begin {checkType}

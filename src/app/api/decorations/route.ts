@@ -7,6 +7,9 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const me = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
+  const admin = me?.role === "ADMIN";
+
   const decorations = await prisma.decoration.findMany({
     include: {
       user: { select: { name: true } },
@@ -18,7 +21,10 @@ export async function GET() {
     orderBy: { favorites: "desc" },
   });
 
-  return NextResponse.json(decorations);
+  // Tag each with edit permission (creator or admin) for the UI.
+  const withMeta = decorations.map((d) => ({ ...d, ownerId: d.userId, canEdit: d.userId === session.user.id || admin }));
+
+  return NextResponse.json(withMeta);
 }
 
 export async function POST(req: NextRequest) {
