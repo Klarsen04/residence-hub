@@ -23,7 +23,10 @@ export async function sendEmail({ to, subject, html }: MailInput): Promise<{ sen
   if (!apiKey) {
     const safeTo = sanitizeForLog(to);
     const safeSubject = sanitizeForLog(subject);
-    console.warn(`[email] RESEND_API_KEY not set — skipping email to ${safeTo} ("${safeSubject}")`);
+    console.warn("[email] RESEND_API_KEY not set — skipping email send", {
+      to: safeTo,
+      subject: safeSubject,
+    });
     return { sent: false, reason: "no-provider" };
   }
   if (!to) return { sent: false, reason: "no-recipient" };
