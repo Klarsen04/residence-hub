@@ -59,6 +59,23 @@ export default function CheckInsPage() {
   const allResidents = (Array.isArray(residents) ? residents : []).filter((r: any) => r.canEdit);
   const totalCheckIns = allCheckIns.length;
 
+  // "Due for check-in" = residents not checked in within the last 7 days.
+  // Recomputes whenever check-ins re-fetch (mutate() after logging one), so the
+  // counter decrements live and reaches 0 once everyone's been seen.
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const lastCheckIn = new Map<string, number>();
+  for (const ci of allCheckIns as any[]) {
+    if (!ci.residentId) continue;
+    const t = new Date(ci.createdAt).getTime();
+    if (!lastCheckIn.has(ci.residentId) || t > (lastCheckIn.get(ci.residentId) as number)) {
+      lastCheckIn.set(ci.residentId, t);
+    }
+  }
+  const dueCount = allResidents.filter((r: any) => {
+    const last = lastCheckIn.get(r.id);
+    return !last || Date.now() - last > WEEK_MS;
+  }).length;
+
   // Filter options derived from the roster: by RA (owner) and by floor/wing.
   const wingKey = (r: any) => `${r.floor || ""}|${r.wing || ""}`;
   const wingLabel = (floor: string, wing: string) =>
@@ -141,7 +158,7 @@ export default function CheckInsPage() {
 
       <PlateRow className="grid-cols-3 mb-10">
         <Plate code="01" value={totalCheckIns} label="Total check-ins" accent />
-        <Plate code="02" value={allResidents.length} label="Due for check-in" />
+        <Plate code="02" value={dueCount} label="Due for check-in" />
         <Plate code="03" value={allResidents.length} label="Residents" />
       </PlateRow>
 

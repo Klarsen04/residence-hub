@@ -26,3 +26,11 @@ export function formatTime(date: Date | string): string {
     minute: "2-digit",
   });
 }
+
+// Human-readable local date + time, e.g. "August 13, 2026 at 1:19 PM".
+export function formatDateTime(date: Date | string): string {
+  const d = new Date(date);
+  const day = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${day} at ${time}`;
+}

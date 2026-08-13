@@ -640,6 +640,7 @@ model DutyShift {
   userId String
   date   String
   type   String @default("evening")
+  title  String?
   notes  String?
   tagId  String?
 

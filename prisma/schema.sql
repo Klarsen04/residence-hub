@@ -483,6 +483,7 @@ CREATE TABLE "DutyShift" (
     "userId" TEXT NOT NULL,
     "date" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'evening',
+    "title" TEXT,
     "notes" TEXT,
     "tagId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
