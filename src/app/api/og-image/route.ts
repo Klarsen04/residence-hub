@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { safeFetch } from "@/lib/safeFetch";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -10,9 +11,8 @@ export async function POST(req: NextRequest) {
   if (!url) return NextResponse.json({ error: "URL is required" }, { status: 400 });
 
   try {
-    const response = await fetch(url, {
+    const response = await safeFetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; ResidenceHub/1.0)" },
-      redirect: "follow",
     });
 
     if (!response.ok) {

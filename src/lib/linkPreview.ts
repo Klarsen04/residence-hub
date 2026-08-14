@@ -1,6 +1,8 @@
 // Shared link-preview logic used by both the live composer preview and the
 // save route, so a pasted link and the saved item resolve the same image/title.
 
+import { safeFetch } from "@/lib/safeFetch";
+
 export interface LinkPreview {
   kind: "image" | "video" | "link";
   imageUrl: string | null;
@@ -22,7 +24,13 @@ function vimeoId(url: string): string | null {
 
 /** Upsize Pinterest thumbnails (…/736x/…) to full-res "originals". */
 function upsizePinterest(u: string): string {
-  return /i\.pinimg\.com/.test(u) ? u.replace(/\/(?:\d+x|\d+x\d+)\//, "/originals/") : u;
+  let host = "";
+  try {
+    host = new URL(u).hostname.toLowerCase();
+  } catch {
+    return u;
+  }
+  return host === "i.pinimg.com" ? u.replace(/\/(?:\d+x|\d+x\d+)\//, "/originals/") : u;
 }
 
 export async function getLinkPreview(url: string): Promise<LinkPreview> {
@@ -54,9 +62,8 @@ export async function getLinkPreview(url: string): Promise<LinkPreview> {
   // Otherwise scrape OG/Twitter tags. Browser UA + follow redirects so short
   // links (pin.it → api.pinterest → /pin/NNN) resolve to the real page.
   try {
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       headers: { "User-Agent": BROWSER_UA, Accept: "text/html,application/xhtml+xml" },
-      redirect: "follow",
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { kind: "link", imageUrl: null, title: null };
