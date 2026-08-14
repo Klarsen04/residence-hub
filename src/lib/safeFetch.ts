@@ -63,7 +63,16 @@ export async function assertPublicUrl(rawUrl: string): Promise<{ url: URL; addre
   if (u.protocol !== "http:" && u.protocol !== "https:") {
     throw new SsrfError("Only http(s) URLs are allowed");
   }
+  if (u.username || u.password) {
+    throw new SsrfError("URL userinfo is not allowed");
+  }
+  if (!u.hostname) {
+    throw new SsrfError("URL hostname is required");
+  }
   const host = u.hostname;
+  if (!net.isIP(host) && !/^[a-z0-9.-]+$/i.test(host)) {
+    throw new SsrfError("Invalid hostname");
+  }
   if (net.isIP(host)) {
     if (isPrivateIp(host)) throw new SsrfError("URL points at a non-public address");
     return { url: u, addresses: [host] };
