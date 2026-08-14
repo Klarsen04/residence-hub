@@ -53,7 +53,7 @@ function isPrivateIp(ip: string): boolean {
 }
 
 /** Validate scheme + that every resolved address for the host is public. */
-export async function assertPublicUrl(rawUrl: string): Promise<URL> {
+export async function assertPublicUrl(rawUrl: string): Promise<{ url: URL; addresses: string[] }> {
   let u: URL;
   try {
     u = new URL(rawUrl);
@@ -66,14 +66,14 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
   const host = u.hostname;
   if (net.isIP(host)) {
     if (isPrivateIp(host)) throw new SsrfError("URL points at a non-public address");
-    return u;
+    return { url: u, addresses: [host] };
   }
   const addrs = await lookup(host, { all: true });
   if (!addrs.length) throw new SsrfError("Host did not resolve");
   for (const a of addrs) {
     if (isPrivateIp(a.address)) throw new SsrfError("URL resolves to a non-public address");
   }
-  return u;
+  return { url: u, addresses: addrs.map((a) => a.address) };
 }
 
 /**
@@ -88,8 +88,15 @@ export async function safeFetch(
 ): Promise<Response> {
   let current = rawUrl;
   for (let i = 0; i <= maxRedirects; i++) {
-    const validated = await assertPublicUrl(current);
-    const res = await fetch(validated.toString(), { ...init, redirect: "manual" });
+    const { url: validated, addresses } = await assertPublicUrl(current);
+    const chosenIp = addresses[0];
+    const fetchUrl = new URL(validated.toString());
+    fetchUrl.hostname = chosenIp;
+
+    const headers = new Headers(init.headers);
+    headers.set("Host", validated.port ? `${validated.hostname}:${validated.port}` : validated.hostname);
+
+    const res = await fetch(fetchUrl.toString(), { ...init, headers, redirect: "manual" });
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get("location");
       if (!loc) return res;
