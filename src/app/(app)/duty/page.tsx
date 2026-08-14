@@ -72,13 +72,17 @@ export default function DutyPage() {
           const start = new Date(`${day}T${String(cfg.startHour).padStart(2, "0")}:00:00`);
           const end = new Date(`${day}T${String(cfg.endHour).padStart(2, "0")}:59:00`);
           const label = s.title || s.tag?.name || cfg.label;
+          // Ilamy uses `color` for the event TEXT and `backgroundColor` for the
+          // fill — so they must differ or the title is invisible. Use the strong
+          // colour for text on a translucent tint of the same colour.
+          const isHex = /^#[0-9a-f]{6}$/i.test(color);
           return {
             id: s.id,
             title: `${label} · ${s.user?.name || "RA"}`,
             start: start.toISOString(),
             end: end.toISOString(),
             color,
-            backgroundColor: color,
+            backgroundColor: isHex ? `${color}26` : color,
           };
         }),
     [allShifts, visible, raFilter]

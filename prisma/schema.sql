@@ -672,3 +672,10 @@ CREATE INDEX "Tag_userId_idx" ON "Tag"("userId");
 -- CreateIndex
 CREATE INDEX "Resident_userId_idx" ON "Resident"("userId");
 
+
+-- CreateTable
+CREATE TABLE "Setting" (
+    "key" TEXT NOT NULL PRIMARY KEY,
+    "value" TEXT NOT NULL,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
