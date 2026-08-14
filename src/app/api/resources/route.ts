@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
 
 async function isAdmin(userId: string): Promise<boolean> {
@@ -99,20 +98,9 @@ export async function PUT(req: NextRequest) {
 
   const resource = await prisma.resource.update({ where: { id }, data });
 
-  // Notify the submitter when their resource is newly approved (in-app always;
-  // email only if Resend is configured).
+  // Notify the submitter (in-app) when their resource is newly approved.
   if (approved === true && !existing.approved && admin && existing.userId !== session.user.id) {
     await notify(existing.userId, "approval", "Resource approved", `Your resource "${resource.title}" is now visible to everyone.`);
-    const owner = await prisma.user.findUnique({ where: { id: existing.userId }, select: { name: true, email: true } });
-    if (owner?.email) {
-      await sendEmail({
-        to: owner.email,
-        subject: `Your resource "${resource.title}" was approved`,
-        html: `<p>Hi ${owner.name || "there"},</p>
-<p>Your submitted resource <strong>${resource.title}</strong> has been approved and is now visible to everyone on the platform.</p>
-<p>Thanks for contributing!</p>`,
-      });
-    }
   }
 
   return NextResponse.json(resource);
