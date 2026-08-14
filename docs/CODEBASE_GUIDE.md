@@ -96,9 +96,14 @@ That's done from a committed SQL DDL file, in two places:
 | `src/lib/turso-schema-sql.ts` | `/api/admin/repair-db` | **runtime**, admin-triggered |
 
 `turso-schema-sql.ts` is **auto-generated** from `schema.sql` by
-`scripts/gen-schema-ts.mjs`, which now runs as part of `npm run build` so it can't go
-stale. (A stale copy here was the root cause of repeated prod drift — the runtime
-repair couldn't add tables it didn't know about.)
+`scripts/gen-schema-ts.mjs`, which runs as part of `npm run build` so it can't go stale.
+
+**Root cause of the historical drift (fixed):** `vercel.json` had a `buildCommand`
+override (`npx prisma generate && next build`) that **replaced `npm run build`** — so
+`gen-schema-ts.mjs` and `sync-turso.mjs` never ran on Vercel, and Turso never got new
+columns. `vercel.json` now uses `"buildCommand": "npm run build"`, so the build-time
+sync runs on every deploy. (A stale `turso-schema-sql.ts` was a second cause — the
+runtime repair couldn't add tables it didn't know about.)
 
 ### How a schema change should be shipped
 
@@ -176,7 +181,9 @@ unless noted.
 - `Tag` — user-owned colour label used by events + duty.
 - `DutyShift` — on-duty schedule entry: `date`, `type`, `title`, `tagId`.
 - `Incident` — incident reports; `isPublic`, `status`, `severity`, `followUpNeeded`.
-- `Note` — sticky notes. `Poll`/`PollVote`, `Feedback`, `Notification`.
+- `Note` — sticky notes. `Poll`/`PollVote`, `Feedback`, `Notification` (in-app alerts).
+- `Setting` — key/value JSON store for admin-editable config (the incidents page's
+  editable reporting tracks + campus resources live here).
 - `Conversation`/`Message`, `AIPlannerSession`, `AIUsage`/`GlobalAIUsage` — AI planner.
 
 ---
@@ -202,9 +209,17 @@ All handlers live in `src/app/api/**/route.ts` (App Router). Shared patterns:
 **Auth / admin**
 - `auth/[...nextauth]` — NextAuth handler.
 - `register` — create an RA account from an `AuthorizationCode`.
-- `admin/codes` — admin CRUD for authorization codes.
+- `admin/codes` — admin authorization codes: `GET`/`POST`/`DELETE`. Only two roles are
+  issued: Resident Assistant + Administrator.
 - `admin/repair-db` — **admin-only** runtime Turso schema repair (see §3).
+- `incident-config` — `GET` (reporting tracks + campus resources; falls back to built-in
+  defaults), `PUT` (**admin-only**) to edit them; stored in the `Setting` table.
 - `team` — list all users (id, name, role, hall, counts) — used by pickers.
+
+**Cron (Vercel Cron → `vercel.json`; secured by `CRON_SECRET`)**
+- `cron/duty-reminders` — daily: in-app notification to each RA on duty today.
+- `cron/check-in-digest` — weekly: in-app notification to each RA listing residents
+  not checked in for 7+ days.
 
 **Roster & dashboard**
 - `residents` — `GET` (all, each tagged `canEdit`/`ownerId`), `POST` (create; requires
@@ -227,8 +242,8 @@ All handlers live in `src/app/api/**/route.ts` (App Router). Shared patterns:
 - `room-check-boards` — `GET` (all; each carries your `myDoneCount`), `POST`
   (**admin only**, else `403`), `DELETE` (owner/admin).
 - `room-check-boards/[id]/results` — `GET` (your results in the board), `POST`
-  (create/overwrite one result per resident; `pass`|`fail`; a `fail` emails the
-  resident once), `DELETE?resultId=` (undo — returns them to pending).
+  (create/overwrite one result per resident; `pass`|`fail`, optional note),
+  `DELETE?resultId=` (undo — returns them to pending). No emails are sent.
 - `room-checks` — legacy round-based endpoint (superseded by boards).
 
 **Collaboration**
@@ -263,9 +278,10 @@ shared/personal boards) sets context; the resident dropdown auto-fills room; rec
 check-ins can be **edited/deleted**. Dedup is enforced server-side.
 
 **Room Checks** (`(app)/room-checks`) — pick an **admin-created board**, mark your
-residents **Pass/Fail** with an optional note (a Fail emails the resident a
-re-inspection notice). A checked resident **drops off the pending list** into "Done",
-where **Edit** and **Undo** fix mistakes. Filter the pending pool by RA/floor/wing.
+residents **Pass/Fail** with an optional note. A checked resident **drops off the
+pending list** into "Done", where **Edit** and **Undo** fix mistakes. Filter the
+pending pool by RA/floor/wing. Results just persist — **no emails/notifications are
+sent** (residents aren't app users).
 
 **Collaboration** (`(app)/collaboration`) — kanban boards. Everyone views; the creator,
 added **collaborators**, or an admin can add/edit/move/delete tasks and edit the board.
@@ -285,7 +301,16 @@ goes through the app's own panel (title, type, assigned RA, tag, repeat). Clicki
 shift opens an **edit** form; delete is a secondary action. `onCellClick` reads
 `cell.start` (not `cell.date`, which doesn't exist on Ilamy's `CellInfo`).
 
-**Events / Duty / Incidents / Notes / Inspiration / AI planner** — standard CRUD pages;
+**Incidents** (`(app)/incidents`) — the front-desk log: report incidents, mark
+resolved/escalated, toggle public/private. Two reference sections — **Reporting tracks**
+and **Campus resources** — are **admin-editable** (add/edit/delete rows), persisted via
+`/api/incident-config` → `Setting`; they fall back to built-in defaults until customized.
+
+**Notifications** (`(app)/notifications`) — the in-app alert feed (`Notification` model).
+Created via `lib/notify.ts` from: duty reminders + check-in digest (crons), and resource
+approvals. **This is the only notification channel — there is no email** (see §7).
+
+**Events / Duty / Notes / Inspiration / AI planner** — standard CRUD pages;
 notes/incidents/dashboard timestamps use `formatDateTime` (local, readable).
 
 ---
@@ -296,8 +321,10 @@ notes/incidents/dashboard timestamps use `formatDateTime` (local, readable).
   else the local file. **Restart `next dev` after a schema change** so the regenerated
   client loads (a stale client causes empty 500s locally).
 - `lib/auth.ts` — see §2.
-- `lib/email.ts` — `sendEmail({to,subject,html})`. Uses Resend if `RESEND_API_KEY` is
-  set; otherwise logs and no-ops (never throws). Set `EMAIL_FROM` for a custom sender.
+- `lib/notify.ts` — `notify(userId, type, title, description)` creates an in-app
+  `Notification` row (shown on the notifications page). Best-effort; never throws.
+  Types: `event | approval | team | resource | ai | system`. **There is no email
+  integration** — email/Resend was removed; all alerts are in-app.
 - `lib/boardAccess.ts` — `canManageBoard(boardId, userId)` = creator | member | admin.
 - `lib/utils.ts` — `formatDateTime()` → "August 13, 2026 at 1:19 PM".
 - `lib/turso-schema-sql.ts` — generated; do not hand-edit (see §3).
@@ -345,26 +372,36 @@ Note: the suite creates real rows in the local DB (tagged `E2E-…`).
 Prod is Vercel, DB is Turso.
 
 1. Merge the feature branch → the production branch; Vercel builds.
-2. Build runs: `prisma generate` → `gen-schema-ts.mjs` → `sync-turso.mjs` → `next build`.
+2. `vercel.json` sets `buildCommand: "npm run build"`, which runs
+   `prisma generate` → `gen-schema-ts.mjs` → `sync-turso.mjs` → `next build`. It also
+   declares the **cron schedules** (`crons`).
 3. **If you see "Failed to load / save" in prod after a schema change**, the Turso
    columns/tables are missing. Fix it immediately with the admin repair:
    `fetch('/api/admin/repair-db',{method:'POST'})` in the console (signed in as admin),
    or `node scripts/sync-turso.mjs` with the Turso creds. See §3.
 4. Ensure `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` are available to the **Build** step
-   (not just runtime) if you want the build-time sync to do this automatically.
+   (they are for the build-time sync to run).
 
 ### Environment variables (Vercel)
 `DATABASE_URL`, `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `NEXTAUTH_URL`,
 `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `AZURE_AD_CLIENT_ID/SECRET/TENANT_ID`,
-`RESEND_API_KEY` + `EMAIL_FROM` (optional — enables emails), and the AI-planner keys
-(`OPENROUTER_API_KEY` / `NVIDIA_API_KEY` / `GEMINI_API_KEY`). See `.env.example`.
+`CRON_SECRET` (protects `/api/cron/*`), and the AI-planner keys
+(`OPENROUTER_API_KEY` / `NVIDIA_API_KEY` / `GEMINI_API_KEY`). No email/Resend vars —
+notifications are in-app only. See `.env.example`.
 
 ---
 
 ## Appendix — recurring gotchas
 
-- **Turso drift** is the top cause of prod bugs; the runtime `repair-db` is the fix.
+- **Turso drift** was the top cause of prod bugs; fixed at the source (the `vercel.json`
+  `buildCommand` now runs the sync). The runtime `repair-db` is the belt-and-braces fix.
 - **Restart `next dev`** after schema changes (stale Prisma client → empty 500s).
 - **`prisma db push` never touches Turso** — only local SQLite.
-- Ilamy `CellInfo` exposes `start`/`end`, not `date`.
+- After a schema change, update **all three** artifacts: `schema.prisma`, `schema.sql`,
+  and regenerate `turso-schema-sql.ts` (`node scripts/gen-schema-ts.mjs`, also run in build).
+- Ilamy `CellInfo` exposes `start`/`end`, not `date`; and its event `color` = text,
+  `backgroundColor` = fill (setting both equal hides the title).
 - OAuth identity is resolved by **email**, not `providerAccountId`.
+- **Notifications are in-app only** (`lib/notify.ts` → `Notification`); no email anywhere.
+- Offline AI (`lib/localai/`) loads wllama GGUFs via `loadModelFromUrl` (not
+  `loadModelFromHF`, which 404s on HF Xet-migrated repos — Firefox's CPU path).
