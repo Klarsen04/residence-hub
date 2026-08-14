@@ -3,6 +3,31 @@
 
 import { safeFetch } from "@/lib/safeFetch";
 
+const PREVIEW_HOST_ALLOWLIST = [
+  "youtube.com",
+  "youtu.be",
+  "vimeo.com",
+  "pin.it",
+  "pinterest.com",
+  "api.pinterest.com",
+  "i.pinimg.com",
+  "img.youtube.com",
+];
+
+function isAllowedPreviewUrl(rawUrl: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  const host = u.hostname.toLowerCase();
+  return PREVIEW_HOST_ALLOWLIST.some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`)
+  );
+}
+
 export interface LinkPreview {
   kind: "image" | "video" | "link";
   imageUrl: string | null;
@@ -35,6 +60,7 @@ function upsizePinterest(u: string): string {
 
 export async function getLinkPreview(url: string): Promise<LinkPreview> {
   if (!url || typeof url !== "string") return { kind: "link", imageUrl: null, title: null };
+  if (!isAllowedPreviewUrl(url)) return { kind: "link", imageUrl: null, title: null };
 
   // Direct image / video files.
   if (/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(url)) {
