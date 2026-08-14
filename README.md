@@ -2,11 +2,28 @@
 
 **An all-in-one operations platform for student Resident Assistants (RAs) and residence-life staff.**
 
+![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwindcss&logoColor=white)
+![Turso](https://img.shields.io/badge/DB-Turso%20libSQL-4FF8D2?logo=turso&logoColor=black)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel-000?logo=vercel&logoColor=white)
+
 Residence Hub replaces the scattered spreadsheets, group chats, and paper forms RAs juggle — floor rosters, 1:1 check-ins, health-&-safety room checks, duty schedules, event planning, incident reporting, and shared resources — with one warm, fast web app.
 
 🔗 **Live:** [jerichoreshub.dpdns.org](https://jerichoreshub.dpdns.org)
 
 > New to the codebase? Read the deep-dive **[Developer Guide](docs/CODEBASE_GUIDE.md)** (architecture, data model, API reference, deployment runbook).
+
+## 📸 Screenshots
+
+| Sign in | Dashboard |
+|---|---|
+| ![Sign in](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+**Duty schedule** — shared on-duty calendar with type filters and per-shift editing:
+
+![Duty schedule](docs/screenshots/duty.png)
 
 ---
 
