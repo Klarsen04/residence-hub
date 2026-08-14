@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/email";
 
 async function isAdmin(userId: string): Promise<boolean> {
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
@@ -96,6 +97,21 @@ export async function PUT(req: NextRequest) {
   }
 
   const resource = await prisma.resource.update({ where: { id }, data });
+
+  // Notify the submitter when their resource is newly approved.
+  if (approved === true && !existing.approved && admin) {
+    const owner = await prisma.user.findUnique({ where: { id: existing.userId }, select: { name: true, email: true } });
+    if (owner?.email && existing.userId !== session.user.id) {
+      await sendEmail({
+        to: owner.email,
+        subject: `Your resource "${resource.title}" was approved`,
+        html: `<p>Hi ${owner.name || "there"},</p>
+<p>Your submitted resource <strong>${resource.title}</strong> has been approved and is now visible to everyone on the platform.</p>
+<p>Thanks for contributing!</p>`,
+      });
+    }
+  }
+
   return NextResponse.json(resource);
 }
 
