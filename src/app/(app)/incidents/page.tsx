@@ -6,10 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Plus, Lock, ChevronDown, ChevronUp, Phone, ExternalLink, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Plus, Lock, ChevronDown, ChevronUp, Phone, ExternalLink, ShieldAlert, Pencil, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { CAMPUS_RESOURCES, INCIDENT_TRACKS } from "@/lib/nyitResources";
 import { PageHeader, SectionMarker, Plate, PlateRow, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 interface Incident {
@@ -65,8 +64,35 @@ const statusConfig = {
   escalated: { color: "bg-red-500/15 text-red-400", label: "Escalated" },
 };
 
+const plainFetcher = (url: string) => fetch(url).then((r) => r.json());
+
 export default function IncidentsPage() {
   const { data: incidents, error, isLoading, mutate } = useSWR<Incident[]>("/api/incidents", fetcher);
+  // Admin-editable reference lists (reporting tracks + campus resources).
+  const { data: cfg, mutate: mutateCfg } = useSWR("/api/incident-config", plainFetcher);
+  const tracks: any[] = Array.isArray(cfg?.tracks) ? cfg.tracks : [];
+  const resources: any[] = Array.isArray(cfg?.resources) ? cfg.resources : [];
+  const canEditCfg = !!cfg?.canEdit;
+  const [editTracks, setEditTracks] = useState(false);
+  const [trackDraft, setTrackDraft] = useState<any[]>([]);
+  const [editResources, setEditResources] = useState(false);
+  const [resourceDraft, setResourceDraft] = useState<any[]>([]);
+  const [savingCfg, setSavingCfg] = useState(false);
+
+  const startEditTracks = () => { setTrackDraft(tracks.map((t) => ({ ...t }))); setEditTracks(true); };
+  const startEditResources = () => { setResourceDraft(resources.map((r) => ({ ...r }))); setEditResources(true); };
+  const saveCfg = async (payload: any, done: () => void, label: string) => {
+    setSavingCfg(true);
+    try {
+      const res = await fetch("/api/incident-config", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error();
+      await mutateCfg();
+      done();
+      toast.success(`${label} saved`);
+    } catch { toast.error(`Failed to save ${label.toLowerCase()}`); }
+    finally { setSavingCfg(false); }
+  };
+
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -317,49 +343,107 @@ export default function IncidentsPage() {
 
       {/* Reporting tracks — where different incident kinds actually route */}
       <div className="mb-10">
-        <SectionMarker code="G.1" label="Reporting tracks" />
-        <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
-          {INCIDENT_TRACKS.map((track) => (
-            <div key={track.key} className="bg-card p-5">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-display text-lg leading-tight">{track.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{track.description}</p>
+        <SectionMarker
+          code="G.1"
+          label="Reporting tracks"
+          right={canEditCfg && !editTracks ? (
+            <button onClick={startEditTracks} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-[hsl(var(--terracotta))]"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+          ) : undefined}
+        />
+        {editTracks ? (
+          <div className="space-y-3">
+            {trackDraft.map((t, i) => (
+              <div key={i} className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-3 space-y-2">
+                <div className="flex gap-2">
+                  <Input value={t.label || ""} onChange={(e) => setTrackDraft((d) => d.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} placeholder="Track label" className="h-8 text-sm" />
+                  <Input value={t.routeTo || ""} onChange={(e) => setTrackDraft((d) => d.map((x, j) => j === i ? { ...x, routeTo: e.target.value } : x))} placeholder="Routes to (office)" className="h-8 text-sm" />
+                  <button onClick={() => setTrackDraft((d) => d.filter((_, j) => j !== i))} className="p-1.5 text-muted-foreground hover:text-red-500" title="Remove"><Trash2 className="h-4 w-4" /></button>
                 </div>
-                {track.reportUrl && (
-                  <a href={track.reportUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-70" title="Open official report form">
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
+                <Input value={t.description || ""} onChange={(e) => setTrackDraft((d) => d.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} placeholder="Description" className="h-8 text-xs" />
+                <Input value={t.reportUrl || ""} onChange={(e) => setTrackDraft((d) => d.map((x, j) => j === i ? { ...x, reportUrl: e.target.value } : x))} placeholder="Official report URL (optional)" className="h-8 text-xs" />
               </div>
-              <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mt-3">→ {track.routeTo}</p>
+            ))}
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setTrackDraft((d) => [...d, { key: `t${Date.now()}`, label: "", description: "", routeTo: "", reportUrl: "" }])}><Plus className="h-3.5 w-3.5 mr-1" /> Add track</Button>
+              <Button size="sm" disabled={savingCfg} onClick={() => saveCfg({ tracks: trackDraft }, () => setEditTracks(false), "Reporting tracks")}>{savingCfg ? "Saving…" : "Save"}</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditTracks(false)}>Cancel</Button>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
+            {tracks.map((track, i) => (
+              <div key={track.key || i} className="bg-card p-5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-display text-lg leading-tight">{track.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{track.description}</p>
+                  </div>
+                  {track.reportUrl && (
+                    <a href={track.reportUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-70" title="Open official report form">
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+                <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mt-3">→ {track.routeTo}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Campus resources */}
       <div className="mb-10">
-        <SectionMarker code="G.2" label="Campus resources" />
-        <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
-          {CAMPUS_RESOURCES.map((r) => (
-            <div key={r.name} className={`p-4 ${r.emergency ? "bg-red-500/[0.05]" : "bg-card"}`}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-medium text-sm">{r.name}</p>
-                {r.url && (
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-70 shrink-0">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
+        <SectionMarker
+          code="G.2"
+          label="Campus resources"
+          right={canEditCfg && !editResources ? (
+            <button onClick={startEditResources} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-[hsl(var(--terracotta))]"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+          ) : undefined}
+        />
+        {editResources ? (
+          <div className="space-y-3">
+            {resourceDraft.map((r, i) => (
+              <div key={i} className="rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-card p-3 space-y-2">
+                <div className="flex gap-2">
+                  <Input value={r.name || ""} onChange={(e) => setResourceDraft((d) => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder="Name" className="h-8 text-sm" />
+                  <label className="flex items-center gap-1 text-xs text-muted-foreground shrink-0"><input type="checkbox" checked={!!r.emergency} onChange={(e) => setResourceDraft((d) => d.map((x, j) => j === i ? { ...x, emergency: e.target.checked } : x))} /> Emergency</label>
+                  <button onClick={() => setResourceDraft((d) => d.filter((_, j) => j !== i))} className="p-1.5 text-muted-foreground hover:text-red-500" title="Remove"><Trash2 className="h-4 w-4" /></button>
+                </div>
+                <Input value={r.detail || ""} onChange={(e) => setResourceDraft((d) => d.map((x, j) => j === i ? { ...x, detail: e.target.value } : x))} placeholder="Detail" className="h-8 text-xs" />
+                <div className="grid grid-cols-3 gap-2">
+                  <Input value={r.phone || ""} onChange={(e) => setResourceDraft((d) => d.map((x, j) => j === i ? { ...x, phone: e.target.value } : x))} placeholder="Phone" className="h-8 text-xs" />
+                  <Input value={r.email || ""} onChange={(e) => setResourceDraft((d) => d.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} placeholder="Email" className="h-8 text-xs" />
+                  <Input value={r.url || ""} onChange={(e) => setResourceDraft((d) => d.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} placeholder="URL" className="h-8 text-xs" />
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">{r.detail}</p>
-              <div className="flex gap-4 mt-1.5">
-                {r.phone && <a href={`tel:${r.phone.replace(/\./g, "")}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline"><Phone className="h-3 w-3" /> {r.phone}</a>}
-                {r.email && <a href={`mailto:${r.email}`} className="text-xs font-medium text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:underline truncate">{r.email}</a>}
-              </div>
+            ))}
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setResourceDraft((d) => [...d, { name: "", detail: "", phone: "", email: "", url: "", emergency: false }])}><Plus className="h-3.5 w-3.5 mr-1" /> Add resource</Button>
+              <Button size="sm" disabled={savingCfg} onClick={() => saveCfg({ resources: resourceDraft }, () => setEditResources(false), "Campus resources")}>{savingCfg ? "Saving…" : "Save"}</Button>
+              <Button size="sm" variant="outline" onClick={() => setEditResources(false)}>Cancel</Button>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="grid gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08] md:grid-cols-2">
+            {resources.map((r, i) => (
+              <div key={i} className={`p-4 ${r.emergency ? "bg-red-500/[0.05]" : "bg-card"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-sm">{r.name}</p>
+                  {r.url && (
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:opacity-70 shrink-0">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{r.detail}</p>
+                <div className="flex gap-4 mt-1.5">
+                  {r.phone && <a href={`tel:${String(r.phone).replace(/\./g, "")}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline"><Phone className="h-3 w-3" /> {r.phone}</a>}
+                  {r.email && <a href={`mailto:${r.email}`} className="text-xs font-medium text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:underline truncate">{r.email}</a>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div>

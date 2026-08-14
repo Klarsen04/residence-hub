@@ -807,3 +807,11 @@ model RoomCheckResult {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Generic admin-editable config (JSON value per key). Currently holds the
+// incidents page's editable "reporting tracks" + "campus resources" lists.
+model Setting {
+  key       String   @id
+  value     String   // JSON
+  updatedAt DateTime @updatedAt @default(now())
+}

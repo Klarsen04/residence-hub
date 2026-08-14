@@ -6,17 +6,15 @@ import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Copy, Check, Shield } from "lucide-react";
+import { Plus, Copy, Check, Shield, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+// Only two roles are issued: RAs and admins.
 const roles = [
   { value: "RESIDENT_ASSISTANT", label: "Resident Assistant" },
-  { value: "RHA_MEMBER", label: "RHA Member" },
-  { value: "PEER_SUCCESS_GUIDE", label: "Peer Success Guide" },
-  { value: "PEER_HEALTH_EDUCATOR", label: "Peer Health Educator" },
   { value: "ADMIN", label: "Administrator" },
 ];
 
@@ -75,6 +73,18 @@ export default function AdminPage() {
     setCopiedId(id);
     toast.success("Code copied to clipboard");
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const deleteCode = async (id: string, code: string) => {
+    if (!confirm(`Delete authorization code ${code}?`)) return;
+    try {
+      const res = await fetch(`/api/admin/codes?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Code deleted");
+    } catch {
+      toast.error("Failed to delete code");
+    }
   };
 
   return (
@@ -173,6 +183,9 @@ export default function AdminPage() {
                         {copiedId === code.id ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                       </Button>
                     )}
+                    <Button variant="ghost" size="icon" onClick={() => deleteCode(code.id, code.code)} className="rounded-xl text-muted-foreground hover:text-red-500" title="Delete code">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
