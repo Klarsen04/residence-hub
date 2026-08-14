@@ -7,7 +7,6 @@ import {
   Calendar,
   Lightbulb,
   BookOpen,
-  Sparkles,
   Users,
   ArrowUpRight,
   Home,

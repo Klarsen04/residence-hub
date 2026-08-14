@@ -3,8 +3,6 @@
 import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import {
-  Calendar,
-  Users,
   TrendingUp,
   Lightbulb,
   BarChart3,
