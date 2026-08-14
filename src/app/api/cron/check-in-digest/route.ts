@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -39,19 +40,25 @@ export async function GET(req: NextRequest) {
   }
 
   let emailed = 0;
-  for (const { name, email, residents: list } of byOwner.values()) {
-    if (!email || list.length === 0) continue;
-    const items = list.map((n) => `<li>${n}</li>`).join("");
-    const res = await sendEmail({
-      to: email,
-      subject: `Weekly check-in digest — ${list.length} resident${list.length === 1 ? "" : "s"} due`,
-      html: `<p>Hi ${name},</p>
+  let notified = 0;
+  for (const [ownerId, { name, email, residents: list }] of byOwner.entries()) {
+    if (list.length === 0) continue;
+    // In-app notification (always) + email (only if Resend is configured).
+    const preview = list.slice(0, 5).join(", ") + (list.length > 5 ? `, +${list.length - 5} more` : "");
+    if (await notify(ownerId, "team", `${list.length} resident${list.length === 1 ? "" : "s"} due for check-in`, preview)) notified++;
+    if (email) {
+      const items = list.map((n) => `<li>${n}</li>`).join("");
+      const res = await sendEmail({
+        to: email,
+        subject: `Weekly check-in digest — ${list.length} resident${list.length === 1 ? "" : "s"} due`,
+        html: `<p>Hi ${name},</p>
 <p>These residents on your floor haven't had a check-in in the last 7 days:</p>
 <ul>${items}</ul>
 <p>Log a quick 1:1 when you get a chance. Thanks!</p>`,
-    });
-    if (res.sent) emailed++;
+      });
+      if (res.sent) emailed++;
+    }
   }
 
-  return NextResponse.json({ owners: byOwner.size, emailed });
+  return NextResponse.json({ owners: byOwner.size, notified, emailed });
 }

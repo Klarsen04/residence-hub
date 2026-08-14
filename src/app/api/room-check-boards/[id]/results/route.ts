@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
 
 // Returns the current RA's saved results for this board. Every user only ever
 // sees their own results (checks are per-RA).
@@ -56,25 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         },
       });
 
-  // Email the resident on a "fail" result (only if we have their email and we
-  // didn't already email them for this row on a previous save).
-  let emailed = false;
-  if (status === "fail" && residentId && !existing) {
-    const resident = await prisma.resident.findUnique({ where: { id: residentId }, select: { email: true, name: true } });
-    if (resident?.email) {
-      const result = await sendEmail({
-        to: resident.email,
-        subject: `Room Check — re-inspection needed for Room ${room || ""}`,
-        html: `<p>Hi ${resident.name || "there"},</p>
-<p>During a recent <strong>${board.type}</strong> room check (${board.title}), your room${room ? ` (<strong>Room ${room}</strong>)` : ""} did not pass and needs a re-inspection.</p>
-${notes ? `<p><strong>Note:</strong> ${notes}</p>` : ""}
-<p>Please address this and follow up with your RA. Thank you.</p>`,
-      });
-      emailed = result.sent;
-    }
-  }
-
-  return NextResponse.json({ ...saved, emailed }, { status: existing ? 200 : 201 });
+  return NextResponse.json(saved, { status: existing ? 200 : 201 });
 }
 
 // Delete a single result (e.g. RA marked the wrong resident by accident).

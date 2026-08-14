@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -25,18 +26,22 @@ export async function GET(req: NextRequest) {
   });
 
   let emailed = 0;
+  let notified = 0;
   for (const s of shifts) {
-    if (!s.user?.email) continue;
     const label = s.title || s.tag?.name || SHIFT_LABELS[s.type] || s.type;
-    const res = await sendEmail({
-      to: s.user.email,
-      subject: `Reminder: you're on duty today (${label})`,
-      html: `<p>Hi ${s.user.name || "there"},</p>
+    // In-app notification (always) + email (only if Resend is configured).
+    if (await notify(s.userId, "event", "You're on duty today", `${label} shift today (${today}).`)) notified++;
+    if (s.user?.email) {
+      const res = await sendEmail({
+        to: s.user.email,
+        subject: `Reminder: you're on duty today (${label})`,
+        html: `<p>Hi ${s.user.name || "there"},</p>
 <p>This is a reminder that you're scheduled for a <strong>${label}</strong> duty shift <strong>today (${today})</strong>.</p>
 <p>Have a good shift!</p>`,
-    });
-    if (res.sent) emailed++;
+      });
+      if (res.sent) emailed++;
+    }
   }
 
-  return NextResponse.json({ date: today, shifts: shifts.length, emailed });
+  return NextResponse.json({ date: today, shifts: shifts.length, notified, emailed });
 }
