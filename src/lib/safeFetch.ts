@@ -88,12 +88,12 @@ export async function safeFetch(
 ): Promise<Response> {
   let current = rawUrl;
   for (let i = 0; i <= maxRedirects; i++) {
-    await assertPublicUrl(current);
-    const res = await fetch(current, { ...init, redirect: "manual" });
+    const validated = await assertPublicUrl(current);
+    const res = await fetch(validated.toString(), { ...init, redirect: "manual" });
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get("location");
       if (!loc) return res;
-      current = new URL(loc, current).toString();
+      current = new URL(loc, validated).toString();
       continue;
     }
     return res;
