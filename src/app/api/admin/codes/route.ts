@@ -6,8 +6,9 @@ import crypto from "crypto";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const codes = await prisma.authorizationCode.findMany({
@@ -19,8 +20,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await req.json();
@@ -44,14 +46,16 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-  await prisma.authorizationCode.delete({ where: { id } });
+  const { count } = await prisma.authorizationCode.deleteMany({ where: { id } });
+  if (count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ success: true });
 }

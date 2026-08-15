@@ -29,7 +29,16 @@ const moodConfig: Record<Mood, { label: string; color: string }> = {
   struggling: { label: "Struggling", color: "bg-red-500/15 text-red-400 border-red-500/20" },
 };
 
-const parseTopics = (t: any): string[] => (t ? (typeof t === "string" ? JSON.parse(t) : t) : []);
+function parseTopics(t: any): string[] {
+  if (!t) return [];
+  if (Array.isArray(t)) return t;
+  try {
+    const parsed = JSON.parse(t);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 const emptyForm = { residentId: "", residentName: "", room: "", mood: "good" as Mood, topics: [] as string[], notes: "", followUp: false };
 
@@ -390,8 +399,26 @@ export default function CheckInsPage() {
           <SectionMarker code="✦" label="Recent check-ins" />
           <div>
             {allCheckIns.map((ci: any) => {
+              // Shared boards include other RAs' entries with private fields
+              // redacted (isOwn: false); everything else is always the user's own.
+              const isOwn = ci.isOwn !== false;
               const topics = parseTopics(ci.topics);
               const mood = ci.mood as Mood;
+              if (!isOwn) {
+                return (
+                  <div key={ci.id} className="flex items-center gap-4 py-4 rule first:border-t-0">
+                    <div className="p-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.05]">
+                      <User className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{ci.residentName}{ci.room ? ` (Rm ${ci.room})` : ""}</p>
+                      <p className="wayfinding text-muted-foreground mt-0.5 normal-case">
+                        Checked in by {ci.userName || "another RA"} • {formatDateTime(ci.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
               if (editingId === ci.id) {
                 return (
                   <div key={ci.id} className="py-4 rule first:border-t-0 space-y-3">

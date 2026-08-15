@@ -98,7 +98,7 @@ export default function IncidentsPage() {
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
     time: "",
-    type: "Noise Complaint",
+    type: incidentTypes[0],
     severity: "low" as Incident["severity"],
     location: "",
     description: "",
@@ -122,7 +122,7 @@ export default function IncidentsPage() {
       if (!res.ok) throw new Error("Failed to create incident");
       await mutate();
       setShowForm(false);
-      setForm({ date: new Date().toISOString().split("T")[0], time: "", type: "Noise Complaint", severity: "low", location: "", description: "", actionTaken: "", followUpNeeded: false, isPublic: false });
+      setForm({ date: new Date().toISOString().split("T")[0], time: "", type: incidentTypes[0], severity: "low", location: "", description: "", actionTaken: "", followUpNeeded: false, isPublic: false });
       toast.success("Incident report saved");
     } catch {
       toast.error("Failed to save incident report");
@@ -508,25 +508,25 @@ export default function IncidentsPage() {
                       )}
                       {incident.canEdit ? (
                         <div className="flex gap-2 pt-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                          {(incident.status === "open" || incident.status === "escalated") && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                              onClick={() => handleStatusChange(incident, "resolved")}
+                            >
+                              Mark Resolved
+                            </Button>
+                          )}
                           {incident.status === "open" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                                onClick={() => handleStatusChange(incident, "resolved")}
-                              >
-                                Mark Resolved
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-red-400 border-red-500/30 hover:bg-red-500/10"
-                                onClick={() => handleStatusChange(incident, "escalated")}
-                              >
-                                Escalate
-                              </Button>
-                            </>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-400 border-red-500/30 hover:bg-red-500/10"
+                              onClick={() => handleStatusChange(incident, "escalated")}
+                            >
+                              Escalate
+                            </Button>
                           )}
                           <Button size="sm" variant="outline" onClick={() => togglePublic(incident)}>
                             {incident.isPublic ? "Make private" : "Make public"}

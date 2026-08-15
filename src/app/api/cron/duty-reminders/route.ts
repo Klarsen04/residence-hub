@@ -8,17 +8,19 @@ const SHIFT_LABELS: Record<string, string> = { evening: "Evening", overnight: "O
 
 // Invoked by Vercel Cron (see vercel.json). Sends an in-app notification to
 // every RA who has a duty shift *today*. Secured with CRON_SECRET when set
-// (Vercel sends it as `Authorization: Bearer <CRON_SECRET>`); open in local dev.
+// (Vercel sends it as `Authorization: Bearer <CRON_SECRET>`); open in local
+// dev only — in production an unset secret rejects all requests.
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) return process.env.NODE_ENV !== "production";
   return req.headers.get("authorization") === `Bearer ${secret}`;
 }
 
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const today = new Date().toISOString().slice(0, 10);
+  // en-CA formats YYYY-MM-DD; APP_TIMEZONE should be set to the campus timezone (e.g. "America/New_York").
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: process.env.APP_TIMEZONE || "UTC" }).format(new Date());
   const shifts = await prisma.dutyShift.findMany({
     where: { date: today },
     include: { tag: { select: { name: true } } },

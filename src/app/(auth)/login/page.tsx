@@ -29,34 +29,38 @@ function LoginForm() {
     setError("");
     setLoading(true);
 
-    if (isRegister) {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, authCode }),
+    try {
+      if (isRegister) {
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, authCode }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || "Registration failed");
+          return;
+        }
+      }
+
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Registration failed");
-        setLoading(false);
+      if (result?.error) {
+        setError(isRegister ? "Account created but sign-in failed. Try signing in." : "Invalid email or password");
         return;
       }
-    }
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setError(isRegister ? "Account created but sign-in failed. Try signing in." : "Invalid email or password");
+      window.location.href = callbackUrl;
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    window.location.href = callbackUrl;
   }
 
   return (

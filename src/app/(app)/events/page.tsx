@@ -11,7 +11,14 @@ import { formatTime } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const categoryColors: Record<string, string> = {
   COMMUNITY_BUILDING: "bg-accent/15 text-accent border-accent/20",
@@ -39,7 +46,7 @@ export default function EventsPage() {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"list" | "calendar">("calendar");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { data: events, isLoading } = useSWR("/api/events/all", fetcher);
+  const { data: events, isLoading, error, mutate } = useSWR("/api/events/all", fetcher);
 
   const filteredEvents = (events || []).filter((e: any) =>
     e.title.toLowerCase().includes(search.toLowerCase())
@@ -122,6 +129,18 @@ export default function EventsPage() {
             Reading the board…
           </div>
         </div>
+      ) : error ? (
+        <EmptyPlate
+          code="01 · ERROR"
+          title="Couldn't load events."
+          hint={error.message}
+          icon={<CalendarIcon className="h-7 w-7" strokeWidth={1.5} />}
+          action={
+            <Button variant="outline" onClick={() => mutate()}>
+              Retry
+            </Button>
+          }
+        />
       ) : view === "calendar" ? (
         <div>
           <SectionMarker

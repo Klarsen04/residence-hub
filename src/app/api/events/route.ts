@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
   const { title, description, date, startTime, endTime, location, category, tagId, recurrenceDays } = body;
 
   if (!title || !date || !startTime || !endTime || !category) {
-    return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
+    // Both keys: the events/new page reads `.message` from error bodies.
+    return NextResponse.json({ error: "Missing required fields", message: "Missing required fields" }, { status: 400 });
   }
 
   const [startH, startM] = startTime.split(":").map(Number);
@@ -42,8 +43,13 @@ export async function POST(req: NextRequest) {
   const recurs = Array.isArray(recurrenceDays) && recurrenceDays.length > 0;
 
   // Build the set of dates: the chosen date, plus each matching weekday over the
-  // next 8 weeks if recurrence days were selected.
-  const base = new Date(date);
+  // next 8 weeks if recurrence days were selected. Parse as *local* midnight —
+  // new Date("YYYY-MM-DD") is UTC midnight, which skews getDay()/setHours()
+  // in any non-UTC timezone (see the same pattern in api/duty/route.ts).
+  const base = new Date(String(date).slice(0, 10) + "T00:00:00");
+  if (isNaN(base.getTime())) {
+    return NextResponse.json({ error: "Invalid date", message: "Invalid date" }, { status: 400 });
+  }
   const dates: Date[] = [];
   if (recurs) {
     for (let i = 0; i < 8 * 7; i++) {
@@ -85,6 +91,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(event, { status: 201 });
   } catch (err) {
     console.error("Failed to create event:", err);
-    return NextResponse.json({ message: "Could not create event" }, { status: 500 });
+    return NextResponse.json({ error: "Could not create event", message: "Could not create event" }, { status: 500 });
   }
 }

@@ -25,7 +25,14 @@ import {
 } from "recharts";
 import { PageHeader, SectionMarker, Plate, PlateRow } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const container = {
   hidden: { opacity: 0 },
@@ -70,9 +77,10 @@ function Panel({
 }
 
 export default function AnalyticsPage() {
-  const { data: events } = useSWR("/api/events/all", fetcher);
-  const { data: inspirations } = useSWR("/api/inspiration", fetcher);
+  const { data: events, error: eventsError, mutate: mutateEvents } = useSWR("/api/events/all", fetcher);
+  const { data: inspirations, error: inspirationsError, mutate: mutateInspirations } = useSWR("/api/inspiration", fetcher);
 
+  const error = eventsError || inspirationsError;
   const allEvents = events || [];
   const allInspirations = inspirations || [];
 
@@ -86,17 +94,23 @@ export default function AnalyticsPage() {
     return acc;
   }, []);
 
-  const monthlyData = allEvents.reduce((acc: any[], event: any) => {
-    const date = new Date(event.date);
-    const monthKey = date.toLocaleDateString("en-US", { month: "short" });
-    const existing = acc.find((m: any) => m.month === monthKey);
-    if (existing) {
-      existing.events += 1;
-    } else {
-      acc.push({ month: monthKey, events: 1 });
-    }
-    return acc;
-  }, []);
+  const monthlyData = allEvents
+    .reduce((acc: any[], event: any) => {
+      const date = new Date(event.date);
+      const sortKey = date.getFullYear() * 12 + date.getMonth();
+      const existing = acc.find((m: any) => m.sortKey === sortKey);
+      if (existing) {
+        existing.events += 1;
+      } else {
+        acc.push({
+          sortKey,
+          month: `${date.toLocaleDateString("en-US", { month: "short" })} ${String(date.getFullYear()).slice(-2)}`,
+          events: 1,
+        });
+      }
+      return acc;
+    }, [])
+    .sort((a: any, b: any) => a.sortKey - b.sortKey);
 
   const statusData = allEvents.reduce((acc: any[], event: any) => {
     const existing = acc.find((s: any) => s.name === event.status?.replace(/_/g, " "));
@@ -108,11 +122,17 @@ export default function AnalyticsPage() {
     return acc;
   }, []);
 
+  const now = new Date();
+  const eventsThisMonth = allEvents.filter((e: any) => {
+    const d = new Date(e.date);
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+
   const stats = [
     { code: "01", label: "Total Events", value: allEvents.length, accent: true },
     { code: "02", label: "Active Users", value: new Set(allEvents.map((e: any) => e.organizerId)).size || 1, accent: false },
     { code: "03", label: "Inspirations", value: allInspirations.length, accent: false },
-    { code: "04", label: "Engagement", value: "High", accent: false },
+    { code: "04", label: "Events This Month", value: eventsThisMonth, accent: false },
   ];
 
   return (
@@ -125,6 +145,24 @@ export default function AnalyticsPage() {
         />
       </motion.div>
 
+      {error ? (
+        <motion.div variants={item}>
+          <div className="rounded-xl border border-dashed border-black/[0.14] dark:border-white/[0.14] py-14 px-6 text-center">
+            <p className="font-display text-2xl">Couldn&apos;t load analytics.</p>
+            <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">{error.message}</p>
+            <button
+              onClick={() => {
+                mutateEvents();
+                mutateInspirations();
+              }}
+              className="mt-5 rounded-lg border border-black/[0.12] dark:border-white/[0.12] px-4 py-2 text-sm hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </motion.div>
+      ) : (
+        <>
       {/* ---- Readings at a glance ---- */}
       <motion.div variants={item} className="mb-12">
         <PlateRow className="grid-cols-2 lg:grid-cols-4">
@@ -268,6 +306,8 @@ export default function AnalyticsPage() {
           </Panel>
         </motion.div>
       </div>
+        </>
+      )}
     </motion.div>
   );
 }

@@ -23,7 +23,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { title, description, type, category, imageUrl, fileUrl, instructions, costEstimate, materials } = body;
 
   if (title !== undefined && !title) {
-    return NextResponse.json({ message: "Title is required" }, { status: 400 });
+    return NextResponse.json({ error: "Title is required" }, { status: 400 });
   }
 
   const data: Record<string, unknown> = {};

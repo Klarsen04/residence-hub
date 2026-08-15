@@ -21,7 +21,14 @@ import { Announcements } from "@/components/Announcements";
 import { GettingStarted } from "@/components/GettingStarted";
 import { PageHeader, SectionMarker, Plate, PlateRow, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -47,7 +54,7 @@ const DIRECTORY = [
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const { data: dashboardData } = useSWR("/api/dashboard", fetcher);
+  const { data: dashboardData, error, isLoading, mutate } = useSWR("/api/dashboard", fetcher);
 
   const events = dashboardData?.events || [];
   const inspirations = dashboardData?.inspirations || [];
@@ -80,6 +87,32 @@ export default function DashboardPage() {
         <GettingStarted />
       </motion.div>
 
+      {error ? (
+        <motion.div variants={item} className="mb-12">
+          <EmptyPlate
+            code="✦ · ERROR"
+            title="Couldn't load the dashboard."
+            hint={error.message}
+            action={
+              <button
+                onClick={() => mutate()}
+                className="rounded-lg border border-black/[0.12] dark:border-white/[0.12] px-4 py-2 text-sm hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+              >
+                Retry
+              </button>
+            }
+          />
+        </motion.div>
+      ) : isLoading ? (
+        <motion.div variants={item} className="mb-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08]">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-card animate-pulse" />
+            ))}
+          </div>
+        </motion.div>
+      ) : (
+        <>
       {/* ---- At-a-glance plates ---- */}
       <motion.div variants={item} className="mb-12">
         <PlateRow className="grid-cols-2 lg:grid-cols-4">
@@ -199,6 +232,8 @@ export default function DashboardPage() {
           )}
         </motion.div>
       </div>
+        </>
+      )}
 
       {/* ---- Building directory ---- */}
       <motion.div variants={item}>

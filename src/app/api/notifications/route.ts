@@ -31,10 +31,12 @@ export async function PUT(req: NextRequest) {
   }
 
   if (id) {
-    await prisma.notification.update({
-      where: { id },
+    // Scope to the requesting user so nobody can flip other users' notifications.
+    const { count } = await prisma.notification.updateMany({
+      where: { id, userId: session.user.id },
       data: { read: read ?? true },
     });
+    if (count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   return NextResponse.json({ success: true });
@@ -48,7 +50,11 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-  await prisma.notification.delete({ where: { id } });
+  // Scope to the requesting user so nobody can delete other users' notifications.
+  const { count } = await prisma.notification.deleteMany({
+    where: { id, userId: session.user.id },
+  });
+  if (count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ success: true });
 }

@@ -47,6 +47,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { itemId, title, type, content, order } = await req.json();
 
+  // Verify the item actually belongs to the board authorized above.
+  const existing = await prisma.planningBoardItem.findUnique({ where: { id: itemId }, select: { boardId: true } });
+  if (!existing || existing.boardId !== boardId) {
+    return NextResponse.json({ error: "Item not found on this board" }, { status: 404 });
+  }
+
   const item = await prisma.planningBoardItem.update({
     where: { id: itemId },
     data: {
@@ -73,6 +79,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const itemId = searchParams.get("itemId");
 
   if (!itemId) return NextResponse.json({ error: "Item ID required" }, { status: 400 });
+
+  // Verify the item actually belongs to the board authorized above.
+  const existing = await prisma.planningBoardItem.findUnique({ where: { id: itemId }, select: { boardId: true } });
+  if (!existing || existing.boardId !== boardId) {
+    return NextResponse.json({ error: "Item not found on this board" }, { status: 404 });
+  }
 
   await prisma.planningBoardItem.delete({ where: { id: itemId } });
 

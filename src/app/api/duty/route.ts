@@ -47,10 +47,18 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { date, type, title, notes, tagId, recurrenceDays, weeks, raId } = await req.json();
+  if (!date) return NextResponse.json({ error: "Date is required" }, { status: 400 });
   const day = String(date).slice(0, 10);
 
   const ownerId = await resolveOwner(raId, session.user.id);
   if (!ownerId) return NextResponse.json({ error: "Selected RA not found" }, { status: 400 });
+
+  // A dangling tagId would fail the foreign key on create — drop it instead.
+  let validTagId: string | null = tagId || null;
+  if (validTagId) {
+    const tag = await prisma.tag.findUnique({ where: { id: validTagId }, select: { id: true } });
+    if (!tag) validTagId = null;
+  }
 
   // If recurrenceDays given, create a shift on each matching day for N weeks.
   const days = Array.isArray(recurrenceDays) && recurrenceDays.length > 0
@@ -64,7 +72,7 @@ export async function POST(req: NextRequest) {
       type: type || "evening",
       title: title || null,
       notes: notes || null,
-      tagId: tagId || null,
+      tagId: validTagId,
     })),
   });
 

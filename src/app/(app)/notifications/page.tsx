@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { PageHeader, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 interface Notification {
@@ -27,7 +28,14 @@ interface Notification {
   read: boolean;
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 function formatRelativeTime(dateString: string): string {
   const now = new Date();
@@ -64,35 +72,53 @@ const item = {
 };
 
 export default function NotificationsPage() {
-  const { data: notifications = [], isLoading, mutate } = useSWR<Notification[]>("/api/notifications", fetcher);
+  const { data: notifications = [], isLoading, error, mutate } = useSWR<Notification[]>("/api/notifications", fetcher);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const filtered = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
   const markAllRead = async () => {
-    await fetch("/api/notifications", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markAllRead: true }),
-    });
-    mutate();
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+    } catch {
+      toast.error("Failed to mark all as read");
+      mutate();
+    }
   };
 
   const markRead = async (id: string) => {
-    await fetch("/api/notifications", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, read: true }),
-    });
-    mutate();
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, read: true }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+    } catch {
+      toast.error("Failed to mark as read");
+      mutate();
+    }
   };
 
   const deleteNotification = async (id: string) => {
-    await fetch(`/api/notifications?id=${id}`, {
-      method: "DELETE",
-    });
-    mutate();
+    try {
+      const res = await fetch(`/api/notifications?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+    } catch {
+      toast.error("Failed to delete notification");
+      mutate();
+    }
   };
 
   if (isLoading) {
@@ -147,7 +173,19 @@ export default function NotificationsPage() {
         </button>
       </div>
 
-      {filtered.length === 0 ? (
+      {error ? (
+        <EmptyPlate
+          code="G · ERROR"
+          title="Couldn't load notifications."
+          hint={error.message}
+          icon={<Bell className="h-7 w-7" strokeWidth={1.5} />}
+          action={
+            <Button variant="outline" onClick={() => mutate()}>
+              Retry
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
         <EmptyPlate
           code="G · EMPTY"
           title="No notifications yet"

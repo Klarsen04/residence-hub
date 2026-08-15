@@ -26,11 +26,6 @@ async function main() {
       create: { code: "RA2026FALL", role: "RESIDENT_ASSISTANT" },
     }),
     prisma.authorizationCode.upsert({
-      where: { code: "RHA2026FALL" },
-      update: {},
-      create: { code: "RHA2026FALL", role: "RHA_MEMBER" },
-    }),
-    prisma.authorizationCode.upsert({
       where: { code: "ADMIN2026" },
       update: {},
       create: { code: "ADMIN2026", role: "ADMIN" },
