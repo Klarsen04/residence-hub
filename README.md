@@ -76,14 +76,16 @@ cp .env.example .env          # then fill in the values below
 # 3. create the local SQLite database
 DATABASE_URL="file:./dev.db" npx prisma db push
 
-# 4. (optional) seed a starter admin
-npm run db:seed               # → admin@residencehub.com / admin123
+# 4. (optional) seed a starter admin + authorization codes
+npm run db:seed               # prints a generated admin password + codes,
+                              # or set SEED_ADMIN_PASSWORD / SEED_RA_CODE /
+                              # SEED_ADMIN_CODE in .env to pin them
 
 # 5. run it
 npm run dev                   # http://localhost:3000
 ```
 
-Sign in with the seeded admin (`admin@residencehub.com` / `admin123`), or register a new account using an authorization code created from the **Admin** page.
+Sign in with the seeded admin (`SEED_ADMIN_EMAIL`, default `admin@residencehub.com`) using the password the seed printed, or register a new account using an authorization code created from the **Admin** page.
 
 ### Environment variables
 
