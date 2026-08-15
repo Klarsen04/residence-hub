@@ -47,9 +47,9 @@ async function main() {
   const adminCode = process.env.SEED_ADMIN_CODE || randomToken(10, CODE_ALPHABET);
 
   const generated: string[] = [];
-  if (!process.env.SEED_ADMIN_PASSWORD) generated.push(`  admin password (${email}): ${password}`);
-  if (!process.env.SEED_RA_CODE) generated.push(`  RESIDENT_ASSISTANT code: ${raCode}`);
-  if (!process.env.SEED_ADMIN_CODE) generated.push(`  ADMIN code: ${adminCode}`);
+  if (!process.env.SEED_ADMIN_PASSWORD) generated.push(`  admin password (${email}) was generated`);
+  if (!process.env.SEED_RA_CODE) generated.push(`  RESIDENT_ASSISTANT code was generated`);
+  if (!process.env.SEED_ADMIN_CODE) generated.push(`  ADMIN code was generated`);
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -85,9 +85,9 @@ async function main() {
 
   if (generated.length > 0) {
     console.log(
-      "\n⚠️  Generated credentials — copy them now, they are not stored anywhere else:\n" +
+      "\n⚠️  Generated credential fields:\n" +
         generated.join("\n") +
-        "\n\nSet SEED_ADMIN_PASSWORD / SEED_RA_CODE / SEED_ADMIN_CODE in your .env to pin them.\n"
+        "\n\nFor security, values are not logged. Set SEED_ADMIN_PASSWORD / SEED_RA_CODE / SEED_ADMIN_CODE in your .env to pin explicit values.\n"
     );
   }
 }
