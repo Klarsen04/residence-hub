@@ -9,7 +9,14 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const types = [
   { value: "ALL", label: "All" },
@@ -50,7 +57,7 @@ export default function DecorationsPage() {
   const [madeData, setMadeData] = useState({ imageUrl: "", notes: "" });
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { data: decorations, mutate } = useSWR("/api/decorations", fetcher);
+  const { data: decorations, error, mutate } = useSWR("/api/decorations", fetcher);
 
   // User-defined custom category filters, persisted locally. Each is { value, label }.
   const [customCats, setCustomCats] = useState<{ value: string; label: string }[]>([]);
@@ -426,7 +433,15 @@ export default function DecorationsPage() {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {error ? (
+        <EmptyPlate
+          code="L3 · ERROR"
+          title="Couldn't load decorations."
+          hint={error.message}
+          icon={<LayoutGrid className="h-7 w-7" strokeWidth={1.5} />}
+          action={<Button variant="outline" onClick={() => mutate()}>Retry</Button>}
+        />
+      ) : filtered.length === 0 ? (
         <EmptyPlate
           code="L3 · EMPTY"
           title="No decorations yet"

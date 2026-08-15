@@ -39,6 +39,15 @@ export async function POST(req: NextRequest) {
 
   const { date, time, type, severity, location, description, actionTaken, followUpNeeded, isPublic } = await req.json();
 
+  // All of these columns are NOT NULL — reject up front with a clear 400
+  // instead of letting the insert 500.
+  const missing = Object.entries({ date, time, type, location, description })
+    .filter(([, v]) => !v)
+    .map(([k]) => k);
+  if (missing.length > 0) {
+    return NextResponse.json({ error: `Missing required fields: ${missing.join(", ")}` }, { status: 400 });
+  }
+
   const incident = await prisma.incident.create({
     data: {
       userId: session.user.id,

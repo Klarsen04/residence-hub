@@ -121,11 +121,10 @@ export default function RoomChecksPage() {
         }),
       });
       if (!res.ok) throw new Error();
-      const data = await res.json().catch(() => ({}));
       closeMarking();
       await mutateResults();
       await mutateBoards();
-      toast.success(data?.emailed ? "Saved — resident notified" : marking.kind === "edit" ? "Result updated" : "Result saved");
+      toast.success(marking.kind === "edit" ? "Result updated" : "Result saved");
     } catch {
       toast.error("Failed to save result");
     } finally {
@@ -304,7 +303,7 @@ export default function RoomChecksPage() {
                     ))}
                   </div>
                   <Input value={marking.notes} onChange={(e) => setMarking({ ...marking, notes: e.target.value })}
-                    placeholder={marking.status === "fail" ? "Note — e.g. redo inspection needed (emailed to the resident)" : "Note (optional)"} className="h-9 text-sm" />
+                    placeholder={marking.status === "fail" ? "Note — e.g. redo inspection needed (saved with this result)" : "Note (optional)"} className="h-9 text-sm" />
                   <div className="flex gap-2">
                     <Button size="sm" onClick={saveMarking} disabled={saving}>{saving ? "Saving…" : marking.kind === "edit" ? "Save changes" : "Save"}</Button>
                     <Button size="sm" variant="outline" onClick={closeMarking}>Cancel</Button>

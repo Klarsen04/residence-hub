@@ -7,13 +7,31 @@ function createPrismaClient() {
   // Prisma 6: driver adapters are GA. The libSQL adapter takes the connection
   // config directly (no separate createClient()); without Turso env we fall
   // back to the datasource URL (local SQLite file).
-  if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (tursoUrl && tursoToken) {
     const adapter = new PrismaLibSQL({
-      url: process.env.TURSO_DATABASE_URL,
-      authToken: process.env.TURSO_AUTH_TOKEN,
+      url: tursoUrl,
+      authToken: tursoToken,
     });
     return new PrismaClient({ adapter });
   }
+
+  // Exactly one of the two Turso vars set: almost certainly a misconfigured
+  // deployment. Silently falling back to the local SQLite file would look like
+  // it works while writing to an ephemeral database (data loss on Vercel).
+  if (tursoUrl || tursoToken) {
+    const msg =
+      `Partial Turso config: ${tursoUrl ? "TURSO_DATABASE_URL" : "TURSO_AUTH_TOKEN"} is set ` +
+      `but ${tursoUrl ? "TURSO_AUTH_TOKEN" : "TURSO_DATABASE_URL"} is missing. ` +
+      "Set both to use Turso, or unset both to use the local SQLite file.";
+    console.error(msg);
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(msg);
+    }
+  }
+
   return new PrismaClient();
 }
 

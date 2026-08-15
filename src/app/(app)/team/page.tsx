@@ -6,7 +6,14 @@ import { Users, Calendar, Lightbulb, Palette, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const roleColors: Record<string, string> = {
   ADMIN: "bg-amber-500/15 text-amber-400 border-amber-500/20",
@@ -27,7 +34,7 @@ const item = {
 };
 
 export default function TeamPage() {
-  const { data: members, isLoading } = useSWR("/api/team", fetcher);
+  const { data: members, isLoading, error, mutate } = useSWR("/api/team", fetcher);
 
   const allMembers = members || [];
 
@@ -47,6 +54,21 @@ export default function TeamPage() {
             <div key={i} className="h-44 bg-card animate-pulse" />
           ))}
         </div>
+      ) : error ? (
+        <EmptyPlate
+          code="G · ERROR"
+          title="Couldn't load the team."
+          hint={error.message}
+          icon={<Users className="h-7 w-7" strokeWidth={1.5} />}
+          action={
+            <button
+              onClick={() => mutate()}
+              className="rounded-lg border border-black/[0.12] dark:border-white/[0.12] px-4 py-2 text-sm hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+            >
+              Retry
+            </button>
+          }
+        />
       ) : allMembers.length === 0 ? (
         <EmptyPlate
           code="G · EMPTY"

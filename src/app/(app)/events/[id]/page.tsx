@@ -11,7 +11,18 @@ import { formatDate, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
+
+// Format a Date as yyyy-mm-dd using local date parts (avoids UTC off-by-one in negative-UTC timezones).
+const toLocalDateString = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 const categoryColors: Record<string, string> = {
   COMMUNITY_BUILDING: "bg-accent/15 text-accent border-accent/20",
@@ -56,7 +67,7 @@ const labelClass = "wayfinding text-muted-foreground";
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: event, isLoading, mutate } = useSWR(`/api/events/${params.id}`, fetcher);
+  const { data: event, isLoading, error, mutate } = useSWR(`/api/events/${params.id}`, fetcher);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
@@ -68,7 +79,7 @@ export default function EventDetailPage() {
     setForm({
       title: event.title,
       description: event.description || "",
-      date: d.toISOString().split("T")[0],
+      date: toLocalDateString(d),
       startTime: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
       endTime: `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`,
       location: event.location || "",
@@ -113,6 +124,22 @@ export default function EventDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <p className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] animate-pulse">Reading the placard…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <p className="font-display text-2xl">Couldn&apos;t load this event.</p>
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => mutate()}>Retry</Button>
+          <Button variant="outline" onClick={() => router.push("/events")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Events
+          </Button>
+        </div>
       </div>
     );
   }
@@ -334,6 +361,7 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
   const [attendance, setAttendance] = useState(event.attendance?.toString() || "");
   const [reflection, setReflection] = useState(event.reflection || "");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const params = useParams();
 
   if (event.status !== "COMPLETED" && event.status !== "APPROVED") return null;
@@ -346,13 +374,13 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
     const end = new Date(event.endTime);
 
     try {
-      await fetch(`/api/events/${params.id}`, {
+      const res = await fetch(`/api/events/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: event.title,
           description: event.description,
-          date: d.toISOString().split("T")[0],
+          date: toLocalDateString(d),
           startTime: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
           endTime: `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`,
           location: event.location,
@@ -362,10 +390,16 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
           reflection,
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Failed to save");
+      }
+      setSaveError(null);
       toast.success("Saved!");
       setShowForm(false);
       onUpdate();
-    } catch {
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Failed to save");
       toast.error("Failed to save");
     } finally {
       setSaving(false);
@@ -406,6 +440,9 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
               placeholder="The event went great because..."
             />
           </div>
+          {saveError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
+          )}
           <div className="flex gap-2">
             <Button size="sm" onClick={handleSave} disabled={saving}>
               {saving ? "Saving..." : "Save Reflection"}

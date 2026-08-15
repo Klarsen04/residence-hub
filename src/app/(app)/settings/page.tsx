@@ -1,17 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { User, Mail, Shield, Moon, Bell } from "lucide-react";
+import { User, Mail, Shield, Moon } from "lucide-react";
 import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
-  const [notifications, setNotifications] = useState(true);
 
   const isDark = theme === "dark";
 
@@ -89,21 +87,6 @@ export default function SettingsPage() {
             </div>
             <div className={`h-6 w-10 rounded-full relative transition-colors ${isDark ? "bg-primary/30 border border-primary/50" : "bg-black/10 border border-black/20"}`}>
               <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${isDark ? "right-0.5 bg-primary" : "left-0.5 bg-gray-400"}`} />
-            </div>
-          </button>
-          <button
-            onClick={() => setNotifications(!notifications)}
-            className="w-full flex items-center justify-between gap-4 p-4 rule hover:bg-[hsl(var(--sage)/0.06)] transition-colors text-left"
-          >
-            <div className="flex items-center gap-4">
-              <Bell className="h-4 w-4 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" strokeWidth={1.75} />
-              <div>
-                <p className="text-sm font-medium">Notifications</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Event reminders & updates</p>
-              </div>
-            </div>
-            <div className={`h-6 w-10 rounded-full relative transition-colors ${notifications ? "bg-primary/30 border border-primary/50" : "bg-black/10 dark:bg-white/10 border border-black/20 dark:border-white/20"}`}>
-              <div className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${notifications ? "right-0.5 bg-primary" : "left-0.5 bg-gray-400"}`} />
             </div>
           </button>
         </div>

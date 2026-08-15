@@ -11,6 +11,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json();
   const { imageUrl, notes } = body;
 
+  const decoration = await prisma.decoration.findUnique({ where: { id }, select: { id: true } });
+  if (!decoration) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const made = await prisma.decorationMade.create({
     data: {
       decorationId: id,

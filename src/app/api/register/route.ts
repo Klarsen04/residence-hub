@@ -20,6 +20,10 @@ export async function POST(request: Request) {
       );
     }
 
+    // Auth (lib/auth.ts) keys users by email — normalize so "Jo@X.com" and
+    // "jo@x.com" can't become two accounts or a failed login.
+    const normalizedEmail = String(email).trim().toLowerCase();
+
     const code = await prisma.authorizationCode.findUnique({
       where: { code: authCode },
     });
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
     }
 
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -61,20 +65,31 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: {
         name: name || null,
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         role: code.role,
         hallId: code.hallId,
       },
     });
 
-    await prisma.authorizationCode.update({
-      where: { id: code.id },
+    // Consume the code atomically: the `usedBy: null` condition means two
+    // concurrent registrations can't both claim it.
+    const consumed = await prisma.authorizationCode.updateMany({
+      where: { id: code.id, usedBy: null },
       data: {
         usedBy: user.id,
         usedAt: new Date(),
       },
     });
+
+    if (consumed.count === 0) {
+      // Lost the race — roll back the account we just created.
+      await prisma.user.delete({ where: { id: user.id } }).catch(() => {});
+      return NextResponse.json(
+        { error: "This authorization code has already been used" },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {

@@ -9,17 +9,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
 
-  const existing = await prisma.decorationFavorite.findUnique({
-    where: { decorationId_userId: { decorationId: id, userId: session.user.id } },
+  const decoration = await prisma.decoration.findUnique({ where: { id }, select: { id: true } });
+  if (!decoration) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Toggle + counter update atomically; the counter is derived from the real
+  // favourite count so it can never drift.
+  const favorited = await prisma.$transaction(async (tx) => {
+    const existing = await tx.decorationFavorite.findUnique({
+      where: { decorationId_userId: { decorationId: id, userId: session.user.id } },
+    });
+    if (existing) {
+      await tx.decorationFavorite.delete({ where: { id: existing.id } });
+    } else {
+      await tx.decorationFavorite.create({ data: { decorationId: id, userId: session.user.id } });
+    }
+    const count = await tx.decorationFavorite.count({ where: { decorationId: id } });
+    await tx.decoration.update({ where: { id }, data: { favorites: count } });
+    return !existing;
   });
 
-  if (existing) {
-    await prisma.decorationFavorite.delete({ where: { id: existing.id } });
-    await prisma.decoration.update({ where: { id }, data: { favorites: { decrement: 1 } } });
-    return NextResponse.json({ favorited: false });
-  } else {
-    await prisma.decorationFavorite.create({ data: { decorationId: id, userId: session.user.id } });
-    await prisma.decoration.update({ where: { id }, data: { favorites: { increment: 1 } } });
-    return NextResponse.json({ favorited: true });
-  }
+  return NextResponse.json({ favorited });
 }

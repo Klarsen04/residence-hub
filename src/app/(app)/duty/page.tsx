@@ -11,7 +11,14 @@ import { Input } from "@/components/ui/input";
 import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 import { TagPicker } from "@/components/TagPicker";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const SHIFT_TYPES: Record<string, { label: string; startHour: number; endHour: number; color: string }> = {
   evening: { label: "Evening", startHour: 19, endHour: 23, color: "#3f6b52" },
@@ -35,8 +42,9 @@ const toDay = (date: any): string =>
 const raLabel = (u: any) => u.name || u.email || "Unnamed RA";
 
 export default function DutyPage() {
-  const { data: shifts, mutate } = useSWR("/api/duty", fetcher);
-  const { data: team } = useSWR("/api/team", fetcher);
+  const { data: shifts, error: shiftsError, mutate } = useSWR("/api/duty", fetcher);
+  const { data: team, error: teamError, mutate: mutateTeam } = useSWR("/api/team", fetcher);
+  const loadError = shiftsError || teamError;
 
   // Which shift types are visible (filter toggles).
   const [visible, setVisible] = useState<Record<string, boolean>>({ evening: true, overnight: true, weekend: true });
@@ -53,7 +61,7 @@ export default function DutyPage() {
   const [tagId, setTagId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const allShifts = Array.isArray(shifts) ? shifts : [];
+  const allShifts = useMemo(() => (Array.isArray(shifts) ? shifts : []), [shifts]);
   const ras = (Array.isArray(team) ? team : []).filter((u: any) => u.role === "RESIDENT_ASSISTANT" || u.role === "ADMIN");
 
   // RAs that have shifts on the board, for the RA filter dropdown.
@@ -265,6 +273,22 @@ export default function DutyPage() {
         </motion.div>
       )}
 
+      {loadError ? (
+        <div className="rounded-xl border border-dashed border-black/[0.14] dark:border-white/[0.14] py-14 px-6 text-center">
+          <p className="font-display text-2xl">Couldn&apos;t load the duty schedule.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">{loadError.message}</p>
+          <Button
+            variant="outline"
+            className="mt-5"
+            onClick={() => {
+              mutate();
+              mutateTeam();
+            }}
+          >
+            Retry
+          </Button>
+        </div>
+      ) : (
       <div className="ilamy-scope rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card overflow-hidden">
         <div className="h-[70vh]">
           <IlamyCalendar
@@ -283,6 +307,7 @@ export default function DutyPage() {
           />
         </div>
       </div>
+      )}
     </motion.div>
   );
 }

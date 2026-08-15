@@ -9,7 +9,10 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) => fetch(url).then((r) => {
+  if (!r.ok) throw new Error("Failed to fetch inspiration");
+  return r.json();
+});
 
 const categories = [
   "All",
@@ -22,6 +25,9 @@ const categories = [
   "LEADERSHIP",
   "SOCIAL",
 ];
+
+// First real category — categories[0] is the "All" filter chip, not a saveable value.
+const defaultCategory = categories[1];
 
 const sources = ["PINTEREST", "INSTAGRAM", "TIKTOK", "YOUTUBE", "UPLOAD"];
 
@@ -96,13 +102,13 @@ export default function InspirationPage() {
   };
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ title: "", url: "", source: "", category: "", tags: "" });
-  const { data: inspirations, mutate } = useSWR("/api/inspiration", fetcher);
+  const { data: inspirations, error, mutate } = useSWR("/api/inspiration", fetcher);
 
   const [form, setForm] = useState({
     title: "",
     url: "",
     source: "PINTEREST",
-    category: "WELCOME_WEEK",
+    category: defaultCategory,
     tags: "",
   });
   const [preview, setPreview] = useState<any>(null);
@@ -143,7 +149,7 @@ export default function InspirationPage() {
       if (!res.ok) throw new Error("Failed to save");
       toast.success("Inspiration saved!");
       setShowForm(false);
-      setForm({ title: "", url: "", source: "PINTEREST", category: "WELCOME_WEEK", tags: "" });
+      setForm({ title: "", url: "", source: "PINTEREST", category: defaultCategory, tags: "" });
       setPreview(null);
       mutate();
     } catch {
@@ -158,7 +164,7 @@ export default function InspirationPage() {
       title: item.title || "",
       url: item.url || "",
       source: item.source || "PINTEREST",
-      category: item.category || "WELCOME_WEEK",
+      category: item.category || defaultCategory,
       tags: tags.join(", "),
     });
   };
@@ -382,7 +388,12 @@ export default function InspirationPage() {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {error ? (
+        <div className="text-center py-12 space-y-3">
+          <p className="text-sm text-muted-foreground">Failed to load inspiration. Please try again.</p>
+          <Button variant="outline" onClick={() => mutate()}>Retry</Button>
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyPlate
           code="L3 · EMPTY"
           title="Nothing pinned yet"

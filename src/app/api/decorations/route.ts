@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const { title, description, type, category, imageUrl, fileUrl, instructions, costEstimate, materials } = body;
 
   if (!title || !type || !category) {
-    return NextResponse.json({ message: "Title, type, and category are required" }, { status: 400 });
+    return NextResponse.json({ error: "Title, type, and category are required" }, { status: 400 });
   }
 
   const decoration = await prisma.decoration.create({

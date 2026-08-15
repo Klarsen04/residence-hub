@@ -95,5 +95,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(board);
+  return NextResponse.json(board, { status: 201 });
 }

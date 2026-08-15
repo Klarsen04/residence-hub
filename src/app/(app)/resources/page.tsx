@@ -10,7 +10,14 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const resourceTypes = [
   "ALL", "CAMPUS_SERVICE", "MENTAL_HEALTH", "ACADEMIC_SUPPORT",
@@ -79,7 +86,7 @@ export default function ResourcesPage() {
   const [importing, setImporting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", url: "", type: "SHARED" });
-  const { data: sharedResources, mutate } = useSWR("/api/resources", fetcher);
+  const { data: sharedResources, error, mutate } = useSWR("/api/resources", fetcher);
 
   const [form, setForm] = useState({
     title: "",
@@ -166,21 +173,28 @@ export default function ResourcesPage() {
     setImporting(true);
     const existing = new Set((sharedResources || []).map((r: any) => r.title));
     const toImport = NYIT_RESOURCES.filter((r) => !existing.has(r.title));
-    try {
-      for (const r of toImport) {
-        await fetch("/api/resources", {
+    let imported = 0;
+    for (const r of toImport) {
+      try {
+        const res = await fetch("/api/resources", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: r.title, description: r.description, externalUrl: r.url, type: r.type, isPublic: true }),
         });
+        if (res.ok) imported += 1;
+      } catch {
+        // Network failure for this item — counted as a failure below.
       }
-      await mutate();
-      toast.success(`Imported ${toImport.length} campus resource${toImport.length === 1 ? "" : "s"} — now editable`);
-    } catch {
-      toast.error("Failed to import campus resources");
-    } finally {
-      setImporting(false);
     }
+    await mutate();
+    if (imported === toImport.length) {
+      toast.success(`Imported ${imported} campus resource${imported === 1 ? "" : "s"} — now editable`);
+    } else if (imported > 0) {
+      toast.warning(`Imported ${imported} of ${toImport.length} campus resources — ${toImport.length - imported} failed`);
+    } else {
+      toast.error("Failed to import campus resources");
+    }
+    setImporting(false);
   };
 
   const dbResources = (sharedResources || []).map((r: any) => ({
@@ -330,6 +344,18 @@ export default function ResourcesPage() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-dashed border-black/[0.14] dark:border-white/[0.14] px-5 py-4">
+          <div>
+            <p className="text-sm font-medium">Couldn&apos;t load shared resources.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{error.message} — showing built-in campus links only.</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => mutate()}>
+            Retry
+          </Button>
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyPlate

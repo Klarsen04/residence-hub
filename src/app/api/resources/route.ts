@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const { title, description, type, fileUrl, externalUrl, tags, isPublic } = body;
 
   if (!title || !type) {
-    return NextResponse.json({ message: "Title and type are required" }, { status: 400 });
+    return NextResponse.json({ error: "Title and type are required" }, { status: 400 });
   }
 
   const admin = await isAdmin(session.user.id);

@@ -7,7 +7,14 @@ import { toast } from "sonner";
 import { Plus, Send, Trash2, Sparkles, MessageSquare } from "lucide-react";
 import { PageHeader } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 interface Msg { role: "user" | "assistant"; content: string; id?: string }
 interface Convo { id: string; title: string; updatedAt: string }
@@ -54,7 +61,7 @@ const STARTERS = [
 
 export default function AIPlannerPage() {
   const { data: usage } = useSWR("/api/ai-planner", fetcher);
-  const { data: conversations, mutate: mutateConvos } = useSWR<Convo[]>("/api/ai-planner/conversations", fetcher);
+  const { data: conversations, error: convosError, mutate: mutateConvos } = useSWR<Convo[]>("/api/ai-planner/conversations", fetcher);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -74,9 +81,19 @@ export default function AIPlannerPage() {
   }, [messages, sending]);
 
   const openConversation = async (id: string) => {
-    setActiveId(id);
-    const data = await fetch(`/api/ai-planner/chat?id=${id}`).then((r) => r.json());
-    setMessages(data.messages || []);
+    try {
+      const res = await fetch(`/api/ai-planner/chat?id=${id}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Failed to load conversation");
+      }
+      const data = await res.json();
+      // Only switch into the thread once its messages actually loaded.
+      setActiveId(id);
+      setMessages(data.messages || []);
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't open that conversation — try again.");
+    }
   };
 
   const newChat = () => { setActiveId(null); setMessages([]); setInput(""); };
@@ -145,7 +162,16 @@ export default function AIPlannerPage() {
                 </button>
               </div>
             ))}
-            {convos.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No saved chats yet.</p>}
+            {convosError ? (
+              <div className="px-3 py-2 space-y-1.5">
+                <p className="text-xs text-red-600 dark:text-red-400">Couldn&apos;t load saved chats.</p>
+                <button onClick={() => mutateConvos()} className="text-xs underline text-muted-foreground hover:text-foreground">
+                  Retry
+                </button>
+              </div>
+            ) : (
+              convos.length === 0 && <p className="text-xs text-muted-foreground px-3 py-2">No saved chats yet.</p>
+            )}
           </div>
         </aside>
 
