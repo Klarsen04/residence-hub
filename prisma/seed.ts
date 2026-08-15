@@ -8,9 +8,23 @@ const prisma = new PrismaClient();
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 function randomToken(len: number, alphabet: string): string {
-  return Array.from(crypto.randomBytes(len))
-    .map((b) => alphabet[b % alphabet.length])
-    .join("");
+  if (alphabet.length === 0) {
+    throw new Error("alphabet must not be empty");
+  }
+
+  const maxUnbiased = Math.floor(256 / alphabet.length) * alphabet.length;
+  let out = "";
+
+  while (out.length < len) {
+    const bytes = crypto.randomBytes(len - out.length);
+    for (const b of bytes) {
+      if (b >= maxUnbiased) continue;
+      out += alphabet[b % alphabet.length];
+      if (out.length === len) break;
+    }
+  }
+
+  return out;
 }
 
 /**
