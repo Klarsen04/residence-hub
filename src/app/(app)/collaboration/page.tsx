@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Kanban, CheckCircle2, Circle, Clock, ArrowLeft, Trash2, Pencil, X, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
+import { PageHeader, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);

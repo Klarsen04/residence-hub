@@ -42,9 +42,19 @@ function parseTags(tags: any): string[] {
   }
 }
 
+function isYouTubeUrl(url: string): boolean {
+  let host = "";
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be";
+}
+
 function getEmbedUrl(url: string, source: string): string | null {
   if (!url) return null;
-  if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
+  if (source === "YOUTUBE" || isYouTubeUrl(url)) {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
     if (match) return `https://www.youtube.com/embed/${match[1]}`;
   }
@@ -53,7 +63,7 @@ function getEmbedUrl(url: string, source: string): string | null {
 
 function getThumbnail(url: string, source: string): string | null {
   if (!url) return null;
-  if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
+  if (source === "YOUTUBE" || isYouTubeUrl(url)) {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
     if (match) return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
   }
