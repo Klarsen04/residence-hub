@@ -65,6 +65,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Invalid date or time format" }, { status: 400 });
   }
 
+  // Attendance is optional and clearable. Blank means "not recorded", so it goes
+  // back to null rather than being coerced into NaN.
+  let attendanceCount: number | null = null;
+  if (attendance !== undefined) {
+    const raw = typeof attendance === "string" ? attendance.trim() : attendance;
+    if (raw === "" || raw === null) {
+      attendanceCount = null;
+    } else {
+      const parsed = Number(raw);
+      if (!Number.isInteger(parsed) || parsed < 0) {
+        return NextResponse.json({ error: "Attendance must be a whole number of residents" }, { status: 400 });
+      }
+      attendanceCount = parsed;
+    }
+  }
+
   const startDateTime = new Date(dateObj);
   startDateTime.setHours(startH, startM, 0, 0);
 
@@ -82,8 +98,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       location,
       category,
       status,
-      ...(attendance !== undefined && { attendance: attendance ? parseInt(attendance) : null }),
-      ...(reflection !== undefined && { reflection }),
+      ...(attendance !== undefined && { attendance: attendanceCount }),
+      // An empty reflection is a removed reflection, not an empty string, so the
+      // write-up stops rendering once it's cleared.
+      ...(reflection !== undefined && { reflection: (typeof reflection === "string" ? reflection.trim() : reflection) || null }),
     },
   });
 
