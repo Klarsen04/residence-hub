@@ -63,6 +63,11 @@ export default function CheckInsPage() {
   const [newBoardTitle, setNewBoardTitle] = useState("");
   const [newBoardScope, setNewBoardScope] = useState<"personal" | "shared">("personal");
 
+  // Editing an existing board — rename, and (for admins) shared ↔ private.
+  const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
+  const [boardDraftTitle, setBoardDraftTitle] = useState("");
+  const [boardDraftScope, setBoardDraftScope] = useState<"personal" | "shared">("personal");
+
   // Editing an existing check-in.
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ mood: "good" as Mood, topics: [] as string[], notes: "", followUp: false });
@@ -195,6 +200,41 @@ export default function CheckInsPage() {
     }
   };
 
+  const startEditBoard = (board: any) => {
+    setEditingBoardId(board.id);
+    setBoardDraftTitle(board.title);
+    setBoardDraftScope(board.scope === "shared" ? "shared" : "personal");
+    setShowBoardForm(false);
+  };
+
+  const saveBoard = async (board: any) => {
+    if (!boardDraftTitle.trim()) {
+      toast.error("Give the board a name");
+      return;
+    }
+    // Taking a board out of shared hides it from every other RA, and their entries
+    // on it go with it — worth a word before it happens.
+    if (board.scope === "shared" && boardDraftScope === "personal") {
+      if (!confirm("Make this board private? Other RAs will no longer see it, or the check-ins they logged on it.")) return;
+    }
+    try {
+      const res = await fetch("/api/check-in-boards", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: board.id, title: boardDraftTitle, scope: boardDraftScope }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error);
+      setEditingBoardId(null);
+      await mutateBoards();
+      // The entries a board shows depend on its scope, so refresh those too.
+      if (activeBoard === board.id) await mutate();
+      toast.success("Board updated");
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Failed to update board");
+    }
+  };
+
   const deleteBoard = async (id: string) => {
     if (!confirm("Delete this board? Its check-ins will be unlinked, not deleted.")) return;
     try {
@@ -235,17 +275,48 @@ export default function CheckInsPage() {
           Individual (1:1)
         </button>
         {allBoards.map((b: any) => (
-          <span key={b.id} className="inline-flex items-center">
-            <button className={chipClass(activeBoard === b.id)} onClick={() => setActiveBoard(b.id)}>
-              {b.title}
-              <span className="text-[10px] opacity-70">· {b.scope === "shared" ? "shared" : "private"}</span>
-            </button>
-            {b.canDelete && (
-              <button onClick={() => deleteBoard(b.id)} className="ml-0.5 text-muted-foreground/50 hover:text-red-500" title="Delete board">
-                <X className="h-3 w-3" />
+          editingBoardId === b.id ? (
+            // Rename in place, next to the other chips, so the board being renamed
+            // stays where it was on screen.
+            <span key={b.id} className="inline-flex items-center gap-2">
+              <Input
+                value={boardDraftTitle}
+                onChange={(e) => setBoardDraftTitle(e.target.value)}
+                aria-label="Board name"
+                className="h-8 text-xs w-40"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") saveBoard(b); if (e.key === "Escape") setEditingBoardId(null); }}
+              />
+              {b.canReScope ? (
+                <select value={boardDraftScope} onChange={(e) => setBoardDraftScope(e.target.value as any)} className="h-8 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-2 text-xs" aria-label="Board visibility">
+                  <option value="personal">Private</option>
+                  <option value="shared">Shared (all RAs)</option>
+                </select>
+              ) : (
+                // Renaming is yours; who the board is for is an admin's call.
+                <span className="text-[10px] text-muted-foreground">{b.scope === "shared" ? "shared" : "private"}</span>
+              )}
+              <Button size="sm" className="h-8" onClick={() => saveBoard(b)}>Save</Button>
+              <Button size="sm" variant="outline" className="h-8" onClick={() => setEditingBoardId(null)}>Cancel</Button>
+            </span>
+          ) : (
+            <span key={b.id} className="inline-flex items-center">
+              <button className={chipClass(activeBoard === b.id)} onClick={() => setActiveBoard(b.id)}>
+                {b.title}
+                <span className="text-[10px] opacity-70">· {b.scope === "shared" ? "shared" : "private"}</span>
               </button>
-            )}
-          </span>
+              {b.canEdit && (
+                <button onClick={() => startEditBoard(b)} className="ml-1 text-muted-foreground/50 hover:text-foreground" title="Edit board">
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+              {b.canDelete && (
+                <button onClick={() => deleteBoard(b.id)} className="ml-0.5 text-muted-foreground/50 hover:text-red-500" title="Delete board">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </span>
+          )
         ))}
         {showBoardForm ? (
           <div className="inline-flex items-center gap-2">

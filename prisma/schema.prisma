@@ -255,6 +255,8 @@ model Inspiration {
   imageUrl    String?
   category    String?
   tags        String?
+  /// Private to the RA who saved it unless they choose to share it with the team.
+  isPublic    Boolean  @default(false)
 
   user        User             @relation(fields: [userId], references: [id])
   collections CollectionItem[]

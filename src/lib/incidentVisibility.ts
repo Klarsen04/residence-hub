@@ -2,15 +2,28 @@
  * Who can see an incident report.
  *
  * Reports are private to the RA who filed them. Sharing one with the whole team
- * is an admin decision, so the owner can only *ask* — the two steps are kept
- * apart here rather than trusting an `isPublic` flag off the wire.
+ * takes two separate steps: an admin grants permission, and then the owner
+ * decides to publish. Approval on its own changes nothing anyone can see — so a
+ * report is never pushed out from under the person who wrote it.
  *
  * Pure on purpose: the rules are the security boundary, so they're worth testing
  * without a database or a session in the way.
  */
 
-/** Where a request to share stands. Null means nothing is outstanding. */
-export type ShareRequest = "pending" | "rejected" | null;
+/**
+ * Where a request to share stands.
+ * - null      nothing asked
+ * - pending   waiting on an admin
+ * - approved  cleared to share; the owner still chooses whether to publish
+ * - rejected  an admin said no
+ * - changes   an admin wants the report reworded before it goes out
+ */
+export type ShareRequest = "pending" | "approved" | "rejected" | "changes" | null;
+
+/** What an admin can say about an outstanding request. */
+export type Review = "approve" | "decline" | "changes";
+
+export const REVIEWS: Review[] = ["approve", "decline", "changes"];
 
 export interface Visibility {
   isPublic: boolean;
@@ -19,21 +32,23 @@ export interface Visibility {
 
 /** Filing a report, optionally asking to share it at the same time. */
 export function visibilityOnCreate({ wantsShare, admin }: { wantsShare: boolean; admin: boolean }): Visibility {
-  // An admin filing their own report is already the approver, so theirs goes
-  // public straight away. Anyone else joins the queue.
   if (!wantsShare) return { isPublic: false, shareRequest: null };
-  return admin ? { isPublic: true, shareRequest: null } : { isPublic: false, shareRequest: "pending" };
+  // An admin ticking the box is both the asker and the approver, so their own
+  // report goes out right away. Anyone else joins the queue.
+  return admin ? { isPublic: true, shareRequest: "approved" } : { isPublic: false, shareRequest: "pending" };
 }
 
 export interface UpdateInput {
   /** Whether the person making the change is an admin. */
   admin: boolean;
-  /** Whether the report was already approved for sharing. */
+  /** Whether the report is currently shared with everyone. */
   wasPublic: boolean;
-  /** The owner asking to share (true) or to stop sharing / withdraw (false). */
+  /** Whether an admin has already cleared this report for sharing. */
+  wasApproved: boolean;
+  /** The owner publishing (true) or pulling it back / withdrawing (false). */
   requestPublic?: boolean;
   /** An admin's verdict on an outstanding request. Admin-only — check first. */
-  approveShare?: boolean;
+  review?: Review;
   /** Whether this same update rewrites what the report says. */
   contentChanged: boolean;
 }
@@ -45,24 +60,38 @@ export interface UpdateInput {
 export function visibilityOnUpdate({
   admin,
   wasPublic,
+  wasApproved,
   requestPublic,
-  approveShare,
+  review,
   contentChanged,
 }: UpdateInput): Visibility | null {
-  if (approveShare === true) return { isPublic: true, shareRequest: null };
-  // Declining is recorded rather than silently dropped, so the owner sees the
-  // answer instead of wondering why nothing happened.
-  if (approveShare === false) return { isPublic: false, shareRequest: "rejected" };
+  // Approving grants permission; it doesn't publish. The owner still has to
+  // choose to share, so nothing becomes visible behind their back.
+  if (review === "approve") return { isPublic: false, shareRequest: "approved" };
+  // A no and a "reword it" are both recorded, so the owner sees the answer
+  // instead of wondering why nothing happened.
+  if (review === "decline") return { isPublic: false, shareRequest: "rejected" };
+  if (review === "changes") return { isPublic: false, shareRequest: "changes" };
 
   if (requestPublic === true) {
-    return admin ? { isPublic: true, shareRequest: null } : { isPublic: false, shareRequest: "pending" };
+    // Publishing needs standing permission: an admin has it inherently, anyone
+    // else needs an approval already on the record. Without one this is just the
+    // request itself.
+    if (admin || wasApproved) return { isPublic: true, shareRequest: "approved" };
+    return { isPublic: false, shareRequest: "pending" };
   }
-  // Withdrawing or unsharing only lowers visibility, so it needs no sign-off.
-  if (requestPublic === false) return { isPublic: false, shareRequest: null };
 
-  // An approval covered the text an admin actually read. Rewriting a shared
-  // report sends it back for review rather than pushing the new wording out.
-  if (contentChanged && wasPublic && !admin) return { isPublic: false, shareRequest: "pending" };
+  if (requestPublic === false) {
+    // Only lowers visibility, so it needs no sign-off. An approval already given
+    // survives, so pulling a report back doesn't mean asking again.
+    return { isPublic: false, shareRequest: wasApproved ? "approved" : null };
+  }
+
+  // An approval covered the wording an admin actually read. Rewriting the report
+  // sends it back for review rather than pushing the new text out.
+  if (contentChanged && !admin && (wasPublic || wasApproved)) {
+    return { isPublic: false, shareRequest: "pending" };
+  }
 
   return null;
 }

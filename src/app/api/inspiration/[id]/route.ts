@@ -9,21 +9,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = await req.json();
-  const { title, url, source, category, tags } = body;
+  const { title, url, source, category, tags, isPublic } = body;
 
   const existing = await prisma.inspiration.findUnique({ where: { id } });
   if (!existing || existing.userId !== session.user.id) {
     return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 });
   }
 
+  // Only what the request actually carries, so the share toggle on a card can send
+  // `isPublic` on its own without blanking the tags.
   const updated = await prisma.inspiration.update({
     where: { id },
     data: {
-      title,
-      url,
-      source,
-      category,
-      tags: JSON.stringify(tags || []),
+      ...(title !== undefined && { title }),
+      ...(url !== undefined && { url }),
+      ...(source !== undefined && { source }),
+      ...(category !== undefined && { category }),
+      ...(tags !== undefined && { tags: JSON.stringify(tags || []) }),
+      ...(isPublic !== undefined && { isPublic: isPublic === true }),
     },
   });
 
