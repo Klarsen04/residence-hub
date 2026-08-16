@@ -111,15 +111,30 @@ test("inspiration: create, delete", async ({ page }) => {
 
 // -------------------------------------------------------------- Decorations
 
-test("decorations: create, delete", async ({ page }) => {
+/** A 1x1 PNG, so the upload path has something real to decode and re-encode. */
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+test("decorations: create with an uploaded photo, delete", async ({ page }) => {
   const title = `${TAG} Door Dec`;
   await page.goto("/decorations");
 
-  await page.getByRole("button", { name: /add decoration/i }).click();
+  await page.getByRole("button", { name: /post decoration/i }).click();
   await page.getByPlaceholder(/Fall Leaf Door Decs/).fill(title);
-  await page.getByPlaceholder("Material").fill("Cardstock");
-  await page.getByPlaceholder("$").fill("5");
+
+  // Uploads are compressed in the browser and stored on the row, so a
+  // successful pick shows a preview before anything is saved.
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "dec.png",
+    mimeType: "image/png",
+    buffer: TINY_PNG,
+  });
+  await expect(page.getByAltText("Selected decoration")).toBeVisible({ timeout: 15_000 });
+
   await page.locator('form button[type="submit"]').click();
+  await expectToast(page, /posted to the gallery/i);
 
   const card = page.locator(".group", { has: page.getByText(title, { exact: true }) }).first();
   await expect(card).toBeVisible({ timeout: 15_000 });
@@ -324,6 +339,36 @@ test("duty: create then delete a shift", async ({ page }) => {
   await expect(page.getByText(label)).toHaveCount(0, { timeout: 15_000 });
 });
 
+test("duty: create a repeating series, then clear the whole series at once", async ({ page }) => {
+  const label = `${TAG} Rounds`;
+  await page.goto("/duty");
+
+  await page.getByRole("button", { name: /new shift/i }).click();
+  await page.getByPlaceholder(/Front desk, Rounds/).fill(label);
+
+  // Anchor the run on the 1st-3rd of the month already on screen, so every shift
+  // in the series lands in the visible grid.
+  const dateField = page.locator('input[type="date"]').first();
+  const month = (await dateField.inputValue()).slice(0, 7);
+  await dateField.fill(`${month}-01`);
+  for (const day of ["02", "03"]) {
+    await page.getByLabel("Date to add").fill(`${month}-${day}`);
+    await page.getByRole("button", { name: /^Add date$/ }).click();
+  }
+  // The panel previews the run with the same expander the API uses.
+  await expect(page.getByText(/Creates 3 shifts/)).toBeVisible();
+
+  await page.getByRole("button", { name: /^Add shifts$/ }).click();
+  await expectToast(page, /added 3 shifts/i);
+  await expect(page.getByText(label).first()).toBeVisible({ timeout: 15_000 });
+
+  // The point of the series id: one click clears the run instead of three.
+  await page.getByText(label).first().click({ force: true });
+  await page.getByRole("button", { name: /Delete all 3 in series/ }).click();
+  await expectToast(page, /removed 3 shifts/i);
+  await expect(page.getByText(label)).toHaveCount(0, { timeout: 15_000 });
+});
+
 // ---------------------------------------------------------------- Incidents
 
 test("incidents: create then delete a report", async ({ page }) => {
@@ -342,6 +387,40 @@ test("incidents: create then delete a report", async ({ page }) => {
   await page.getByText(where).first().click();
   await page.getByRole("button", { name: /^Delete$/ }).click();
   await expect(page.getByText(where)).toHaveCount(0, { timeout: 15_000 });
+});
+
+test("incidents: correct a report after filing it", async ({ page }) => {
+  const where = `${TAG} Stairwell`;
+  const corrected = `${TAG} Stairwell B`;
+  await page.goto("/incidents");
+
+  await page.getByRole("button", { name: /new report/i }).click();
+  await page.locator('input[type="date"]').first().fill("2026-09-16");
+  await page.locator('input[type="time"]').first().fill("22:15");
+  await page.getByPlaceholder("Room/Floor/Area").fill(where);
+  await page.getByPlaceholder(/Describe the incident objectively/).fill(`${TAG} first pass at what happened.`);
+  await page.getByRole("button", { name: /^Save Report$/ }).click();
+  await expectToast(page, /incident report saved/i);
+
+  // Filing isn't final — reopen the report and correct what it says.
+  await page.getByText(where).first().click();
+  // Scoped to the card, since the tracks and resources panels have Edit buttons too.
+  const card = page.locator("div.cursor-pointer", { hasText: where }).first();
+  await card.getByRole("button", { name: /^Edit$/ }).click();
+  await expect(page.getByRole("heading", { name: /edit incident report/i })).toBeVisible();
+  await page.getByPlaceholder("Room/Floor/Area").fill(corrected);
+  await page.getByPlaceholder(/Describe the incident objectively/).fill(`${TAG} corrected after follow-up.`);
+  await page.getByRole("button", { name: /^Save Changes$/ }).click();
+  await expectToast(page, /report updated/i);
+
+  // Scoped to the card: the form animates out, so its textarea still holds the
+  // same text for a moment after saving.
+  const edited = page.locator("div.cursor-pointer", { hasText: corrected }).first();
+  await expect(edited.getByText(`${TAG} corrected after follow-up.`)).toBeVisible({ timeout: 15_000 });
+
+  // The card stays expanded through the edit, so its Delete is already in reach.
+  await edited.getByRole("button", { name: /^Delete$/ }).click();
+  await expect(page.getByText(corrected)).toHaveCount(0, { timeout: 15_000 });
 });
 
 // -------------------------------------------------------------------- Admin

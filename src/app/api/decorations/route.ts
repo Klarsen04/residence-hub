@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateStoredImage } from "@/lib/photo";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,12 +14,12 @@ export async function GET() {
   const decorations = await prisma.decoration.findMany({
     include: {
       user: { select: { name: true } },
-      materials: true,
-      _count: { select: { comments: true, favoritedBy: true, madeBy: true } },
+      _count: { select: { favoritedBy: true } },
       favoritedBy: { where: { userId: session.user.id }, select: { id: true } },
-      madeBy: { select: { id: true, userId: true, imageUrl: true, user: { select: { name: true } } } },
     },
-    orderBy: { favorites: "desc" },
+    // Newest first: this is a record of what the team has put up, so recent
+    // work should be what you see when you open the page.
+    orderBy: { createdAt: "desc" },
   });
 
   // Tag each with edit permission (creator or admin) for the UI.
@@ -31,36 +32,23 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const { title, description, type, category, imageUrl, fileUrl, instructions, costEstimate, materials } = body;
+  const { title, type, category, imageUrl } = await req.json();
 
   if (!title || !type || !category) {
     return NextResponse.json({ error: "Title, type, and category are required" }, { status: 400 });
   }
 
+  const imageError = validateStoredImage(imageUrl);
+  if (imageError) return NextResponse.json({ error: imageError }, { status: 400 });
+
   const decoration = await prisma.decoration.create({
     data: {
       userId: session.user.id,
       title,
-      description,
       type,
       category,
-      imageUrl,
-      fileUrl,
-      instructions,
-      costEstimate,
-      materials: materials?.length
-        ? {
-            create: materials.map((m: any) => ({
-              name: m.name,
-              quantity: m.quantity || null,
-              cost: m.cost || null,
-              url: m.url || null,
-            })),
-          }
-        : undefined,
+      imageUrl: imageUrl || null,
     },
-    include: { materials: true },
   });
 
   return NextResponse.json(decoration, { status: 201 });

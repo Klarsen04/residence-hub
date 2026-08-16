@@ -612,7 +612,11 @@ model Incident {
   actionTaken  String?
   followUpNeeded Boolean @default(false)
   status       String  @default("open")
-  isPublic     Boolean @default(false) // private by default; owner may share with all RAs
+  isPublic     Boolean @default(false) // private by default; only an admin may flip this on
+  // Sharing needs admin sign-off. The owner asks by setting this to "pending";
+  // an admin either flips isPublic and clears it, or sets "rejected" so the
+  // owner can see the answer instead of wondering why nothing happened.
+  shareRequest String? // null | "pending" | "rejected"
 
   user User @relation(fields: [userId], references: [id])
 
@@ -646,6 +650,9 @@ model DutyShift {
   title  String?
   notes  String?
   tagId  String?
+  // Shared by every shift created from one repeat, so the whole run can be
+  // removed in one go instead of clicking each date on the calendar.
+  seriesId String?
 
   user User @relation(fields: [userId], references: [id])
   tag  Tag? @relation(fields: [tagId], references: [id], onDelete: SetNull)
