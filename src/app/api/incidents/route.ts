@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { visibilityOnCreate, visibilityOnUpdate } from "@/lib/incidentVisibility";
+import { REVIEWS, visibilityOnCreate, visibilityOnUpdate, type Review } from "@/lib/incidentVisibility";
 
 async function isAdmin(userId: string): Promise<boolean> {
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
@@ -33,6 +33,9 @@ export async function GET() {
     ...i,
     ownerId: i.userId,
     ownerName: i.user?.name || i.user?.email || "Unknown RA",
+    // Whose report this is. Only the owner rewrites it or decides to publish it;
+    // an admin looking at someone else's is reviewing, not editing.
+    isOwner: i.userId === session.user.id,
     canEdit: i.userId === session.user.id || admin,
     // Only an admin can act on a sharing request — the UI hides the buttons too,
     // but the flag keeps the two in step.
@@ -91,7 +94,7 @@ export async function PUT(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { id, status, followUpNeeded, requestPublic, approveShare } = body;
+  const { id, status, followUpNeeded, requestPublic, review } = body;
 
   // Only the owning RA (or an admin) may change an incident.
   const existing = await prisma.incident.findUnique({ where: { id } });
@@ -107,8 +110,9 @@ export async function PUT(req: NextRequest) {
   if (body.severity !== undefined && body.severity && !SEVERITIES.includes(body.severity)) {
     return NextResponse.json({ error: "Unknown severity" }, { status: 400 });
   }
-  if (approveShare !== undefined && !admin) {
-    return NextResponse.json({ error: "Only an admin can approve sharing" }, { status: 403 });
+  if (review !== undefined) {
+    if (!admin) return NextResponse.json({ error: "Only an admin can review a sharing request" }, { status: 403 });
+    if (!REVIEWS.includes(review)) return NextResponse.json({ error: "Unknown review verdict" }, { status: 400 });
   }
 
   const data: Record<string, unknown> = {};
@@ -134,8 +138,9 @@ export async function PUT(req: NextRequest) {
   const visibility = visibilityOnUpdate({
     admin,
     wasPublic: existing.isPublic,
+    wasApproved: existing.shareRequest === "approved",
     requestPublic,
-    approveShare,
+    review: review as Review | undefined,
     contentChanged,
   });
   if (visibility) Object.assign(data, visibility);

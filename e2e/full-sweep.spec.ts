@@ -109,6 +109,31 @@ test("inspiration: create, delete", async ({ page }) => {
   await expect(page.getByText(title, { exact: true })).toHaveCount(0, { timeout: 15_000 });
 });
 
+test("inspiration: save a pin for everyone, pull it back, delete", async ({ page }) => {
+  const title = `${TAG} Shared Inspo`;
+  await page.goto("/inspiration");
+
+  await page.getByRole("button", { name: /save inspiration/i }).click();
+  await page.getByPlaceholder(/Name this inspiration/).fill(title);
+  await page.locator("form select").first().selectOption({ label: "UPLOAD" });
+  // Pins are private by default — this is the choice to share one.
+  await page.getByLabel("Visibility").selectOption("public");
+  await page.getByRole("button", { name: /^Save$/ }).click();
+  await expectToast(page, /shared with all RAs/i);
+
+  const card = page.locator(".group", { has: page.getByText(title, { exact: true }) }).first();
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await expect(card).toContainText("shared");
+
+  // The card's own toggle takes it back without opening the editor.
+  await card.getByRole("button", { name: /make private/i }).click();
+  await expectToast(page, /private again/i);
+  await expect(card.getByRole("button", { name: /share with all RAs/i })).toBeVisible({ timeout: 15_000 });
+
+  await card.getByRole("button", { name: /^Delete$/ }).click();
+  await expect(page.getByText(title, { exact: true })).toHaveCount(0, { timeout: 15_000 });
+});
+
 // -------------------------------------------------------------- Decorations
 
 /** A 1x1 PNG, so the upload path has something real to decode and re-encode. */
@@ -212,6 +237,35 @@ test("check-ins: create and delete a board", async ({ page }) => {
   await expect(page.getByText(board)).toHaveCount(0, { timeout: 15_000 });
 });
 
+test("check-ins: rename a board and change who it's for", async ({ page }) => {
+  const board = `${TAG} CI Scope`;
+  const renamed = `${TAG} CI Scoped`;
+  await page.goto("/check-ins");
+
+  await page.getByRole("button", { name: /new board/i }).click();
+  await page.getByPlaceholder(/Board name/).fill(board);
+  await page.getByRole("button", { name: /^Add$/ }).click();
+  await expect(page.getByText(board).first()).toBeVisible({ timeout: 15_000 });
+
+  // Rename it and hand it to the whole team in one edit.
+  await page.getByRole("button", { name: /edit board/i }).first().click();
+  await page.getByLabel("Board name").fill(renamed);
+  await page.getByLabel("Board visibility").selectOption("shared");
+  await page.getByRole("button", { name: /^Save$/ }).click();
+  await expectToast(page, /board updated/i);
+  await expect(page.locator("button", { hasText: renamed }).first()).toContainText("shared", { timeout: 15_000 });
+
+  // And back to private. The warning about other RAs' entries is auto-accepted.
+  await page.getByRole("button", { name: /edit board/i }).first().click();
+  await page.getByLabel("Board visibility").selectOption("personal");
+  await page.getByRole("button", { name: /^Save$/ }).click();
+  await expectToast(page, /board updated/i);
+  await expect(page.locator("button", { hasText: renamed }).first()).toContainText("private", { timeout: 15_000 });
+
+  await page.getByRole("button", { name: /delete board/i }).first().click();
+  await expect(page.getByText(renamed)).toHaveCount(0, { timeout: 15_000 });
+});
+
 // ------------------------------------------------------------- Collaboration
 
 test("collaboration: board create, task create/delete, board delete", async ({ page }) => {
@@ -305,6 +359,54 @@ test("events: create then delete", async ({ page }) => {
   await expect(page.getByText(title)).toHaveCount(0, { timeout: 15_000 });
 });
 
+test("events: write a reflection, correct it, then remove it", async ({ page }) => {
+  const title = `${TAG} Reflected Event`;
+  await page.goto("/events/new");
+
+  await page.getByPlaceholder(/Movie Night/).fill(title);
+  await page.locator('input[type="date"]').fill("2026-09-15");
+  await page.locator('input[type="time"]').first().fill("14:00");
+  await page.locator('input[type="time"]').last().fill("16:00");
+  await page.getByRole("button", { name: /^Create Event$/ }).click();
+  await page.waitForURL(/\/events\/[\w-]+$/, { timeout: 20_000 });
+
+  // A reflection belongs to an event that has happened, so complete it first.
+  await page.getByRole("button", { name: /^Edit$/ }).click();
+  await page.locator("select").last().selectOption("COMPLETED");
+  await page.getByRole("button", { name: /^Save Changes$/ }).click();
+  await expectToast(page, /event updated/i);
+
+  await page.getByRole("button", { name: /add reflection/i }).click();
+  await page.getByPlaceholder("e.g. 25").fill("30");
+  await page.getByPlaceholder(/The event went great because/).fill("Turnout was strong.");
+  await page.getByRole("button", { name: /^Save Reflection$/ }).click();
+  await expectToast(page, /reflection saved/i);
+  await expect(page.getByText("Turnout was strong.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/30\s+residents/)).toBeVisible();
+
+  // Reopening seeds the form from what's saved, so a correction builds on it.
+  await page.getByRole("button", { name: /edit reflection/i }).click();
+  await expect(page.getByPlaceholder(/The event went great because/)).toHaveValue("Turnout was strong.");
+  await expect(page.getByPlaceholder("e.g. 25")).toHaveValue("30");
+  await page.getByPlaceholder(/The event went great because/).fill("Turnout was strong, but start earlier.");
+  await page.getByPlaceholder("e.g. 25").fill("42");
+  await page.getByRole("button", { name: /^Save Changes$/ }).click();
+  await expectToast(page, /reflection updated/i);
+  await expect(page.getByText("Turnout was strong, but start earlier.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/42\s+residents/)).toBeVisible();
+
+  // The panel's own Delete clears the write-up without touching the event.
+  await page.getByRole("button", { name: /^Delete$/ }).last().click();
+  await expectToast(page, /reflection removed/i);
+  await expect(page.getByText("Turnout was strong, but start earlier.")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.getByText(/42\s+residents/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /add reflection/i })).toBeVisible();
+
+  // Tidy up: the event itself is still there.
+  await page.getByRole("button", { name: /^Delete$/ }).first().click();
+  await page.waitForURL(/\/events$/, { timeout: 20_000 });
+});
+
 test("events: templates page applies a template", async ({ page }) => {
   await page.goto("/events/templates");
   const first = page.locator("button, [role=button]").filter({ hasText: /./ }).first();
@@ -383,9 +485,19 @@ test("incidents: create then delete a report", async ({ page }) => {
   await page.getByRole("button", { name: /^Save Report$/ }).click();
   await expect(page.getByText(where).first()).toBeVisible({ timeout: 15_000 });
 
-  // Expand the card to reach its actions, then delete.
+  // Expand the card to reach its actions.
   await page.getByText(where).first().click();
-  await page.getByRole("button", { name: /^Delete$/ }).click();
+  const card = page.locator("div.cursor-pointer", { hasText: where }).first();
+
+  // Publishing is the author's call. This login is an admin, so their own report
+  // needs no second sign-off — and the report only goes out once they say so.
+  await card.getByRole("button", { name: /^Share with all RAs$/ }).click();
+  await expectToast(page, /shared with all RAs/i);
+  await expect(card.getByText("Shared")).toBeVisible({ timeout: 15_000 });
+  await card.getByRole("button", { name: /^Make private$/ }).click();
+  await expectToast(page, /back to private/i);
+
+  await card.getByRole("button", { name: /^Delete$/ }).click();
   await expect(page.getByText(where)).toHaveCount(0, { timeout: 15_000 });
 });
 

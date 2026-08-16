@@ -10,6 +10,7 @@ import { AlertTriangle, Plus, Lock, ChevronDown, ChevronUp, Phone, ExternalLink,
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker, Plate, PlateRow, EmptyPlate } from "@/components/wayfinding/PageChrome";
+import type { Review, ShareRequest } from "@/lib/incidentVisibility";
 
 interface Incident {
   id: string;
@@ -23,12 +24,14 @@ interface Incident {
   followUpNeeded: boolean;
   status: "open" | "resolved" | "escalated";
   isPublic: boolean;
-  /** Where a request to share with all RAs stands. Null means nothing pending. */
-  shareRequest: "pending" | "rejected" | null;
+  /** Where a request to share with all RAs stands. Null means nothing asked. */
+  shareRequest: ShareRequest;
   ownerId: string;
   ownerName: string;
+  /** True on your own report — only the owner rewrites it or publishes it. */
+  isOwner: boolean;
   canEdit: boolean;
-  /** True for admins — only they can approve or decline a sharing request. */
+  /** True for admins — only they can rule on a sharing request. */
   canApprove: boolean;
   createdAt?: string;
 }
@@ -157,7 +160,9 @@ export default function IncidentsPage() {
     }
     setSaving(true);
     try {
-      const wasShared = !!editingIncident?.isPublic;
+      // Shared *or* cleared to share: either way an admin has read the wording, so
+      // rewriting it goes back for review.
+      const wasCleared = !!editingIncident?.isPublic || editingIncident?.shareRequest === "approved";
       const res = await fetch("/api/incidents", {
         method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -168,12 +173,18 @@ export default function IncidentsPage() {
       const body = await res.json().catch(() => null);
       if (!res.ok) throw new Error(body?.error);
       await mutate();
-      const nowPending = editingId && wasShared && !body?.isPublic;
+      const nowPending = editingId && wasCleared && body?.shareRequest === "pending";
       closeForm();
       if (nowPending) {
         toast.success("Report updated — back to an admin for review before it's shared again");
+      } else if (editingId) {
+        toast.success("Report updated");
+      } else if (body?.isPublic) {
+        toast.success("Report saved and shared with all RAs");
+      } else if (form.isPublic) {
+        toast.success("Report saved — sharing sent to an admin for approval");
       } else {
-        toast.success(editingId ? "Report updated" : form.isPublic ? "Report saved — sharing sent to an admin for approval" : "Incident report saved");
+        toast.success("Incident report saved");
       }
     } catch (err) {
       const fallback = editingId ? "Failed to update incident report" : "Failed to save incident report";
@@ -215,12 +226,13 @@ export default function IncidentsPage() {
   };
 
   /**
-   * Moves a report's visibility. `requestPublic` is what the owner asks for;
-   * only an admin's `approveShare` actually publishes anything.
+   * Moves a report's visibility. `requestPublic` is the owner asking or
+   * publishing; `review` is an admin's verdict, which grants permission without
+   * publishing anything itself.
    */
   const changeVisibility = async (
     incident: Incident,
-    payload: { requestPublic?: boolean; approveShare?: boolean },
+    payload: { requestPublic?: boolean; review?: Review },
     message: string,
   ) => {
     try {
@@ -403,10 +415,10 @@ export default function IncidentsPage() {
                   {editingId ? (
                     // Visibility isn't editable here — it moves through the
                     // request/approve buttons on the report itself.
-                    editingIncident?.isPublic && !editingIncident?.canApprove ? (
+                    (editingIncident?.isPublic || editingIncident?.shareRequest === "approved") && !editingIncident?.canApprove ? (
                       <p className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3 text-xs text-muted-foreground">
                         <Clock className="h-4 w-4 shrink-0 text-amber-500" />
-                        This report is shared with all RAs. Changing what it says sends it back to an admin for review, so the wording they approved isn&apos;t replaced without a second look.
+                        An admin has already cleared this report. Changing what it says sends it back for review, so the wording they approved isn&apos;t replaced without a second look.
                       </p>
                     ) : null
                   ) : (
@@ -580,6 +592,17 @@ export default function IncidentsPage() {
                         <Clock className="h-3 w-3" /> Awaiting approval
                       </Badge>
                     )}
+                    {/* Approved but not yet published — the owner still decides. */}
+                    {incident.shareRequest === "approved" && !incident.isPublic && (
+                      <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/20 gap-1">
+                        <Check className="h-3 w-3" /> Cleared to share
+                      </Badge>
+                    )}
+                    {incident.shareRequest === "changes" && (
+                      <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/20 gap-1">
+                        <Pencil className="h-3 w-3" /> Changes requested
+                      </Badge>
+                    )}
                     {incident.shareRequest === "rejected" && (
                       <Badge className="bg-black/[0.06] dark:bg-white/[0.08] text-muted-foreground gap-1">
                         <Ban className="h-3 w-3" /> Sharing declined
@@ -631,43 +654,65 @@ export default function IncidentsPage() {
                               Escalate
                             </Button>
                           )}
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => startEdit(incident)}>
-                            <Pencil className="h-3.5 w-3.5" /> Edit
-                          </Button>
-
-                          {/* Visibility. An RA can only ask; the approve/decline
-                              pair below shows for admins. */}
-                          {incident.isPublic ? (
-                            <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: false }, "Report set back to private")}>
-                              Make private
-                            </Button>
-                          ) : incident.shareRequest === "pending" ? (
-                            <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: false }, "Sharing request withdrawn")}>
-                              Withdraw request
-                            </Button>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: true }, incident.canApprove ? "Report shared with all RAs" : "Sent to an admin for approval")}>
-                              {incident.canApprove ? "Share with all RAs" : "Request sharing"}
+                          {/* Rewriting a report is the author's job. An admin
+                              reading someone else's is reviewing it, not editing. */}
+                          {incident.isOwner && (
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => startEdit(incident)}>
+                              <Pencil className="h-3.5 w-3.5" /> Edit
                             </Button>
                           )}
 
-                          {incident.canApprove && incident.shareRequest === "pending" && (
+                          {/* Visibility is the owner's call. Asking, publishing and
+                              pulling back all live on this one button. */}
+                          {incident.isOwner && (
+                            incident.isPublic ? (
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: false }, "Report set back to private")}>
+                                Make private
+                              </Button>
+                            ) : incident.shareRequest === "pending" ? (
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: false }, "Sharing request withdrawn")}>
+                                Withdraw request
+                              </Button>
+                            ) : incident.canApprove || incident.shareRequest === "approved" ? (
+                              // Permission is already in hand — an admin has it
+                              // inherently, everyone else once a review cleared it.
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: true }, "Report shared with all RAs")}>
+                                Share with all RAs
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: true }, "Sent to an admin for approval")}>
+                                Request sharing
+                              </Button>
+                            )
+                          )}
+
+                          {/* An admin's three verdicts. Approving clears the report
+                              to go out; publishing it stays with the author. */}
+                          {incident.canApprove && !incident.isOwner && incident.shareRequest === "pending" && (
                             <>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="gap-1.5 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10"
-                                onClick={() => changeVisibility(incident, { approveShare: true }, `Approved — visible to all RAs`)}
+                                onClick={() => changeVisibility(incident, { review: "approve" }, "Approved — the RA can now share it")}
                               >
-                                <Check className="h-3.5 w-3.5" /> Approve sharing
+                                <Check className="h-3.5 w-3.5" /> Approve
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="gap-1.5 text-muted-foreground"
-                                onClick={() => changeVisibility(incident, { approveShare: false }, "Sharing declined — the report stays private")}
+                                className="gap-1.5 text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                onClick={() => changeVisibility(incident, { review: "decline" }, "Declined — the report stays private")}
                               >
                                 <Ban className="h-3.5 w-3.5" /> Decline
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
+                                onClick={() => changeVisibility(incident, { review: "changes" }, "Sent back for changes")}
+                              >
+                                <Pencil className="h-3.5 w-3.5" /> Needs changes
                               </Button>
                             </>
                           )}
