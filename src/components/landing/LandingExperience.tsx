@@ -2,19 +2,20 @@
 
 import { useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   CalendarDays,
-  Users,
   Sparkles,
-  Coffee,
   BookOpen,
   Dumbbell,
-  Trees,
-  Moon,
+  UtensilsCrossed,
+  Waves,
+  Gamepad2,
+  WashingMachine,
   ArrowUpRight,
 } from "lucide-react";
 import { useGsapLenis } from "./useGsapLenis";
@@ -24,19 +25,65 @@ import { SignLabel, LevelMarker, DirectionArrow, Reveal } from "./wayfinding";
 /* Content is illustrative of residence life — a welcoming, human sample. */
 
 const TIMELINE = [
-  { time: "MON · 19:00", where: "L01 · Community Kitchen", title: "Family Dinner Night", tag: "Food" },
-  { time: "WED · 20:30", where: "R · Sky Lounge", title: "Rooftop Study Break", tag: "Wellness" },
-  { time: "FRI · 21:00", where: "G · Lobby", title: "Floor Mixer & Games", tag: "Social" },
-  { time: "SUN · 11:00", where: "Courtyard", title: "Slow Morning Brunch", tag: "Food" },
+  { time: "MON · 19:00", where: "01 · Cafeteria", title: "Family Dinner Night", tag: "Food" },
+  { time: "WED · 20:30", where: "03 · Study Lounge", title: "Late-Night Study Break", tag: "Wellness" },
+  { time: "FRI · 21:00", where: "01 · Recreation Center", title: "Floor Mixer & Pool Tournament", tag: "Social" },
+  { time: "SUN · 11:00", where: "01 · Swimming Pool", title: "Slow Morning Swim", tag: "Wellness" },
 ];
 
+/**
+ * The real amenities of the hall, with photography from New York Tech's official
+ * Long Island Residence Hall virtual tour (credited under the grid).
+ */
 const SPACES = [
-  { icon: Coffee, name: "Community Kitchen", code: "L01·A", note: "Where dinners happen" },
-  { icon: BookOpen, name: "Quiet Study", code: "L03·C", note: "Focus floors" },
-  { icon: Dumbbell, name: "Fitness Room", code: "G·B", note: "Open 24 hours" },
-  { icon: Trees, name: "Courtyard", code: "OUT·1", note: "Sun & fresh air" },
-  { icon: Moon, name: "Sky Lounge", code: "R·A", note: "Evenings & views" },
-  { icon: Users, name: "Common Room", code: "L02·D", note: "Movie nights" },
+  {
+    icon: Waves,
+    name: "Swimming Pool",
+    code: "01·A",
+    note: "Laps, or just chilling out after class",
+    image: "/images/hall/pool.jpg",
+    alt: "The residence hall's indoor swimming pool, with beach balls floating in the water",
+  },
+  {
+    icon: Dumbbell,
+    name: "Fitness Center",
+    code: "01·B",
+    note: "Work out, de-stress, stay fit",
+    image: "/images/hall/fitness.jpg",
+    alt: "The fitness centre, with weight machines and a bench",
+  },
+  {
+    icon: Gamepad2,
+    name: "Recreation Center",
+    code: "01·C",
+    note: "Pool table, foosball & hangouts",
+    image: "/images/hall/recreation.jpg",
+    alt: "The recreation centre, with a blue-felt pool table and lounge seating",
+  },
+  {
+    icon: UtensilsCrossed,
+    name: "Cafeteria",
+    code: "01·D",
+    note: "Hot meals, custom waffles & a cereal bar",
+    image: "/images/hall/dining.jpg",
+    alt: "The residence hall cafeteria serving line",
+  },
+  {
+    icon: WashingMachine,
+    name: "Laundry Room",
+    code: "01·E",
+    note: "Wash day, sorted",
+    image: "/images/hall/laundry.jpg",
+    alt: "The laundry room, with a row of washers and dryers",
+  },
+  {
+    icon: BookOpen,
+    name: "Study Lounges",
+    code: "02·03",
+    note: "Distraction-free floors, late-night friendly",
+    image: "/images/hall/study-lounge.jpg",
+    alt: "A study lounge with desks, task chairs and a patterned blue ceiling",
+  },
 ];
 
 const RESOURCES = [
@@ -167,7 +214,7 @@ export function LandingExperience() {
         <div className="relative z-10 px-6 md:px-12 pb-8">
           <div className="rule pt-4 flex items-center justify-between">
             <SignLabel>Est. community</SignLabel>
-            <SignLabel code="↓">Level R — Ground</SignLabel>
+            <SignLabel code="↓">Level 01 — Ground</SignLabel>
           </div>
         </div>
       </section>
@@ -185,7 +232,7 @@ export function LandingExperience() {
             <div className="relative">
               <LevelMarker level="01" label="Your Residence" />
               <h2 className="mt-6 font-display font-semibold text-4xl md:text-5xl leading-tight">
-                Five floors of
+                Three floors of
                 <br />
                 everyday life.
               </h2>
@@ -209,6 +256,29 @@ export function LandingExperience() {
                 ))}
               </ul>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ THE REAL BUILDING ============ */}
+      <section className="relative px-6 md:px-12 pb-24 md:pb-32">
+        <div className="max-w-6xl mx-auto">
+          <Reveal>
+            <div className="relative aspect-[16/10] md:aspect-[21/9] rounded-xl overflow-hidden border border-black/[0.1] dark:border-white/[0.1]">
+              <Image
+                src="/images/hall/exterior.jpg"
+                alt="The New York Tech Long Island residence hall seen from the street on a clear day"
+                fill
+                sizes="(min-width: 1152px) 1088px, 100vw"
+                className="object-cover"
+              />
+            </div>
+          </Reveal>
+          <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+            <SignLabel code="↗">120 Jericho Turnpike</SignLabel>
+            <span className="wayfinding text-muted-foreground">
+              A short shuttle ride from campus
+            </span>
           </div>
         </div>
       </section>
@@ -314,17 +384,36 @@ export function LandingExperience() {
           <div className="mt-16 grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-black/[0.08] dark:bg-white/[0.08] rounded-xl overflow-hidden border border-black/[0.08] dark:border-white/[0.08]">
             {SPACES.map((space, i) => (
               <Reveal key={space.name} delay={i * 0.04}>
-                <div className="group h-full bg-card p-8 hover:bg-[hsl(var(--sage)/0.06)] transition-colors">
-                  <div className="flex items-start justify-between">
-                    <space.icon className="h-7 w-7 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]" strokeWidth={1.5} />
-                    <span className="wayfinding text-muted-foreground">{space.code}</span>
+                <div className="group h-full bg-card flex flex-col">
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <Image
+                      src={space.image}
+                      alt={space.alt}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                    />
+                    {/* Wayfinding plate, floated over the photograph. */}
+                    <span className="absolute top-3 left-3 inline-flex items-center gap-2 rounded-md bg-background/85 backdrop-blur-sm px-2.5 py-1.5">
+                      <space.icon
+                        className="h-4 w-4 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))]"
+                        strokeWidth={1.75}
+                      />
+                      <span className="wayfinding text-foreground">{space.code}</span>
+                    </span>
                   </div>
-                  <h3 className="mt-8 font-display text-2xl">{space.name}</h3>
-                  <p className="mt-1 text-muted-foreground text-sm">{space.note}</p>
+                  <div className="p-7">
+                    <h3 className="font-display text-2xl">{space.name}</h3>
+                    <p className="mt-1 text-muted-foreground text-sm">{space.note}</p>
+                  </div>
                 </div>
               </Reveal>
             ))}
           </div>
+
+          <p className="mt-6 wayfinding text-muted-foreground">
+            Residence hall photography courtesy of New York Institute of Technology
+          </p>
         </div>
       </section>
 
