@@ -462,7 +462,15 @@ export default function CheckInsPage() {
                     <p className="wayfinding text-muted-foreground mt-0.5 normal-case">
                       {topics.length > 0 ? topics.join(", ") : "General"} • {formatDateTime(ci.createdAt)}
                     </p>
+                    {ci.notes && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{ci.notes}</p>
+                    )}
                   </div>
+                  {ci.followUp && (
+                    <Badge className="bg-[hsl(var(--terracotta)/0.15)] text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] shrink-0">
+                      Follow-up
+                    </Badge>
+                  )}
                   {moodConfig[mood] && <Badge className={moodConfig[mood].color}>{moodConfig[mood].label}</Badge>}
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => startEdit(ci)} className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)]" title="Edit"><Pencil className="h-3.5 w-3.5" /></button>

@@ -90,3 +90,22 @@ export async function PUT(req: NextRequest) {
 
   return NextResponse.json(incident);
 }
+
+// Remove a mis-filed report. Same owner-or-admin rule as PUT.
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  const existing = await prisma.incident.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.userId !== session.user.id && !(await isAdmin(session.user.id))) {
+    return NextResponse.json({ error: "You can only delete your own incidents" }, { status: 403 });
+  }
+
+  await prisma.incident.delete({ where: { id } });
+  return NextResponse.json({ success: true });
+}

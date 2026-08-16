@@ -16,6 +16,12 @@ export interface LoadedEngine {
   kind: EngineKind;
   /** Stream a reply; calls onDelta with the growing text, resolves to the full text. */
   chat: (messages: ChatMessage[], onDelta: DeltaFn) => Promise<string>;
+  /**
+   * Release the engine's resources (GPU buffers and worker for WebLLM, the wasm
+   * instance for wllama). Must be called when the model is unloaded or the page
+   * unmounts, or the memory stays pinned for the life of the tab.
+   */
+  unload: () => Promise<void>;
 }
 
 // wllama's wasm is served from the jsDelivr CDN (pinned to the installed
@@ -68,6 +74,9 @@ async function loadWebllm(model: LocalModel, onProgress: ProgressFn): Promise<Lo
       }
       return reply;
     },
+    async unload() {
+      await engine.unload();
+    },
   };
 }
 
@@ -101,6 +110,9 @@ async function loadWllama(model: LocalModel, onProgress: ProgressFn): Promise<Lo
         onDelta(reply);
       }
       return reply;
+    },
+    async unload() {
+      await wllama.exit();
     },
   };
 }

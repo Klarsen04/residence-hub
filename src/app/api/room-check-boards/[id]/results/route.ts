@@ -28,15 +28,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const board = await prisma.roomCheckBoard.findUnique({ where: { id: boardId } });
   if (!board) return NextResponse.json({ error: "Board not found" }, { status: 404 });
 
-  const { residentId, residentName, room, status, notes } = await req.json();
+  const { resultId, residentId, residentName, room, status, notes } = await req.json();
   if (!residentName) return NextResponse.json({ error: "Resident name required" }, { status: 400 });
   if (!["pass", "fail"].includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  const existing = residentId
-    ? await prisma.roomCheckResult.findFirst({ where: { boardId, userId: session.user.id, residentId } })
-    : null;
+  // An edit names the row directly; a new mark matches on the resident so a
+  // second pass over the same person overwrites rather than duplicates. Both
+  // lookups are scoped to this RA's own rows, so a forged id can't reach
+  // someone else's result.
+  const existing = resultId
+    ? await prisma.roomCheckResult.findFirst({ where: { id: resultId, boardId, userId: session.user.id } })
+    : residentId
+      ? await prisma.roomCheckResult.findFirst({ where: { boardId, userId: session.user.id, residentId } })
+      : null;
+
+  // Editing a row that's since been deleted (or isn't yours) shouldn't quietly
+  // turn into a new result.
+  if (resultId && !existing) {
+    return NextResponse.json({ error: "Result not found" }, { status: 404 });
+  }
 
   const saved = existing
     ? await prisma.roomCheckResult.update({

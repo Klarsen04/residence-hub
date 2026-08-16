@@ -71,11 +71,14 @@ export default function CollaborationPage() {
         body: JSON.stringify({ title: newBoardTitle, description: newBoardDesc }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Board created!");
+      const board = await res.json();
       setShowNewBoard(false);
       setNewBoardTitle("");
       setNewBoardDesc("");
       await mutate();
+      // Open the board you just made, rather than dropping you back on the list.
+      setSelectedBoardId(board.id);
+      toast.success(`Board "${board.title}" created`);
     } catch {
       toast.error("Failed to create board");
     }

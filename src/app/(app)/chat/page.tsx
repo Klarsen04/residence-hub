@@ -79,6 +79,14 @@ export default function ChatPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Navigating away must release the loaded model; nothing else will.
+  useEffect(() => {
+    return () => {
+      engineRef.current?.unload().catch(() => {});
+      engineRef.current = null;
+    };
+  }, []);
+
   // Auto-scroll to newest only when already near the bottom.
   useEffect(() => {
     const el = scrollRef.current;
@@ -117,7 +125,11 @@ export default function ChatPage() {
   const changeModel = (id: string) => {
     if (streaming) return;
     setModelId(id);
+    // Release the outgoing model before dropping the reference — otherwise its
+    // GPU buffers / wasm instance stay pinned for the life of the tab.
+    const previous = engineRef.current;
     engineRef.current = null;
+    previous?.unload().catch(() => {});
     setStatus("idle");
     setProgress(0);
   };

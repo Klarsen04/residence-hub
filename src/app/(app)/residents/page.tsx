@@ -363,7 +363,7 @@ export default function ResidentsPage() {
                                 <Button size="sm" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); addNote(resident); }}>Add</Button>
                                 <Button size="sm" variant="outline" className="h-7 text-xs px-2 gap-1" onClick={(e) => { e.stopPropagation(); startEdit(resident); }}><Pencil className="h-3 w-3" /> Edit</Button>
                                 <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={(e) => { e.stopPropagation(); saveField(resident, { flagged: !resident.flagged }); }}>{resident.flagged ? "Unflag" : "Flag"}</Button>
-                                <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" onClick={(e) => { e.stopPropagation(); removeResident(resident); }}><Trash2 className="h-3 w-3" /></Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs px-2 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))]" title="Remove from roster" onClick={(e) => { e.stopPropagation(); removeResident(resident); }}><Trash2 className="h-3 w-3" /></Button>
                               </div>
                             )
                           ) : (

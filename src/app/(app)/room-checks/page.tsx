@@ -113,6 +113,9 @@ export default function RoomChecksPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          // Editing targets the exact row; matching on residentId alone would
+          // create a duplicate for a result that isn't linked to a resident.
+          ...(marking.kind === "edit" && { resultId: marking.resultId }),
           residentId: marking.residentId,
           residentName: marking.residentName,
           room: marking.room,
