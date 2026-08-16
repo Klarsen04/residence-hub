@@ -557,12 +557,14 @@ export default function InspirationPage() {
                       <button
                         onClick={() => startEdit(item)}
                         className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] opacity-0 group-hover:opacity-100 transition-all"
+                        title="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(item.id)}
                         className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                        title="Delete"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

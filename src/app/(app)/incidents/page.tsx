@@ -148,6 +148,18 @@ export default function IncidentsPage() {
     }
   };
 
+  const deleteIncident = async (incident: Incident) => {
+    if (!confirm("Delete this incident report? This can't be undone.")) return;
+    try {
+      const res = await fetch(`/api/incidents?id=${incident.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Incident report deleted");
+    } catch {
+      toast.error("Failed to delete incident report");
+    }
+  };
+
   const togglePublic = async (incident: Incident) => {
     try {
       const res = await fetch("/api/incidents", {
@@ -530,6 +542,14 @@ export default function IncidentsPage() {
                           )}
                           <Button size="sm" variant="outline" onClick={() => togglePublic(incident)}>
                             {incident.isPublic ? "Make private" : "Make public"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-auto gap-1.5 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:bg-[hsl(var(--terracotta)/0.1)]"
+                            onClick={() => deleteIncident(incident)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </Button>
                         </div>
                       ) : (

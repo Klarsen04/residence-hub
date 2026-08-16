@@ -255,12 +255,14 @@ export default function NotesPage() {
                         <button
                           onClick={() => togglePin(note.id)}
                           className="p-1 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] transition-all"
+                          title={note.pinned ? "Unpin note" : "Pin note"}
                         >
                           {note.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                         </button>
                         <button
                           onClick={() => deleteNote(note.id)}
                           className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          title="Delete note"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
