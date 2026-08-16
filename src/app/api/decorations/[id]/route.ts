@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateStoredImage } from "@/lib/photo";
 
 async function isAdmin(userId: string): Promise<boolean> {
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
@@ -19,38 +20,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "You can only edit your own decorations" }, { status: 403 });
   }
 
-  const body = await req.json();
-  const { title, description, type, category, imageUrl, fileUrl, instructions, costEstimate, materials } = body;
+  const { title, type, category, imageUrl } = await req.json();
 
   if (title !== undefined && !title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
   }
+  if (imageUrl !== undefined) {
+    const imageError = validateStoredImage(imageUrl);
+    if (imageError) return NextResponse.json({ error: imageError }, { status: 400 });
+  }
 
   const data: Record<string, unknown> = {};
   if (title !== undefined) data.title = title;
-  if (description !== undefined) data.description = description;
   if (type !== undefined) data.type = type;
   if (category !== undefined) data.category = category;
-  if (imageUrl !== undefined) data.imageUrl = imageUrl;
-  if (fileUrl !== undefined) data.fileUrl = fileUrl;
-  if (instructions !== undefined) data.instructions = instructions;
-  if (costEstimate !== undefined) data.costEstimate = costEstimate;
+  if (imageUrl !== undefined) data.imageUrl = imageUrl || null;
 
-  // Materials are replaced wholesale when provided.
-  if (Array.isArray(materials)) {
-    data.materials = {
-      deleteMany: {},
-      create: materials
-        .filter((m: any) => m?.name?.trim())
-        .map((m: any) => ({ name: m.name, quantity: m.quantity || null, cost: m.cost || null, url: m.url || null })),
-    };
-  }
-
-  const decoration = await prisma.decoration.update({
-    where: { id },
-    data,
-    include: { materials: true },
-  });
+  const decoration = await prisma.decoration.update({ where: { id }, data });
 
   return NextResponse.json(decoration);
 }
