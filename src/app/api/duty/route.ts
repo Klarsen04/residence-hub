@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { expandRecurrence } from "@/lib/recurrence";
 
 async function isAdmin(userId: string): Promise<boolean> {
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
@@ -20,20 +21,6 @@ export async function GET() {
   return NextResponse.json(shifts);
 }
 
-// Expand a start date + selected weekdays over the next `weeks` weeks.
-function expandDates(startDay: string, weekdays: number[], weeks: number): string[] {
-  if (!weekdays || weekdays.length === 0) return [startDay];
-  const out = new Set<string>();
-  const start = new Date(startDay + "T00:00:00");
-  for (let i = 0; i < weeks * 7; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    if (weekdays.includes(d.getDay())) out.add(d.toISOString().slice(0, 10));
-  }
-  out.add(startDay);
-  return [...out];
-}
-
 // Resolve which RA a shift belongs to. Defaults to the creator; an explicit
 // raId assigns it to that user (validated).
 async function resolveOwner(raId: string | undefined, fallback: string): Promise<string | null> {
@@ -46,16 +33,36 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { date, type, title, notes, tagId, recurrenceDays, weeks, raId } = await req.json();
+  const { date, type, title, notes, tagId, recurrenceDays, weeks, until, dates, raId } = await req.json();
+  if (!date) return NextResponse.json({ error: "Date is required" }, { status: 400 });
   const day = String(date).slice(0, 10);
 
   const ownerId = await resolveOwner(raId, session.user.id);
   if (!ownerId) return NextResponse.json({ error: "Selected RA not found" }, { status: 400 });
 
-  // If recurrenceDays given, create a shift on each matching day for N weeks.
-  const days = Array.isArray(recurrenceDays) && recurrenceDays.length > 0
-    ? expandDates(day, recurrenceDays, weeks || 8)
-    : [day];
+  // A dangling tagId would fail the foreign key on create — drop it instead.
+  let validTagId: string | null = tagId || null;
+  if (validTagId) {
+    const tag = await prisma.tag.findUnique({ where: { id: validTagId }, select: { id: true } });
+    if (!tag) validTagId = null;
+  }
+
+  let days: string[];
+  try {
+    days = expandRecurrence({
+      start: day,
+      weekdays: Array.isArray(recurrenceDays) ? recurrenceDays : [],
+      until: typeof until === "string" && until ? until.slice(0, 10) : undefined,
+      weeks: typeof weeks === "number" ? weeks : undefined,
+      extraDates: Array.isArray(dates) ? dates.map((d) => String(d).slice(0, 10)) : [],
+    });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Invalid repeat settings" }, { status: 400 });
+  }
+
+  // One id across the whole run, so the series can be removed in one action. A
+  // lone shift gets none — it isn't a series and shouldn't offer series actions.
+  const seriesId = days.length > 1 ? crypto.randomUUID() : null;
 
   await prisma.dutyShift.createMany({
     data: days.map((d) => ({
@@ -64,11 +71,12 @@ export async function POST(req: NextRequest) {
       type: type || "evening",
       title: title || null,
       notes: notes || null,
-      tagId: tagId || null,
+      tagId: validTagId,
+      seriesId,
     })),
   });
 
-  return NextResponse.json({ created: days.length });
+  return NextResponse.json({ created: days.length, seriesId });
 }
 
 export async function PUT(req: NextRequest) {
@@ -111,14 +119,28 @@ export async function DELETE(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
+  // scope=series removes every shift created alongside this one, so clearing a
+  // repeat doesn't mean clicking each date on the calendar.
+  const series = searchParams.get("scope") === "series";
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
   const existing = await prisma.dutyShift.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (existing.userId !== session.user.id && !(await isAdmin(session.user.id))) {
+  const admin = await isAdmin(session.user.id);
+  if (existing.userId !== session.user.id && !admin) {
     return NextResponse.json({ error: "You can only remove your own shifts" }, { status: 403 });
   }
 
+  if (series && existing.seriesId) {
+    // Scoped to shifts this person is allowed to remove: an admin clears the
+    // whole run, an RA only their own, so a shared series can't be wiped for
+    // someone else.
+    const { count } = await prisma.dutyShift.deleteMany({
+      where: { seriesId: existing.seriesId, ...(admin ? {} : { userId: session.user.id }) },
+    });
+    return NextResponse.json({ success: true, deleted: count });
+  }
+
   await prisma.dutyShift.delete({ where: { id } });
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, deleted: 1 });
 }

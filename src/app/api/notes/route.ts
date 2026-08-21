@@ -39,6 +39,13 @@ export async function PUT(req: NextRequest) {
 
   const { id, title, content, pinned } = await req.json();
 
+  // Notes are private — only the owner may edit.
+  const existing = await prisma.note.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.userId !== session.user.id) {
+    return NextResponse.json({ error: "You can only edit your own notes" }, { status: 403 });
+  }
+
   const note = await prisma.note.update({
     where: { id },
     data: {
@@ -58,6 +65,13 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+
+  // Notes are private — only the owner may delete.
+  const existing = await prisma.note.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (existing.userId !== session.user.id) {
+    return NextResponse.json({ error: "You can only delete your own notes" }, { status: 403 });
+  }
 
   await prisma.note.delete({ where: { id } });
 

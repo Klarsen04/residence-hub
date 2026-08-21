@@ -11,7 +11,21 @@ import { formatDate, formatTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
+
+// Format a Date as yyyy-mm-dd using local date parts (avoids UTC off-by-one in negative-UTC timezones).
+const toLocalDateString = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** "HH:MM" in local time — the shape the events API expects for start/end. */
+const toHhMm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
 const categoryColors: Record<string, string> = {
   COMMUNITY_BUILDING: "bg-accent/15 text-accent border-accent/20",
@@ -56,7 +70,7 @@ const labelClass = "wayfinding text-muted-foreground";
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { data: event, isLoading, mutate } = useSWR(`/api/events/${params.id}`, fetcher);
+  const { data: event, isLoading, error, mutate } = useSWR(`/api/events/${params.id}`, fetcher);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>(null);
@@ -68,9 +82,9 @@ export default function EventDetailPage() {
     setForm({
       title: event.title,
       description: event.description || "",
-      date: d.toISOString().split("T")[0],
-      startTime: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
-      endTime: `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`,
+      date: toLocalDateString(d),
+      startTime: toHhMm(start),
+      endTime: toHhMm(end),
       location: event.location || "",
       category: event.category,
       status: event.status,
@@ -113,6 +127,22 @@ export default function EventDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <p className="wayfinding text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] animate-pulse">Reading the placard…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+        <p className="font-display text-2xl">Couldn&apos;t load this event.</p>
+        <p className="text-sm text-muted-foreground">{error.message}</p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => mutate()}>Retry</Button>
+          <Button variant="outline" onClick={() => router.push("/events")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Events
+          </Button>
+        </div>
       </div>
     );
   }
@@ -312,7 +342,8 @@ export default function EventDetailPage() {
             </div>
           )}
 
-          {event.attendance && (
+          {/* A turnout of zero is still a recorded turnout, so test against null. */}
+          {event.attendance != null && (
             <div className="flex items-center gap-3 rounded-xl border border-[hsl(var(--sage)/0.3)] bg-[hsl(var(--sage)/0.06)] px-5 py-4 mb-6">
               <User className="h-4 w-4 text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] shrink-0" strokeWidth={1.75} />
               <div>
@@ -331,59 +362,110 @@ export default function EventDetailPage() {
 
 function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void }) {
   const [showForm, setShowForm] = useState(false);
-  const [attendance, setAttendance] = useState(event.attendance?.toString() || "");
-  const [reflection, setReflection] = useState(event.reflection || "");
+  const [attendance, setAttendance] = useState("");
+  const [reflection, setReflection] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const params = useParams();
 
-  if (event.status !== "COMPLETED" && event.status !== "APPROVED") return null;
-  if (event.attendance && event.reflection) return null;
+  // Either half on its own counts as written up — a note with no head count is
+  // still a reflection, and so is a head count with nothing said about it.
+  const hasReflection = !!event.reflection || event.attendance != null;
 
-  const handleSave = async () => {
+  // An existing reflection stays reachable whatever the event's status becomes,
+  // so it can always be corrected or taken down.
+  if (event.status !== "COMPLETED" && event.status !== "APPROVED" && !hasReflection) return null;
+
+  // Seeded when the form opens rather than at mount, so it always shows what's
+  // saved right now — including straight after a save or a delete.
+  const openForm = () => {
+    setAttendance(event.attendance != null ? String(event.attendance) : "");
+    setReflection(event.reflection || "");
+    setSaveError(null);
+    setShowForm(true);
+  };
+
+  /**
+   * Writes just the reflection half of the event. The API rewrites date and
+   * times on every PUT, so they're sent back unchanged from what's on screen.
+   */
+  const write = async (next: { attendance: string; reflection: string }, message: string) => {
     setSaving(true);
-    const d = new Date(event.date);
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-
     try {
-      await fetch(`/api/events/${params.id}`, {
+      const res = await fetch(`/api/events/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: event.title,
           description: event.description,
-          date: d.toISOString().split("T")[0],
-          startTime: `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`,
-          endTime: `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`,
+          date: toLocalDateString(new Date(event.date)),
+          startTime: toHhMm(new Date(event.startTime)),
+          endTime: toHhMm(new Date(event.endTime)),
           location: event.location,
           category: event.category,
           status: event.status,
-          attendance,
-          reflection,
+          ...next,
         }),
       });
-      toast.success("Saved!");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Failed to save");
+      }
+      setSaveError(null);
+      toast.success(message);
       setShowForm(false);
       onUpdate();
-    } catch {
-      toast.error("Failed to save");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to save";
+      setSaveError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSave = () => {
+    if (!reflection.trim() && !attendance.trim()) {
+      setSaveError("Write a reflection or record attendance before saving.");
+      return;
+    }
+    write({ attendance, reflection }, hasReflection ? "Reflection updated" : "Reflection saved");
+  };
+
+  // Blanking both halves is the delete: the API stores empty as null, so the
+  // write-up disappears and the panel offers to add one again.
+  const handleDelete = () => {
+    if (!confirm("Remove this reflection and its attendance count?")) return;
+    write({ attendance: "", reflection: "" }, "Reflection removed");
+  };
+
   return (
     <div className="rounded-xl border border-[hsl(var(--sage)/0.3)] bg-[hsl(var(--sage)/0.05)] px-5 py-5">
       {!showForm ? (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="wayfinding text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] mb-1">Post-Event</p>
             <p className="font-display text-lg">Reflection</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Record attendance and what went well</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {hasReflection ? "Written up above — change it or take it down." : "Record attendance and what went well"}
+            </p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
-            Add Reflection
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={openForm}>
+              {hasReflection ? <><Pencil className="h-3.5 w-3.5" /> Edit Reflection</> : "Add Reflection"}
+            </Button>
+            {hasReflection && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={saving}
+                onClick={handleDelete}
+                className="gap-1.5 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:bg-[hsl(var(--terracotta)/0.1)]"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -406,9 +488,12 @@ function EventReflection({ event, onUpdate }: { event: any; onUpdate: () => void
               placeholder="The event went great because..."
             />
           </div>
+          {saveError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
+          )}
           <div className="flex gap-2">
             <Button size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : "Save Reflection"}
+              {saving ? "Saving..." : hasReflection ? "Save Changes" : "Save Reflection"}
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
           </div>

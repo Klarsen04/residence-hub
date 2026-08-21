@@ -9,9 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Kanban, CheckCircle2, Circle, Clock, ArrowLeft, Trash2, Pencil, X, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
+import { PageHeader, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const typeIcons: Record<string, any> = {
   TODO: Circle,
@@ -31,8 +38,8 @@ const item = {
 };
 
 export default function CollaborationPage() {
-  const { data: boards, mutate } = useSWR("/api/boards", fetcher);
-  const { data: team } = useSWR("/api/team", fetcher);
+  const { data: boards, error: boardsError, mutate } = useSWR("/api/boards", fetcher);
+  const { data: team, error: teamError } = useSWR("/api/team", fetcher);
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [showNewBoard, setShowNewBoard] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
@@ -64,11 +71,14 @@ export default function CollaborationPage() {
         body: JSON.stringify({ title: newBoardTitle, description: newBoardDesc }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Board created!");
+      const board = await res.json();
       setShowNewBoard(false);
       setNewBoardTitle("");
       setNewBoardDesc("");
       await mutate();
+      // Open the board you just made, rather than dropping you back on the list.
+      setSelectedBoardId(board.id);
+      toast.success(`Board "${board.title}" created`);
     } catch {
       toast.error("Failed to create board");
     }
@@ -253,7 +263,21 @@ export default function CollaborationPage() {
         </motion.div>
       )}
 
-      {!activeBoard ? (
+      {boardsError ? (
+        <motion.div variants={item}>
+          <EmptyPlate
+            code="L3 · ERROR"
+            title="Couldn't load boards."
+            hint={boardsError.message}
+            icon={<Kanban className="h-8 w-8" strokeWidth={1.5} />}
+            action={
+              <Button variant="outline" onClick={() => mutate()}>
+                Retry
+              </Button>
+            }
+          />
+        </motion.div>
+      ) : !activeBoard ? (
         <motion.div variants={item}>
           {allBoards.length === 0 && !showNewBoard ? (
             <EmptyPlate
@@ -384,6 +408,9 @@ export default function CollaborationPage() {
                 ))}
                 {(activeBoard.members || []).length === 0 && <span className="text-xs text-muted-foreground">No collaborators yet.</span>}
               </div>
+              {teamError && (
+                <p className="text-xs text-red-600 dark:text-red-400">Couldn&apos;t load the team list — collaborator options may be incomplete.</p>
+              )}
               <select
                 onChange={(e) => { if (e.target.value) { addMember(activeBoard.id, e.target.value); e.target.value = ""; } }}
                 className="h-9 rounded-lg border border-black/[0.14] dark:border-white/[0.14] bg-transparent px-3 text-sm"

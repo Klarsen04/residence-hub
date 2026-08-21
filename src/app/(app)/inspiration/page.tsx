@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ExternalLink, Play, Pencil, Trash2, X, Check, Lightbulb } from "lucide-react";
+import { Plus, Search, ExternalLink, Play, Pencil, Trash2, X, Check, Lightbulb, Users, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { PageHeader, SectionMarker, EmptyPlate } from "@/components/wayfinding/PageChrome";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) => fetch(url).then((r) => {
+  if (!r.ok) throw new Error("Failed to fetch inspiration");
+  return r.json();
+});
 
 const categories = [
   "All",
@@ -22,6 +25,9 @@ const categories = [
   "LEADERSHIP",
   "SOCIAL",
 ];
+
+// First real category — categories[0] is the "All" filter chip, not a saveable value.
+const defaultCategory = categories[1];
 
 const sources = ["PINTEREST", "INSTAGRAM", "TIKTOK", "YOUTUBE", "UPLOAD"];
 
@@ -36,9 +42,19 @@ function parseTags(tags: any): string[] {
   }
 }
 
+function isYouTubeUrl(url: string): boolean {
+  let host = "";
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be";
+}
+
 function getEmbedUrl(url: string, source: string): string | null {
   if (!url) return null;
-  if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
+  if (source === "YOUTUBE" || isYouTubeUrl(url)) {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
     if (match) return `https://www.youtube.com/embed/${match[1]}`;
   }
@@ -47,7 +63,7 @@ function getEmbedUrl(url: string, source: string): string | null {
 
 function getThumbnail(url: string, source: string): string | null {
   if (!url) return null;
-  if (source === "YOUTUBE" || url.includes("youtube.com") || url.includes("youtu.be")) {
+  if (source === "YOUTUBE" || isYouTubeUrl(url)) {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/]+)/);
     if (match) return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
   }
@@ -95,15 +111,17 @@ export default function InspirationPage() {
     if (filter === value) setFilter("All");
   };
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ title: "", url: "", source: "", category: "", tags: "" });
-  const { data: inspirations, mutate } = useSWR("/api/inspiration", fetcher);
+  const [editForm, setEditForm] = useState({ title: "", url: "", source: "", category: "", tags: "", isPublic: false });
+  const { data: inspirations, error, mutate } = useSWR("/api/inspiration", fetcher);
 
   const [form, setForm] = useState({
     title: "",
     url: "",
     source: "PINTEREST",
-    category: "WELCOME_WEEK",
+    category: defaultCategory,
     tags: "",
+    // Pins are yours alone until you say otherwise.
+    isPublic: false,
   });
   const [preview, setPreview] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -141,9 +159,9 @@ export default function InspirationPage() {
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
-      toast.success("Inspiration saved!");
+      toast.success(form.isPublic ? "Inspiration saved and shared with all RAs" : "Inspiration saved!");
       setShowForm(false);
-      setForm({ title: "", url: "", source: "PINTEREST", category: "WELCOME_WEEK", tags: "" });
+      setForm({ title: "", url: "", source: "PINTEREST", category: defaultCategory, tags: "", isPublic: false });
       setPreview(null);
       mutate();
     } catch {
@@ -158,9 +176,26 @@ export default function InspirationPage() {
       title: item.title || "",
       url: item.url || "",
       source: item.source || "PINTEREST",
-      category: item.category || "WELCOME_WEEK",
+      category: item.category || defaultCategory,
       tags: tags.join(", "),
+      isPublic: !!item.isPublic,
     });
+  };
+
+  /** Share or un-share a pin straight from its card, without opening the editor. */
+  const toggleShared = async (item: any) => {
+    try {
+      const res = await fetch(`/api/inspiration/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: !item.isPublic }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(item.isPublic ? "Pin is private again" : "Pin shared with all RAs");
+      mutate();
+    } catch {
+      toast.error("Failed to change who can see this pin");
+    }
   };
 
   const handleEdit = async (id: string) => {
@@ -272,14 +307,28 @@ export default function InspirationPage() {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className={fieldLabel}>Tags (comma separated)</label>
-                <Input
-                  value={form.tags}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  placeholder="cozy, fall, movie night..."
-                  className="mt-1.5"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={fieldLabel}>Tags (comma separated)</label>
+                  <Input
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    placeholder="cozy, fall, movie night..."
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabel} htmlFor="pin-visibility">Visibility</label>
+                  <select
+                    id="pin-visibility"
+                    className={selectClass}
+                    value={form.isPublic ? "public" : "private"}
+                    onChange={(e) => setForm({ ...form, isPublic: e.target.value === "public" })}
+                  >
+                    <option value="private">Private — only you</option>
+                    <option value="public">Public — all RAs</option>
+                  </select>
+                </div>
               </div>
               {(previewLoading || preview) && (
                 <div className="rounded-lg border border-black/[0.08] dark:border-white/[0.08] overflow-hidden bg-black/[0.02] dark:bg-white/[0.02]">
@@ -382,7 +431,12 @@ export default function InspirationPage() {
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {error ? (
+        <div className="text-center py-12 space-y-3">
+          <p className="text-sm text-muted-foreground">Failed to load inspiration. Please try again.</p>
+          <Button variant="outline" onClick={() => mutate()}>Retry</Button>
+        </div>
+      ) : filtered.length === 0 ? (
         <EmptyPlate
           code="L3 · EMPTY"
           title="Nothing pinned yet"
@@ -452,6 +506,18 @@ export default function InspirationPage() {
                         className="h-8 text-sm mt-1"
                         placeholder="tag1, tag2..."
                       />
+                    </div>
+                    <div>
+                      <label className="wayfinding text-muted-foreground">Visibility</label>
+                      <select
+                        className="mt-1 flex h-8 w-full rounded-lg border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-2 text-xs"
+                        value={editForm.isPublic ? "public" : "private"}
+                        onChange={(e) => setEditForm({ ...editForm, isPublic: e.target.value === "public" })}
+                        aria-label="Visibility"
+                      >
+                        <option value="private">Private — only you</option>
+                        <option value="public">Public — all RAs</option>
+                      </select>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleEdit(item.id)}>
@@ -530,21 +596,38 @@ export default function InspirationPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-display text-base leading-snug">{item.title || "Untitled"}</p>
-                      <span className="wayfinding text-muted-foreground mt-1.5 inline-block">{item.source}</span>
+                      <span className="wayfinding text-muted-foreground mt-1.5 inline-block">
+                        {item.source}
+                        {/* A shared pin says so; someone else's says whose it is. */}
+                        {item.isOwner === false ? ` · ${item.ownerName}` : item.isPublic ? " · shared" : ""}
+                      </span>
                     </div>
                     <div className="flex gap-1">
-                      <button
-                        onClick={() => startEdit(item)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {item.isOwner !== false && (
+                        <>
+                          <button
+                            onClick={() => toggleShared(item)}
+                            className={`p-1.5 rounded-lg transition-all ${item.isPublic ? "text-[hsl(var(--sage))] dark:text-[hsl(var(--sage-soft))] hover:bg-[hsl(var(--sage)/0.12)]" : "text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100"}`}
+                            title={item.isPublic ? "Shared with all RAs — make private" : "Private — share with all RAs"}
+                          >
+                            {item.isPublic ? <Users className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => startEdit(item)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] opacity-0 group-hover:opacity-100 transition-all"
+                            title="Edit"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                       {item.url && (
                         <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] transition-all">
                           <ExternalLink className="h-3.5 w-3.5" />

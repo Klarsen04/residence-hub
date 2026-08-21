@@ -12,25 +12,30 @@ import { cn } from "@/lib/utils";
  * them up one at a time as the visitor "descends" through the building.
  */
 
+/**
+ * Three storeys, top-down — the real layout of the hall at 120 Jericho Turnpike.
+ * Level 01 is the amenity floor (open plan, no room partitions); 02 and 03 are
+ * resident floors with study lounges.
+ */
 const FLOORS = [
-  { id: "roof", label: "ROOFTOP", code: "R", detail: "Sky lounge & terrace" },
-  { id: "l3", label: "LEVEL 03", code: "03", detail: "Quiet study floors" },
-  { id: "l2", label: "LEVEL 02", code: "02", detail: "Resident rooms" },
-  { id: "l1", label: "LEVEL 01", code: "01", detail: "Community kitchen" },
-  { id: "ground", label: "GROUND", code: "G", detail: "Lobby & mailroom" },
+  { id: "l3", label: "LEVEL 03", code: "03", detail: "Resident rooms & study lounges" },
+  { id: "l2", label: "LEVEL 02", code: "02", detail: "Resident rooms & study lounges" },
+  { id: "l1", label: "LEVEL 01", code: "01", detail: "Lobby, security, pool, rec & fitness" },
 ] as const;
 
 export const BuildingDiagram = forwardRef<SVGSVGElement, { className?: string }>(
   function BuildingDiagram({ className }, ref) {
-    const floorHeight = 92;
-    const top = 40;
+    const floorHeight = 112;
+    const top = 44;
     const width = 320;
     const left = 40;
+    // Ground line sits under the lowest slab; the roof cap peaks 26 above `top`.
+    const groundY = top + FLOORS.length * floorHeight;
 
     return (
       <svg
         ref={ref}
-        viewBox="0 0 400 560"
+        viewBox={`0 0 400 ${groundY + 24}`}
         fill="none"
         className={cn("w-full h-auto", className)}
         aria-label="Cross-section of the residence hall"
@@ -39,9 +44,9 @@ export const BuildingDiagram = forwardRef<SVGSVGElement, { className?: string }>
         {/* Ground line */}
         <line
           x1="8"
-          y1={top + FLOORS.length * floorHeight}
+          y1={groundY}
           x2="392"
-          y2={top + FLOORS.length * floorHeight}
+          y2={groundY}
           stroke="hsl(var(--charcoal) / 0.5)"
           strokeWidth="1.5"
         />
@@ -62,8 +67,8 @@ export const BuildingDiagram = forwardRef<SVGSVGElement, { className?: string }>
                 strokeWidth="1.25"
               />
 
-              {/* Room partitions */}
-              {i !== 0 && (
+              {/* Room partitions — resident floors only; Level 01 is open plan. */}
+              {i !== FLOORS.length - 1 && (
                 <>
                   <line
                     x1={left + width * 0.33}
@@ -127,9 +132,9 @@ export const BuildingDiagram = forwardRef<SVGSVGElement, { className?: string }>
         {/* Entrance */}
         <rect
           x={left + width / 2 - 24}
-          y={top + FLOORS.length * floorHeight - 40}
+          y={groundY - 44}
           width={48}
-          height={40}
+          height={44}
           fill="hsl(var(--charcoal) / 0.12)"
           stroke="hsl(var(--charcoal) / 0.55)"
           strokeWidth="1.25"

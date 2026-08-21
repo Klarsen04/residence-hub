@@ -5,13 +5,21 @@ import useSWR from "swr";
 import { IlamyCalendar } from "@ilamy/calendar";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, SectionMarker } from "@/components/wayfinding/PageChrome";
 import { TagPicker } from "@/components/TagPicker";
+import { addDays, expandRecurrence } from "@/lib/recurrence";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 const SHIFT_TYPES: Record<string, { label: string; startHour: number; endHour: number; color: string }> = {
   evening: { label: "Evening", startHour: 19, endHour: 23, color: "#3f6b52" },
@@ -35,8 +43,9 @@ const toDay = (date: any): string =>
 const raLabel = (u: any) => u.name || u.email || "Unnamed RA";
 
 export default function DutyPage() {
-  const { data: shifts, mutate } = useSWR("/api/duty", fetcher);
-  const { data: team } = useSWR("/api/team", fetcher);
+  const { data: shifts, error: shiftsError, mutate } = useSWR("/api/duty", fetcher);
+  const { data: team, error: teamError, mutate: mutateTeam } = useSWR("/api/team", fetcher);
+  const loadError = shiftsError || teamError;
 
   // Which shift types are visible (filter toggles).
   const [visible, setVisible] = useState<Record<string, boolean>>({ evening: true, overnight: true, weekend: true });
@@ -50,10 +59,15 @@ export default function DutyPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formRaId, setFormRaId] = useState("");
   const [repeatDays, setRepeatDays] = useState<number[]>([]);
+  // End of the repeat range. Blank falls back to the API's eight-week window.
+  const [repeatUntil, setRepeatUntil] = useState("");
+  // Dates picked one at a time, for a run that doesn't follow a weekly pattern.
+  const [pickedDates, setPickedDates] = useState<string[]>([]);
+  const [dateToAdd, setDateToAdd] = useState("");
   const [tagId, setTagId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const allShifts = Array.isArray(shifts) ? shifts : [];
+  const allShifts = useMemo(() => (Array.isArray(shifts) ? shifts : []), [shifts]);
   const ras = (Array.isArray(team) ? team : []).filter((u: any) => u.role === "RESIDENT_ASSISTANT" || u.role === "ADMIN");
 
   // RAs that have shifts on the board, for the RA filter dropdown.
@@ -88,13 +102,45 @@ export default function DutyPage() {
     [allShifts, visible, raFilter]
   );
 
+  // The shift open in the edit panel, so the panel can offer series actions.
+  const editingShift = editingId ? allShifts.find((s: any) => s.id === editingId) : null;
+  const seriesCount = editingShift?.seriesId
+    ? allShifts.filter((s: any) => s.seriesId === editingShift.seriesId).length
+    : 0;
+
+  // What the API will create, worked out with the same function it uses — so the
+  // count below the repeat controls is the count you get.
+  const repeatPreview = useMemo(() => {
+    if (editingId) return { days: [] as string[], error: null as string | null };
+    try {
+      return {
+        days: expandRecurrence({
+          start: formDate,
+          weekdays: repeatDays,
+          until: repeatUntil || undefined,
+          extraDates: pickedDates,
+        }),
+        error: null,
+      };
+    } catch (err) {
+      return { days: [], error: err instanceof Error ? err.message : "Check the repeat settings." };
+    }
+  }, [editingId, formDate, repeatDays, repeatUntil, pickedDates]);
+
+  const resetRepeat = () => {
+    setRepeatDays([]);
+    setRepeatUntil("");
+    setPickedDates([]);
+    setDateToAdd("");
+  };
+
   const openCreate = (date: string) => {
     setEditingId(null);
     setFormDate(date);
     setFormType("evening");
     setFormTitle("");
     setFormRaId("");
-    setRepeatDays([]);
+    resetRepeat();
     setTagId(null);
     setPanelOpen(true);
   };
@@ -105,7 +151,7 @@ export default function DutyPage() {
     setFormType(shift.type || "evening");
     setFormTitle(shift.title || "");
     setFormRaId(shift.userId || "");
-    setRepeatDays([]);
+    resetRepeat();
     setTagId(shift.tagId || null);
     setPanelOpen(true);
   };
@@ -115,8 +161,19 @@ export default function DutyPage() {
     setEditingId(null);
   };
 
+  const addPickedDate = () => {
+    if (!dateToAdd) return;
+    setPickedDates((d) => (d.includes(dateToAdd) ? d : [...d, dateToAdd].sort()));
+    setDateToAdd("");
+  };
+
   const submit = async () => {
     if (!formDate || saving) return;
+    // Don't send a repeat the shared expander already rejected.
+    if (!editingId && repeatPreview.error) {
+      toast.error(repeatPreview.error);
+      return;
+    }
     setSaving(true);
     try {
       const res = editingId
@@ -128,30 +185,45 @@ export default function DutyPage() {
         : await fetch("/api/duty", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ date: formDate, type: formType, title: formTitle, tagId, recurrenceDays: repeatDays, weeks: 8, raId: formRaId || undefined }),
+            body: JSON.stringify({
+              date: formDate,
+              type: formType,
+              title: formTitle,
+              tagId,
+              recurrenceDays: repeatDays,
+              until: repeatUntil || undefined,
+              dates: pickedDates,
+              raId: formRaId || undefined,
+            }),
           });
-      if (!res.ok) throw new Error();
       const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error);
       closePanel();
       await mutate();
       toast.success(editingId ? "Shift updated" : data.created > 1 ? `Added ${data.created} shifts` : "Shift added");
-    } catch {
-      toast.error(editingId ? "Failed to update shift" : "Failed to add shift");
+    } catch (err) {
+      const fallback = editingId ? "Failed to update shift" : "Failed to add shift";
+      toast.error(err instanceof Error && err.message ? err.message : fallback);
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteShift = async (id: string) => {
-    if (!confirm("Remove this duty shift?")) return;
+  /** Removes one shift, or every shift created alongside it when scope is "series". */
+  const deleteShift = async (id: string, scope: "one" | "series" = "one") => {
+    const question = scope === "series"
+      ? `Remove all ${seriesCount} shifts in this repeat?`
+      : "Remove this duty shift?";
+    if (!confirm(question)) return;
     try {
-      const res = await fetch(`/api/duty?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
+      const res = await fetch(`/api/duty?id=${id}${scope === "series" ? "&scope=series" : ""}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error);
       closePanel();
       await mutate();
-      toast.success("Shift removed");
-    } catch {
-      toast.error("Failed to remove shift");
+      toast.success(data.deleted > 1 ? `Removed ${data.deleted} shifts` : "Shift removed");
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Failed to remove shift");
     }
   };
 
@@ -233,38 +305,139 @@ export default function DutyPage() {
             </select>
           </div>
           {!editingId && (
-            <div>
-              <p className="wayfinding text-muted-foreground mb-2">Repeat on (optional — next 8 weeks)</p>
-              <div className="flex gap-1.5 flex-wrap">
-                {WEEKDAYS.map((d) => {
-                  const on = repeatDays.includes(d.i);
-                  return (
-                    <button key={d.i} onClick={() => setRepeatDays((r) => on ? r.filter((x) => x !== d.i) : [...r, d.i])} className={`h-9 w-11 rounded-lg text-sm transition-colors ${on ? "bg-primary text-primary-foreground" : "border border-black/[0.14] dark:border-white/[0.14] text-muted-foreground"}`}>
-                      {d.label}
-                    </button>
-                  );
-                })}
+            <div className="rounded-lg border border-black/[0.08] dark:border-white/[0.08] p-4 space-y-4">
+              <div className="wayfinding text-muted-foreground flex items-center gap-1.5">
+                <CalendarRange className="h-3.5 w-3.5" /> Repeat (optional)
               </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Repeat on these days</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {WEEKDAYS.map((d) => {
+                    const on = repeatDays.includes(d.i);
+                    return (
+                      <button key={d.i} onClick={() => setRepeatDays((r) => on ? r.filter((x) => x !== d.i) : [...r, d.i])} className={`h-9 w-11 rounded-lg text-sm transition-colors ${on ? "bg-primary text-primary-foreground" : "border border-black/[0.14] dark:border-white/[0.14] text-muted-foreground"}`}>
+                        {d.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {repeatDays.length > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Repeat until — the range starts from the shift date above ({formDate || "—"})
+                  </p>
+                  <div className="flex gap-2 md:max-w-sm">
+                    <Input
+                      type="date"
+                      value={repeatUntil}
+                      min={formDate}
+                      onChange={(e) => setRepeatUntil(e.target.value)}
+                      aria-label="Repeat until"
+                    />
+                    {repeatUntil ? (
+                      <button onClick={() => setRepeatUntil("")} className="shrink-0 px-2 text-muted-foreground hover:text-foreground" title="Clear end date">
+                        <X className="h-4 w-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setRepeatUntil(addDays(formDate, 8 * 7 - 1))}
+                        className="shrink-0 whitespace-nowrap rounded-lg border border-black/[0.14] dark:border-white/[0.14] px-2.5 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        8 weeks
+                      </button>
+                    )}
+                  </div>
+                  {!repeatUntil && <p className="mt-1.5 text-xs text-muted-foreground">Blank runs for the next 8 weeks.</p>}
+                </div>
+              )}
+
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Or pick individual dates</p>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={dateToAdd}
+                    onChange={(e) => setDateToAdd(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPickedDate(); } }}
+                    aria-label="Date to add"
+                  />
+                  <Button type="button" variant="outline" onClick={addPickedDate} disabled={!dateToAdd} className="shrink-0">
+                    Add date
+                  </Button>
+                </div>
+                {pickedDates.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap mt-2.5">
+                    {pickedDates.map((d) => (
+                      <span key={d} className="inline-flex items-center gap-1 rounded-full border border-black/[0.14] dark:border-white/[0.14] pl-2.5 pr-1 py-1 text-xs">
+                        {d}
+                        <button
+                          onClick={() => setPickedDates((list) => list.filter((x) => x !== d))}
+                          className="rounded-full p-0.5 text-muted-foreground hover:text-red-500"
+                          title={`Remove ${d}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {repeatPreview.error ? (
+                <p className="text-xs text-red-500">{repeatPreview.error}</p>
+              ) : repeatPreview.days.length > 1 ? (
+                <p className="text-xs text-muted-foreground">
+                  Creates <span className="text-foreground font-medium">{repeatPreview.days.length} shifts</span>, {repeatPreview.days[0]} → {repeatPreview.days[repeatPreview.days.length - 1]}.
+                </p>
+              ) : null}
             </div>
           )}
           <div>
             <p className="wayfinding text-muted-foreground mb-2">Tag</p>
             <TagPicker value={tagId} onChange={setTagId} />
           </div>
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2 pt-1 flex-wrap">
             <button onClick={submit} disabled={saving} className="h-10 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-60">
-              {saving ? "Saving…" : editingId ? "Save changes" : `Add shift${repeatDays.length ? "s" : ""}`}
+              {saving ? "Saving…" : editingId ? "Save changes" : `Add shift${repeatPreview.days.length > 1 ? "s" : ""}`}
             </button>
             <button onClick={closePanel} className="h-10 px-5 rounded-lg text-sm text-muted-foreground">Cancel</button>
             {editingId && (
-              <button onClick={() => deleteShift(editingId)} className="ml-auto inline-flex items-center gap-1.5 h-10 px-3 rounded-lg text-sm text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:bg-[hsl(var(--terracotta)/0.1)]" title="Delete shift">
-                <Trash2 className="h-4 w-4" /> Delete
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => deleteShift(editingId, "one")} className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg text-sm text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:bg-[hsl(var(--terracotta)/0.1)]">
+                  <Trash2 className="h-4 w-4" /> {seriesCount > 1 ? "Delete this one" : "Delete"}
+                </button>
+                {/* Only offered when the shift really belongs to a repeat, so the
+                    two buttons can't mean the same thing. */}
+                {seriesCount > 1 && (
+                  <button onClick={() => deleteShift(editingId, "series")} className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg text-sm text-red-500 hover:bg-red-500/10">
+                    <Trash2 className="h-4 w-4" /> Delete all {seriesCount} in series
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </motion.div>
       )}
 
+      {loadError ? (
+        <div className="rounded-xl border border-dashed border-black/[0.14] dark:border-white/[0.14] py-14 px-6 text-center">
+          <p className="font-display text-2xl">Couldn&apos;t load the duty schedule.</p>
+          <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">{loadError.message}</p>
+          <Button
+            variant="outline"
+            className="mt-5"
+            onClick={() => {
+              mutate();
+              mutateTeam();
+            }}
+          >
+            Retry
+          </Button>
+        </div>
+      ) : (
       <div className="ilamy-scope rounded-2xl border border-black/[0.08] dark:border-white/[0.08] bg-card overflow-hidden">
         <div className="h-[70vh]">
           <IlamyCalendar
@@ -283,6 +456,7 @@ export default function DutyPage() {
           />
         </div>
       </div>
+      )}
     </motion.div>
   );
 }

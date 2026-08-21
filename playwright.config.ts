@@ -1,10 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // E2E config. `npx playwright test` will reuse a dev server if one is already
-// running at :3000, otherwise it starts `npm run dev` for you.
+// running at the target port, otherwise it starts `npm run dev` for you.
+// Set PORT if :3000 is taken by another project's dev server — reusing a
+// foreign server silently tests the wrong app.
 //
 // Flows are a stateful journey (a resident created early is used by the
 // check-in test), so the suite runs serially in a single worker.
+const PORT = process.env.PORT || "3000";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -14,7 +18,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -28,7 +32,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3000",
+    url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     timeout: 120_000,
   },

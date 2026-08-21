@@ -1,34 +1,34 @@
 version: 2
 
+# Policy: Dependabot auto-handles MINOR/PATCH updates only (grouped, safe).
+# MAJOR updates are ignored here and done deliberately via the local tooling
+# (`npm run deps:check` to preview, `npm run deps:update` to apply) so breaking
+# migrations aren't dripped in as failing PRs.
+
 updates:
-  # npm dependencies — weekly, grouped to cut PR noise.
   - package-ecosystem: npm
     directory: "/"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      # One PR for all non-major (minor + patch) bumps.
       minor-and-patch:
         update-types:
           - minor
           - patch
-    # Conventional-Commit titles (e.g. "chore(deps): bump next from 15.1 to 15.2")
-    # so the "Conventional PR title" check passes without manual edits.
     commit-message:
       prefix: "chore"
       include: "scope"
     ignore:
-      # vitest 3+ removed environmentMatchGlobs (used in vitest.config.mts).
-      # Hold majors until the config is migrated; minor/patch still flow.
-      - dependency-name: "vitest"
+      # Hold all majors — upgrade manually when ready to migrate.
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      # @libsql/client 0.9+ breaks the @prisma/adapter-libsql@5 peer range
-      # (accepts up to ^0.8.0). Hold it until the Prisma adapter is upgraded.
+      # @libsql/client is 0.x, so 0.9+ is a "minor" the major-ignore misses,
+      # but it breaks the @prisma/adapter-libsql peer range. Hold until the
+      # Prisma adapter is upgraded alongside it.
       - dependency-name: "@libsql/client"
         versions: [">=0.9.0"]
 
-  # Keep the GitHub Actions we use up to date too.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -37,7 +37,5 @@ updates:
       prefix: "chore"
       include: "scope"
     ignore:
-      # compressed-size-action v3 changed its inputs/behavior. Hold the major
-      # until the bundle-size workflow is updated for it.
-      - dependency-name: "preactjs/compressed-size-action"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]

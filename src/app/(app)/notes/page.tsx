@@ -36,7 +36,14 @@ function getAccentClass(color: string): string {
   return map[color] || map.purple;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+};
 
 export default function NotesPage() {
   const { data: notes, error, isLoading, mutate } = useSWR<Note[]>("/api/notes", fetcher);
@@ -82,12 +89,18 @@ export default function NotesPage() {
   const togglePin = async (id: string) => {
     const note = notes?.find((n) => n.id === id);
     if (!note) return;
-    await fetch("/api/notes", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, pinned: !note.pinned }),
-    });
-    mutate();
+    try {
+      const res = await fetch("/api/notes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, pinned: !note.pinned }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+    } catch {
+      toast.error(note.pinned ? "Failed to unpin note" : "Failed to pin note");
+      mutate();
+    }
   };
 
   const startEditing = (note: Note) => {
@@ -97,13 +110,20 @@ export default function NotesPage() {
   };
 
   const saveEdit = async (id: string) => {
-    await fetch("/api/notes", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, title: editTitle || "Untitled", content: editContent }),
-    });
-    mutate();
-    setEditingId(null);
+    try {
+      const res = await fetch("/api/notes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, title: editTitle || "Untitled", content: editContent }),
+      });
+      if (!res.ok) throw new Error();
+      await mutate();
+      setEditingId(null);
+      toast.success("Note updated");
+    } catch {
+      // Keep the edit form open so nothing typed is lost.
+      toast.error("Failed to update note");
+    }
   };
 
   const sortedNotes = [...(notes || [])].sort((a, b) => {
@@ -122,8 +142,9 @@ export default function NotesPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-muted-foreground">Failed to load notes.</p>
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <p className="text-muted-foreground">Couldn&apos;t load notes. {error.message}</p>
+        <Button variant="outline" onClick={() => mutate()}>Retry</Button>
       </div>
     );
   }
@@ -234,12 +255,14 @@ export default function NotesPage() {
                         <button
                           onClick={() => togglePin(note.id)}
                           className="p-1 rounded-lg text-muted-foreground hover:text-[hsl(var(--terracotta))] hover:bg-[hsl(var(--terracotta)/0.1)] transition-all"
+                          title={note.pinned ? "Unpin note" : "Pin note"}
                         >
                           {note.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                         </button>
                         <button
                           onClick={() => deleteNote(note.id)}
                           className="p-1 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          title="Delete note"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>

@@ -47,7 +47,9 @@ test("boards: create", async ({ page }) => {
   await page.getByRole("button", { name: /new board|create your first board/i }).first().click();
   await page.getByPlaceholder(/Board name/).fill(`${TAG} Board`);
   await page.getByRole("button", { name: /^Create Board$/ }).click();
-  await expect(page.getByText(`${TAG} Board`)).toBeVisible();
+  // Creating a board opens it, so assert on its heading — plain text would also
+  // match the success toast, which quotes the title back.
+  await expect(page.getByRole("heading", { name: `${TAG} Board` })).toBeVisible();
 });
 
 test("inspiration: save upload pin", async ({ page }) => {
@@ -59,13 +61,13 @@ test("inspiration: save upload pin", async ({ page }) => {
   await expect(page.getByText(`${TAG} Pin`)).toBeVisible();
 });
 
-test("decorations: add with material + auto total", async ({ page }) => {
+test("decorations: post with a photo link", async ({ page }) => {
   await page.goto("/decorations");
-  await page.getByRole("button", { name: /add decoration/i }).first().click();
+  await page.getByRole("button", { name: /post decoration/i }).first().click();
   await page.getByPlaceholder(/Fall Leaf Door Decs/).fill(`${TAG} Craft`);
-  await page.getByPlaceholder("Material").fill("Cardstock");
-  await page.getByPlaceholder("$").fill("5");
-  await expect(page.locator("form").getByText("$5.00")).toBeVisible(); // auto total (scoped to form)
+  // Pasting a link is the alternative to the file picker, which Playwright
+  // can't drive without a real file on disk.
+  await page.getByPlaceholder(/paste image link/).fill("https://example.com/dec.jpg");
   await page.locator('form button[type="submit"]').click();
   await expect(page.getByText(`${TAG} Craft`)).toBeVisible();
 });
@@ -107,6 +109,14 @@ test("duty: no built-in modal; panel creates a shift", async ({ page }) => {
   // Ilamy's built-in event form must NOT be present.
   await expect(page.getByText(/Add a new event to your calendar|Event description/i)).toHaveCount(0);
   // Submit with the default shift type — panel closes on success.
+  await page.getByPlaceholder(/Front desk, Rounds/).fill(`${TAG} Shift`);
   await page.getByRole("button", { name: /^Add shift/ }).click();
   await expect(page.getByText(/Add shift/).first()).toBeHidden({ timeout: 10_000 });
+
+  // Remove it again: shifts left behind stack up in the day cell until they
+  // cover it, and then this test's own cell click can't land.
+  page.once("dialog", (d) => d.accept());
+  await page.getByText(`${TAG} Shift`).first().click({ force: true });
+  await page.getByRole("button", { name: /^Delete$/ }).click();
+  await expect(page.getByText(`${TAG} Shift`)).toHaveCount(0, { timeout: 10_000 });
 });

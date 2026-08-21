@@ -5,10 +5,11 @@ import { notify } from "@/lib/notify";
 export const dynamic = "force-dynamic";
 
 // Weekly digest (Vercel Cron): sends each RA an in-app notification listing
-// their residents not checked in for 7+ days. Secured with CRON_SECRET when set.
+// their residents not checked in for 7+ days. Secured with CRON_SECRET when
+// set; an unset secret is only allowed outside production.
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) return process.env.NODE_ENV !== "production";
   return req.headers.get("authorization") === `Bearer ${secret}`;
 }
 

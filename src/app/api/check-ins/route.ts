@@ -4,13 +4,35 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // Check-ins are private per RA. Optionally scoped to a board via ?boardId=
-// ("individual" = no board).
+// ("individual" = no board). Shared boards return every RA's entries with
+// other users' private fields redacted; everything else returns own entries.
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const boardId = searchParams.get("boardId");
+
+  // Shared boards are a campaign across all RAs: return the whole board so the
+  // UI can mark residents done, but redact other RAs' private fields
+  // (mood/topics/notes/followUp) — check-in content stays private per RA.
+  if (boardId && boardId !== "individual") {
+    const board = await prisma.checkInBoard.findUnique({ where: { id: boardId }, select: { scope: true } });
+    if (board?.scope === "shared") {
+      const checkIns = await prisma.checkIn.findMany({
+        where: { boardId },
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      });
+      const visible = checkIns.map(({ user, ...ci }) => {
+        const isOwn = ci.userId === session.user.id;
+        return isOwn
+          ? { ...ci, isOwn: true, userName: user?.name || null }
+          : { ...ci, isOwn: false, userName: user?.name || null, mood: null, topics: null, notes: null, followUp: false };
+      });
+      return NextResponse.json(visible);
+    }
+  }
 
   const where: Record<string, unknown> = { userId: session.user.id };
   if (boardId === "individual") where.boardId = null;
@@ -39,13 +61,13 @@ export async function POST(req: NextRequest) {
     const board = boardId ? await prisma.checkInBoard.findUnique({ where: { id: boardId }, select: { scope: true } }) : null;
 
     if (board?.scope === "shared") {
-      // Shared campaign: one check-in per resident, ever.
+      // Shared campaign: one check-in per resident, ever — across ALL RAs.
       const already = await prisma.checkIn.findFirst({
-        where: { userId: session.user.id, residentId, boardId },
+        where: { residentId, boardId },
         select: { id: true },
       });
       if (already) {
-        return NextResponse.json({ error: "You've already checked this resident in for this board." }, { status: 409 });
+        return NextResponse.json({ error: "This resident has already been checked in on this board." }, { status: 409 });
       }
     } else {
       // Personal board / individual: one check-in per resident per day.

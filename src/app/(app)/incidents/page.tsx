@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Plus, Lock, ChevronDown, ChevronUp, Phone, ExternalLink, ShieldAlert, Pencil, X, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Lock, ChevronDown, ChevronUp, Phone, ExternalLink, ShieldAlert, Pencil, Trash2, Clock, Check, Ban } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { PageHeader, SectionMarker, Plate, PlateRow, EmptyPlate } from "@/components/wayfinding/PageChrome";
+import type { Review, ShareRequest } from "@/lib/incidentVisibility";
 
 interface Incident {
   id: string;
@@ -23,9 +24,15 @@ interface Incident {
   followUpNeeded: boolean;
   status: "open" | "resolved" | "escalated";
   isPublic: boolean;
+  /** Where a request to share with all RAs stands. Null means nothing asked. */
+  shareRequest: ShareRequest;
   ownerId: string;
   ownerName: string;
+  /** True on your own report — only the owner rewrites it or publishes it. */
+  isOwner: boolean;
   canEdit: boolean;
+  /** True for admins — only they can rule on a sharing request. */
+  canApprove: boolean;
   createdAt?: string;
 }
 
@@ -93,12 +100,10 @@ export default function IncidentsPage() {
     finally { setSavingCfg(false); }
   };
 
-  const [showForm, setShowForm] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [form, setForm] = useState({
+  const blankForm = () => ({
     date: new Date().toISOString().split("T")[0],
     time: "",
-    type: "Noise Complaint",
+    type: incidentTypes[0],
     severity: "low" as Incident["severity"],
     location: "",
     description: "",
@@ -107,25 +112,85 @@ export default function IncidentsPage() {
     isPublic: false,
   });
 
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [form, setForm] = useState(blankForm);
+
+  // The report being edited, so the form can warn that a shared report goes back
+  // for review when its wording changes.
+  const editingIncident = editingId ? (incidents ?? []).find((i) => i.id === editingId) : null;
+
+  const openNewForm = () => {
+    setEditingId(null);
+    setForm(blankForm());
+    setShowForm(true);
+  };
+
+  const startEdit = (incident: Incident) => {
+    setEditingId(incident.id);
+    setForm({
+      date: incident.date,
+      time: incident.time,
+      type: incident.type,
+      severity: incident.severity,
+      location: incident.location,
+      description: incident.description,
+      actionTaken: incident.actionTaken || "",
+      followUpNeeded: incident.followUpNeeded,
+      // Visibility is handled by its own request/approve buttons, not the form.
+      isPublic: incident.isPublic,
+    });
+    setShowForm(true);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(blankForm());
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description.trim() || !form.location.trim()) {
       toast.error("Please fill in location and description");
       return;
     }
+    setSaving(true);
     try {
+      // Shared *or* cleared to share: either way an admin has read the wording, so
+      // rewriting it goes back for review.
+      const wasCleared = !!editingIncident?.isPublic || editingIncident?.shareRequest === "approved";
       const res = await fetch("/api/incidents", {
-        method: "POST",
+        method: editingId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        // On an edit the id names the row; isPublic is deliberately not sent,
+        // since visibility only moves through request/approve.
+        body: JSON.stringify(editingId ? { ...form, id: editingId, isPublic: undefined } : form),
       });
-      if (!res.ok) throw new Error("Failed to create incident");
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error);
       await mutate();
-      setShowForm(false);
-      setForm({ date: new Date().toISOString().split("T")[0], time: "", type: "Noise Complaint", severity: "low", location: "", description: "", actionTaken: "", followUpNeeded: false, isPublic: false });
-      toast.success("Incident report saved");
-    } catch {
-      toast.error("Failed to save incident report");
+      const nowPending = editingId && wasCleared && body?.shareRequest === "pending";
+      closeForm();
+      if (nowPending) {
+        toast.success("Report updated — back to an admin for review before it's shared again");
+      } else if (editingId) {
+        toast.success("Report updated");
+      } else if (body?.isPublic) {
+        toast.success("Report saved and shared with all RAs");
+      } else if (form.isPublic) {
+        toast.success("Report saved — sharing sent to an admin for approval");
+      } else {
+        toast.success("Incident report saved");
+      }
+    } catch (err) {
+      const fallback = editingId ? "Failed to update incident report" : "Failed to save incident report";
+      toast.error(err instanceof Error && err.message ? err.message : fallback);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -148,18 +213,40 @@ export default function IncidentsPage() {
     }
   };
 
-  const togglePublic = async (incident: Incident) => {
+  const deleteIncident = async (incident: Incident) => {
+    if (!confirm("Delete this incident report? This can't be undone.")) return;
+    try {
+      const res = await fetch(`/api/incidents?id=${incident.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await mutate();
+      toast.success("Incident report deleted");
+    } catch {
+      toast.error("Failed to delete incident report");
+    }
+  };
+
+  /**
+   * Moves a report's visibility. `requestPublic` is the owner asking or
+   * publishing; `review` is an admin's verdict, which grants permission without
+   * publishing anything itself.
+   */
+  const changeVisibility = async (
+    incident: Incident,
+    payload: { requestPublic?: boolean; review?: Review },
+    message: string,
+  ) => {
     try {
       const res = await fetch("/api/incidents", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: incident.id, isPublic: !incident.isPublic }),
+        body: JSON.stringify({ id: incident.id, ...payload }),
       });
-      if (!res.ok) throw new Error("Failed to change visibility");
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error);
       await mutate();
-      toast.success(incident.isPublic ? "Incident set to private" : "Incident shared with all RAs");
-    } catch {
-      toast.error("Failed to change visibility");
+      toast.success(message);
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "Failed to change visibility");
     }
   };
 
@@ -189,6 +276,10 @@ export default function IncidentsPage() {
   const incidentList = incidents ?? [];
   const openCount = incidentList.filter(i => i.status === "open").length;
   const followUpCount = incidentList.filter(i => i.followUpNeeded && i.status !== "resolved").length;
+  // Admins get a queue count so a sharing request doesn't sit unnoticed. Read off
+  // the rows themselves — the API already decides who may approve.
+  const canApproveAny = incidentList.some(i => i.canApprove);
+  const pendingShareCount = incidentList.filter(i => i.shareRequest === "pending").length;
 
   return (
     <motion.div
@@ -202,7 +293,7 @@ export default function IncidentsPage() {
         title="Front desk log"
         subtitle="Document and track floor incidents, and route each one to the right office."
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button onClick={() => (showForm ? closeForm() : openNewForm())}>
             <Plus className="h-4 w-4 mr-2" />
             New Report
           </Button>
@@ -224,10 +315,11 @@ export default function IncidentsPage() {
       </div>
 
       <div className="mb-10">
-        <PlateRow className="grid-cols-3">
+        <PlateRow className={canApproveAny ? "grid-cols-2 md:grid-cols-4" : "grid-cols-3"}>
           <Plate code="01" value={incidentList.length} label="Total reports" accent />
           <Plate code="02" value={openCount} label="Open" />
           <Plate code="03" value={followUpCount} label="Follow-up" />
+          {canApproveAny && <Plate code="04" value={pendingShareCount} label="Sharing to review" />}
         </PlateRow>
       </div>
 
@@ -238,7 +330,7 @@ export default function IncidentsPage() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Lock className="h-4 w-4 text-muted-foreground" />
-                  New Incident Report
+                  {editingId ? "Edit Incident Report" : "New Incident Report"}
                   <Badge variant="secondary" className="ml-auto text-[10px]">Confidential</Badge>
                 </CardTitle>
               </CardHeader>
@@ -320,19 +412,32 @@ export default function IncidentsPage() {
                     <span className="text-sm text-muted-foreground">Follow-up needed</span>
                   </label>
 
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.isPublic}
-                      onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
-                      className="rounded"
-                    />
-                    <span className="text-sm text-muted-foreground">Share with all RAs (make public) — off by default</span>
-                  </label>
+                  {editingId ? (
+                    // Visibility isn't editable here — it moves through the
+                    // request/approve buttons on the report itself.
+                    (editingIncident?.isPublic || editingIncident?.shareRequest === "approved") && !editingIncident?.canApprove ? (
+                      <p className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-3 text-xs text-muted-foreground">
+                        <Clock className="h-4 w-4 shrink-0 text-amber-500" />
+                        An admin has already cleared this report. Changing what it says sends it back for review, so the wording they approved isn&apos;t replaced without a second look.
+                      </p>
+                    ) : null
+                  ) : (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.isPublic}
+                        onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
+                        className="rounded"
+                      />
+                      <span className="text-sm text-muted-foreground">Ask to share with all RAs — an admin approves it first</span>
+                    </label>
+                  )}
 
                   <div className="flex gap-2 pt-2">
-                    <Button type="submit">Save Report</Button>
-                    <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                    <Button type="submit" disabled={saving}>
+                      {saving ? "Saving…" : editingId ? "Save Changes" : "Save Report"}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
                   </div>
                 </form>
               </CardContent>
@@ -482,6 +587,27 @@ export default function IncidentsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {incident.isPublic && <Badge className="bg-primary/15 text-primary border-primary/20">Shared</Badge>}
+                    {incident.shareRequest === "pending" && (
+                      <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/20 gap-1">
+                        <Clock className="h-3 w-3" /> Awaiting approval
+                      </Badge>
+                    )}
+                    {/* Approved but not yet published — the owner still decides. */}
+                    {incident.shareRequest === "approved" && !incident.isPublic && (
+                      <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/20 gap-1">
+                        <Check className="h-3 w-3" /> Cleared to share
+                      </Badge>
+                    )}
+                    {incident.shareRequest === "changes" && (
+                      <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/20 gap-1">
+                        <Pencil className="h-3 w-3" /> Changes requested
+                      </Badge>
+                    )}
+                    {incident.shareRequest === "rejected" && (
+                      <Badge className="bg-black/[0.06] dark:bg-white/[0.08] text-muted-foreground gap-1">
+                        <Ban className="h-3 w-3" /> Sharing declined
+                      </Badge>
+                    )}
                     <Badge className={severityConfig[incident.severity].color}>{severityConfig[incident.severity].label}</Badge>
                     <Badge className={statusConfig[incident.status].color}>{statusConfig[incident.status].label}</Badge>
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -508,28 +634,96 @@ export default function IncidentsPage() {
                       )}
                       {incident.canEdit ? (
                         <div className="flex gap-2 pt-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                          {(incident.status === "open" || incident.status === "escalated") && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                              onClick={() => handleStatusChange(incident, "resolved")}
+                            >
+                              Mark Resolved
+                            </Button>
+                          )}
                           {incident.status === "open" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-400 border-red-500/30 hover:bg-red-500/10"
+                              onClick={() => handleStatusChange(incident, "escalated")}
+                            >
+                              Escalate
+                            </Button>
+                          )}
+                          {/* Rewriting a report is the author's job. An admin
+                              reading someone else's is reviewing it, not editing. */}
+                          {incident.isOwner && (
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => startEdit(incident)}>
+                              <Pencil className="h-3.5 w-3.5" /> Edit
+                            </Button>
+                          )}
+
+                          {/* Visibility is the owner's call. Asking, publishing and
+                              pulling back all live on this one button. */}
+                          {incident.isOwner && (
+                            incident.isPublic ? (
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: false }, "Report set back to private")}>
+                                Make private
+                              </Button>
+                            ) : incident.shareRequest === "pending" ? (
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: false }, "Sharing request withdrawn")}>
+                                Withdraw request
+                              </Button>
+                            ) : incident.canApprove || incident.shareRequest === "approved" ? (
+                              // Permission is already in hand — an admin has it
+                              // inherently, everyone else once a review cleared it.
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: true }, "Report shared with all RAs")}>
+                                Share with all RAs
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" onClick={() => changeVisibility(incident, { requestPublic: true }, "Sent to an admin for approval")}>
+                                Request sharing
+                              </Button>
+                            )
+                          )}
+
+                          {/* An admin's three verdicts. Approving clears the report
+                              to go out; publishing it stays with the author. */}
+                          {incident.canApprove && !incident.isOwner && incident.shareRequest === "pending" && (
                             <>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                                onClick={() => handleStatusChange(incident, "resolved")}
+                                className="gap-1.5 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10"
+                                onClick={() => changeVisibility(incident, { review: "approve" }, "Approved — the RA can now share it")}
                               >
-                                Mark Resolved
+                                <Check className="h-3.5 w-3.5" /> Approve
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-400 border-red-500/30 hover:bg-red-500/10"
-                                onClick={() => handleStatusChange(incident, "escalated")}
+                                className="gap-1.5 text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                onClick={() => changeVisibility(incident, { review: "decline" }, "Declined — the report stays private")}
                               >
-                                Escalate
+                                <Ban className="h-3.5 w-3.5" /> Decline
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
+                                onClick={() => changeVisibility(incident, { review: "changes" }, "Sent back for changes")}
+                              >
+                                <Pencil className="h-3.5 w-3.5" /> Needs changes
                               </Button>
                             </>
                           )}
-                          <Button size="sm" variant="outline" onClick={() => togglePublic(incident)}>
-                            {incident.isPublic ? "Make private" : "Make public"}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-auto gap-1.5 text-[hsl(var(--terracotta))] dark:text-[hsl(var(--terracotta-soft))] hover:bg-[hsl(var(--terracotta)/0.1)]"
+                            onClick={() => deleteIncident(incident)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </Button>
                         </div>
                       ) : (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -52,9 +53,12 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const router = useRouter();
+  const { data: session } = useSession();
 
-  const filtered = commands.filter((cmd) =>
-    cmd.name.toLowerCase().includes(query.toLowerCase())
+  const filtered = commands.filter(
+    (cmd) =>
+      (cmd.href !== "/admin" || session?.user?.role === "ADMIN") &&
+      cmd.name.toLowerCase().includes(query.toLowerCase())
   );
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

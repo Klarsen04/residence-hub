@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Copy, Check, Shield, Trash2 } from "lucide-react";
+import { Plus, Copy, Check, Shield, Trash2, KeyRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -19,12 +19,18 @@ const roles = [
 ];
 
 export default function AdminPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { data: codes, mutate } = useSWR("/api/admin/codes", fetcher);
+  const { data: resets, mutate: mutateResets } = useSWR("/api/admin/password-resets", fetcher);
   const [generating, setGenerating] = useState(false);
   const [selectedRole, setSelectedRole] = useState("RESIDENT_ASSISTANT");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [repairing, setRepairing] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [issuing, setIssuing] = useState(false);
+  // The one and only sighting of a reset link — the database keeps just its hash.
+  const [issuedLink, setIssuedLink] = useState<{ email: string; link: string; emailed: boolean; expiresAt: string } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const handleRepair = async () => {
     setRepairing(true);
@@ -41,6 +47,14 @@ export default function AdminPage() {
       setRepairing(false);
     }
   };
+
+  if (status === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   if (session?.user?.role !== "ADMIN") {
     return (
@@ -75,6 +89,49 @@ export default function AdminPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Hand someone a reset link. The response carries the raw link once, so it goes
+  // straight into state for the admin to copy — reloading the page loses it.
+  const issueReset = async () => {
+    if (!resetEmail.trim()) return;
+    setIssuing(true);
+    try {
+      const res = await fetch("/api/admin/password-resets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setIssuedLink({ email: resetEmail.trim(), link: data.link, emailed: !!data.emailed, expiresAt: data.expiresAt });
+      setResetEmail("");
+      await mutateResets();
+      toast.success(data.emailed ? "Reset link created and emailed" : "Reset link created — copy it below");
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't create a reset link");
+    } finally {
+      setIssuing(false);
+    }
+  };
+
+  const copyLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    toast.success("Reset link copied");
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const cancelReset = async (id: string, who: string) => {
+    if (!confirm(`Cancel the reset request for ${who}?`)) return;
+    try {
+      const res = await fetch(`/api/admin/password-resets?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      await mutateResets();
+      toast.success("Request cancelled");
+    } catch {
+      toast.error("Couldn't cancel that request");
+    }
+  };
+
   const deleteCode = async (id: string, code: string) => {
     if (!confirm(`Delete authorization code ${code}?`)) return;
     try {
@@ -100,7 +157,7 @@ export default function AdminPage() {
         </div>
         <div>
           <h1 className="text-3xl font-bold">Admin</h1>
-          <p className="text-muted-foreground">Manage authorization codes for new staff</p>
+          <p className="text-muted-foreground">Authorization codes for new staff, and password help for existing ones</p>
         </div>
       </div>
 
@@ -118,6 +175,100 @@ export default function AdminPage() {
           <Button onClick={handleRepair} disabled={repairing}>
             {repairing ? "Syncing…" : "Sync database"}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Password resets. Anyone can start one from the sign-in page; this is where
+          an admin finishes it when email delivery isn't set up, or when someone
+          can't reach their inbox. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-muted-foreground" /> Password resets
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {resets?.emailConfigured
+              ? "Reset links are emailed automatically. Issue one here if someone can't reach their inbox."
+              : "Email sending isn't set up on this deployment, so reset links have to be handed over in person. Create one here and give it to them."}
+          </p>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[16rem]">
+              <label htmlFor="reset-email" className="text-sm font-medium text-muted-foreground">
+                Their email
+              </label>
+              <input
+                id="reset-email"
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="ra@example.com"
+                className="mt-1.5 flex h-10 w-full rounded-xl border border-black/[0.1] dark:border-white/[0.1] bg-black/[0.03] dark:bg-white/[0.03] px-4 py-2 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/30 outline-none"
+              />
+            </div>
+            <Button onClick={issueReset} disabled={issuing || !resetEmail.trim()}>
+              <KeyRound className="h-4 w-4 mr-2" />
+              {issuing ? "Creating…" : "Create reset link"}
+            </Button>
+          </div>
+
+          {issuedLink && (
+            <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] space-y-2">
+              <p className="text-sm">
+                Link for <span className="font-medium">{issuedLink.email}</span>
+                {issuedLink.emailed ? " — also emailed to them." : " — copy it now, it won't be shown again."}
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs font-mono break-all p-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.04]">
+                  {issuedLink.link}
+                </code>
+                <Button variant="ghost" size="icon" onClick={() => copyLink(issuedLink.link)} className="rounded-xl" title="Copy link">
+                  {linkCopied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setIssuedLink(null)} className="rounded-xl text-muted-foreground" title="Dismiss">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Works once, and expires at{" "}
+                {new Date(issuedLink.expiresAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.
+              </p>
+            </div>
+          )}
+
+          <div>
+            <p className="text-sm font-medium mb-2">Waiting on a link</p>
+            {!resets?.pending || resets.pending.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nobody is waiting on a password reset.</p>
+            ) : (
+              <div className="space-y-2">
+                {resets.pending.map((r: any) => (
+                  <div key={r.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02]">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{r.name || r.email}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {r.email} · asked {new Date(r.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="secondary">{r.selfService ? "They asked" : "Admin issued"}</Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => cancelReset(r.id, r.email || r.name || "this person")}
+                        className="rounded-xl text-muted-foreground hover:text-red-500"
+                        title="Cancel request"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

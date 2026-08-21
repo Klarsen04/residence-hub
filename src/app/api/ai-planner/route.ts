@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { generatePlan, AIPlannerError } from "@/lib/aiPlanner";
-import { getLimitStatus, recordUsage, limitMessage } from "@/lib/aiLimits";
+import { getLimitStatus, recordUsage, limitMessage, todayKey } from "@/lib/aiLimits";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -26,7 +26,15 @@ export async function GET() {
       },
     });
   } catch {
-    return NextResponse.json({ used: 0, limit: null, remaining: null, isAdmin: session.user.role === "ADMIN", global: {} });
+    // Same shape as the success response so the client never sees missing keys.
+    return NextResponse.json({
+      used: 0,
+      limit: null,
+      remaining: null,
+      day: todayKey(),
+      isAdmin: session.user.role === "ADMIN",
+      global: { used: 0, limit: null, remaining: null },
+    });
   }
 }
 
@@ -50,7 +58,7 @@ export async function POST(req: NextRequest) {
   const { budget, audience, goal, attendance } = body;
 
   if (!budget || !audience || !goal || !attendance) {
-    return NextResponse.json({ message: "All fields are required" }, { status: 400 });
+    return NextResponse.json({ error: "All fields are required" }, { status: 400 });
   }
 
   const prompt = `You are a Residence Life event planning assistant. Generate a detailed event plan based on these inputs:
@@ -97,16 +105,22 @@ Be creative, practical, and budget-conscious. Suggest alternatives if the budget
       console.error("AI usage record skipped:", e);
     }
 
-    await prisma.aIPlannerSession.create({
-      data: {
-        userId: session.user.id,
-        budget: parseFloat(budget),
-        audience,
-        goal,
-        attendance: parseInt(attendance),
-        response,
-      },
-    });
+    // History save is best-effort: the plan was generated (and quota spent),
+    // so a failed session write must not discard it.
+    try {
+      await prisma.aIPlannerSession.create({
+        data: {
+          userId: session.user.id,
+          budget: parseFloat(budget),
+          audience,
+          goal,
+          attendance: parseInt(attendance),
+          response,
+        },
+      });
+    } catch (e) {
+      console.error("AI planner session save skipped:", e);
+    }
 
     const remaining = status && Number.isFinite(status.userRemaining)
       ? Math.max(0, status.userRemaining - 1)

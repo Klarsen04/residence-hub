@@ -174,6 +174,7 @@ CREATE TABLE "Inspiration" (
     "imageUrl" TEXT,
     "category" TEXT,
     "tags" TEXT,
+    "isPublic" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "Inspiration_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -459,6 +460,7 @@ CREATE TABLE "Incident" (
     "followUpNeeded" BOOLEAN NOT NULL DEFAULT false,
     "status" TEXT NOT NULL DEFAULT 'open',
     "isPublic" BOOLEAN NOT NULL DEFAULT false,
+    "shareRequest" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "Incident_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -486,6 +488,7 @@ CREATE TABLE "DutyShift" (
     "title" TEXT,
     "notes" TEXT,
     "tagId" TEXT,
+    "seriesId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "DutyShift_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "DutyShift_tagId_fkey" FOREIGN KEY ("tagId") REFERENCES "Tag" ("id") ON DELETE SET NULL ON UPDATE CASCADE
@@ -679,3 +682,21 @@ CREATE TABLE "Setting" (
     "value" TEXT NOT NULL,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- CreateTable
+CREATE TABLE "PasswordResetToken" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "expiresAt" DATETIME NOT NULL,
+    "usedAt" DATETIME,
+    "createdBy" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PasswordResetToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PasswordResetToken_tokenHash_key" ON "PasswordResetToken"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "PasswordResetToken_userId_idx" ON "PasswordResetToken"("userId");
