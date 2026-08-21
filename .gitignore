@@ -6,9 +6,6 @@ node_modules/
 next-env.d.ts
 .vercel
 
-# macOS
-.DS_Store
-
 # Playwright
 /test-results/
 /playwright-report/
