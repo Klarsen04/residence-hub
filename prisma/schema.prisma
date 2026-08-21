@@ -91,6 +91,7 @@ model User {
   roomCheckResults RoomCheckResult[]
   tags             Tag[]
   conversations    Conversation[]
+  passwordResets   PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -503,6 +504,27 @@ model AuthorizationCode {
   createdAt DateTime @default(now())
 }
 
+// ─── Password Recovery ───────────────────────────────────────────────────────
+
+// A single-use ticket for setting a new password. Only the SHA-256 of the token
+// is stored, so the value that travels in the reset link can't be read back out
+// of the database — not even by an admin, which is why an admin who needs to
+// hand someone a link creates a fresh one rather than looking up theirs.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  /// The admin who issued it, or null when the person asked for it themselves.
+  createdBy String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 // ─── AI Planner ──────────────────────────────────────────────────────────────
 
 // A saved AI planning chat (like a ChatGPT conversation thread).
@@ -614,11 +636,12 @@ model Incident {
   actionTaken  String?
   followUpNeeded Boolean @default(false)
   status       String  @default("open")
-  isPublic     Boolean @default(false) // private by default; only an admin may flip this on
-  // Sharing needs admin sign-off. The owner asks by setting this to "pending";
-  // an admin either flips isPublic and clears it, or sets "rejected" so the
-  // owner can see the answer instead of wondering why nothing happened.
-  shareRequest String? // null | "pending" | "rejected"
+  isPublic     Boolean @default(false) // private by default; publishing needs clearance first
+  // Sharing takes two steps. The owner asks by setting this to "pending"; an
+  // admin answers with "approved" (cleared, but still private — the owner
+  // decides when it goes out), "rejected", or "changes" when the report needs
+  // work first. Editing a cleared report drops it back to "pending".
+  shareRequest String? // null | "pending" | "approved" | "rejected" | "changes"
 
   user User @relation(fields: [userId], references: [id])
 
