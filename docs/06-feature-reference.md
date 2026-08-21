@@ -175,7 +175,9 @@ Flow:
    the deployment can send mail.
 2. **Deliver.** `src/lib/email.ts` posts to the Resend HTTP API (no npm
    dependency added) when **both** `RESEND_API_KEY` and `EMAIL_FROM` are set;
-   `emailConfigured()` reports that. Sending never throws.
+   `emailConfigured()` reports that. Sending never throws. Setting the optional
+   `EMAIL_REPLY_TO` adds a `reply_to` to the payload — trimmed, and left out
+   entirely when blank, since Resend rejects an empty one.
 3. **Or hand it over.** With no mail provider — or when someone can't reach their
    inbox — an admin uses `POST /api/admin/password-resets { email }`. Because only
    hashes are stored, an admin **cannot look up someone's existing link**; this
@@ -664,6 +666,7 @@ Local login for testing is the seeded `admin@residencehub.com` / `admin123`.
 | `NEXTAUTH_URL`, `NEXTAUTH_SECRET` | Sessions; `NEXTAUTH_URL` is also the origin baked into reset links |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Emailing reset links — both required, or an admin hands them over |
+| `EMAIL_REPLY_TO` | Optional reply address on that mail; omitted from the payload when blank |
 | `OPENROUTER_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY` | Cloud AI planner (at least one) |
 | `AI_PROVIDER_ORDER`, `*_MODELS`, `AI_LIMIT_*` | Planner routing and caps |
 | `CRON_SECRET` | Protecting `/api/cron/*` |
