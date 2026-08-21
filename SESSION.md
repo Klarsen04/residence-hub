@@ -48,7 +48,7 @@ Redesigned the app around a "modern residential campus / digital neighbourhood" 
 
 **GSAP gotchas hit:** (1) can't tween `fill` with `hsl(var(--x))` — colour parser needs literal `hsl(h, s%, l%)`. (2) don't `gsap.to()` a raw `<svg>` root with yPercent+ScrollTrigger (threw null.map) — removed that drift. Guard all refs/empty selectors before tweening.
 
-**Verified:** `npx tsc --noEmit` = 0; `npm run build` = 0 (`/` static, 215kB first load). Playwright-screenshotted landing (hero/building/footer), dashboard (logged in as `admin@residencehub.com`/`admin123`), login — all render clean, no console/page errors. NOT committed yet.
+**Verified:** `npx tsc --noEmit` = 0; `npm run build` = 0 (`/` static, 215kB first load). Playwright-screenshotted landing (hero/building/footer), dashboard (logged in as the seeded admin), login — all render clean, no console/page errors. NOT committed yet.
 
 ---
 
