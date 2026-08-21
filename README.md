@@ -13,7 +13,7 @@ Residence Hub replaces the scattered spreadsheets, group chats, and paper forms 
 
 🔗 **Live:** [jerichoreshub.dpdns.org](https://jerichoreshub.dpdns.org)
 
-> New to the codebase? Read the deep-dive **[Developer Guide](docs/CODEBASE_GUIDE.md)** (architecture, data model, API reference, deployment runbook).
+> New to the codebase? Read the deep-dive **[Feature Reference](docs/06-feature-reference.md)** — every feature, the APIs it calls, what it stores, and who's allowed to do what.
 
 ## 📸 Screenshots
 
